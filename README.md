@@ -11,6 +11,7 @@ Zero dependencies SQL Builder for [Cloudflare D1](https://blog.cloudflare.com/in
 - [x] Create/drop tables
 - [x] Easily snap together a bunch of SQL conditions without adding too much complexity to your project
 - [ ] Bulk insert/updates
+- [ ] Named parameters (waiting of full support from D1)
 
 ## Installation
 
@@ -19,7 +20,7 @@ npm install workers-qb
 ```
 
 ## Example
-##### Basic insert/select/update/delete queries
+#### Basic insert/select/update/delete queries
 ```ts
 import { D1QB } from 'workers-qb'
 const qb = new D1QB(env.DB)
@@ -68,17 +69,20 @@ await qb.delete({
 })
 ```
 
-##### Fetching a single record 
+#### Fetching a single record 
 ```ts
 import { D1QB, OrderTypes } from 'workers-qb'
 const qb = new D1QB(env.DB)
 
 
-const result = await qb.fetchAll({
+const result = await qb.fetchOne({
     tableName: "employees",
     fields: "*",
     where: {
-      conditions: "department = ?1",
+      conditions: [
+          "department = ?1",
+          "name LIKE 'J%'",
+      ],
       params: ["HQ"]
     },
     orderBy: {
@@ -87,24 +91,32 @@ const result = await qb.fetchAll({
 })
 ```
 
-##### Fetching multiple record 
+#### Fetching multiple record with dynamic where
 ```ts
 import { D1QB, OrderTypes } from 'workers-qb'
 const qb = new D1QB(env.DB)
 
 
-const result = await qb.fetchAll({
-    tableName: "employees",
-    fields: "role, count(*) as count",
-    where: {
-      conditions: "department = ?1",
-      params: ["HQ"]
-    },
-    groupBy: "role",
-    orderBy: {
-      "count": OrderTypes.DESC,
-    },
-})
+async function countRoles(department?: string) {
+  const conditions = []
+  
+  if (department) conditions.push("department = ?1")
+  
+  const result = await qb.fetchAll({
+      tableName: "employees",
+      fields: "role, count(*) as count",
+      where: {
+        conditions: conditions,
+        params: [department]
+      },
+      groupBy: "role",
+      orderBy: {
+        "count": OrderTypes.DESC,
+      },
+  })
+  
+  return result.results
+}
 ```
 
 
