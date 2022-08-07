@@ -1,5 +1,113 @@
 # workers-qb
 
+Zero dependencies SQL Builder for [Cloudflare D1](https://blog.cloudflare.com/introducing-d1/) inside 
+[Workers](https://developers.cloudflare.com/workers/)
+
+## Features
+- [x] zero dependencies.
+- [x] [Fully typed/TypeScript support](#typescript)
+- [x] SQL Type checking with compatible IDE's
+- [x] Insert/update/select/delete queries
+- [x] Create/drop tables
+- [x] Easily snap together a bunch of SQL conditions without adding too much complexity to your project
+- [ ] Bulk insert/updates
+
+## Installation
+
+```
+npm install workers-qb
+```
+
+## Example
+##### Basic insert/select/update/delete queries
+```ts
+import { D1QB } from 'workers-qb'
+const qb = new D1QB(env.DB)
+
+const inserted = await qb.insert({
+    tableName: "employees",
+    data: {
+        name: "Joe",
+        role: "manager",
+        department: "store",
+    },
+    returning: "*",
+})
+console.log(inserted)  // This will contain the data after SQL triggers and primary keys that are automated
+
+
+const joeAgain = await qb.fetchAll({
+    tableName: "employees",
+    fields: "*",
+    where: {
+      conditions: "id = ?1",
+      params: [inserted.results[0].id]  // Filter using the id returned above
+    },
+})
+
+
+const joeUpdated = await qb.update({
+    tableName: "employees",
+    data: {
+      role: "CEO",
+      department: "HQ",
+    },
+    where: {
+      conditions: "id = ?1",
+      params: [inserted.results[0].id]
+    },
+})
+
+
+await qb.delete({
+    tableName: "employees",
+    where: {
+      conditions: "id = ?1",
+      params: [inserted.results[0].id]
+    },
+})
+```
+
+##### Fetching a single record 
+```ts
+import { D1QB, OrderTypes } from 'workers-qb'
+const qb = new D1QB(env.DB)
+
+
+const result = await qb.fetchAll({
+    tableName: "employees",
+    fields: "*",
+    where: {
+      conditions: "department = ?1",
+      params: ["HQ"]
+    },
+    orderBy: {
+      "timestamp": OrderTypes.DESC,
+    },
+})
+```
+
+##### Fetching multiple record 
+```ts
+import { D1QB, OrderTypes } from 'workers-qb'
+const qb = new D1QB(env.DB)
+
+
+const result = await qb.fetchAll({
+    tableName: "employees",
+    fields: "role, count(*) as count",
+    where: {
+      conditions: "department = ?1",
+      params: ["HQ"]
+    },
+    groupBy: "role",
+    orderBy: {
+      "count": OrderTypes.DESC,
+    },
+})
+```
+
+
 ## Development
 
 ### Set up tools and environment
@@ -65,7 +173,7 @@ This will create a symbolic link from globally-installed workers-qb to **node_mo
 You can then create a, for example, **testsql.ts** file with the content:
 
 ```ts
-import { D1QB } from 'workers-qb'  TODO
+import { D1QB } from 'workers-qb'
 const qb = new D1QB(env.DB)
 
 console.log("Creating table...")
@@ -104,4 +212,3 @@ Whenever you want to uninstall the globally-installed workers-qb and remove the 
 ```bash
 npm uninstall workers-qb -g
 ```
-

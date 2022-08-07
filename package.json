@@ -1,6 +1,6 @@
 {
   "name": "workers-qb",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Easily run SQL queries in Cloudflare Workers D1",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
