@@ -11,7 +11,7 @@ Zero dependencies SQL Builder for [Cloudflare D1](https://blog.cloudflare.com/in
 - [x] Create/drop tables
 - [x] Easily snap together a bunch of SQL conditions without adding too much complexity to your project
 - [ ] Bulk insert/updates
-- [ ] Named parameters (waiting of full support from D1)
+- [ ] Named parameters (waiting for full support in D1)
 
 ## Installation
 
@@ -104,7 +104,10 @@ async function countRoles(department?: string) {
   
   const result = await qb.fetchAll({
       tableName: "employees",
-      fields: "role, count(*) as count",
+      fields: [
+          "role",
+          "count(*) as count",
+      ],
       where: {
         conditions: conditions,
         params: [department]
