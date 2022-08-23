@@ -1,0 +1,63 @@
+site_name: workers-qb
+site_description: Zero dependencies SQL Builder for Cloudflare D1 Workers
+site_url: https://workers-qb.massadas.com/
+docs_dir: pages
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to dark mode
+    - scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/lightbulb
+        name: Switch to light mode
+  features:
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+  icon:
+    repo: fontawesome/brands/github
+  language: en
+repo_name: G4brym/workers-qb
+repo_url: https://github.com/G4brym/workers-qb
+edit_uri: ''
+plugins:
+  - search
+  - markdownextradata:
+      data: data
+nav:
+  - workers-qb: index.md
+  - getting-started.md
+  - basic-queries.md
+#  - Advanced Queries:
+#      - advanced-queries/fields.md
+#      - advanced-queries/group.md
+#      - advanced-queries/having.md
+#      - advanced-queries/order.md
+#      - advanced-queries/auxiliary-queries.md
+markdown_extensions:
+  - toc:
+      permalink: true
+  - markdown.extensions.codehilite:
+      guess_lang: false
+  - mdx_include:
+      base_path: pages
+  - admonition
+  - codehilite
+  - extra
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format ''
+  - pymdownx.tabbed
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/G4brym/workers-qb

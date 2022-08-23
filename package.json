@@ -1,7 +1,7 @@
 {
   "name": "workers-qb",
   "version": "0.1.1",
-  "description": "Easily run SQL queries in Cloudflare Workers D1",
+  "description": "Zero dependencies SQL Builder for Cloudflare D1 Workers",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "umd:main": "dist/umd/index.js",
