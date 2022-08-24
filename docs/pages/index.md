@@ -1,6 +1,6 @@
 # workers-qb
 
-Zero dependencies SQL Builder for [Cloudflare D1](https://blog.cloudflare.com/introducing-d1/) 
+Zero dependencies Query Builder for [Cloudflare D1](https://blog.cloudflare.com/introducing-d1/) 
 [Workers](https://developers.cloudflare.com/workers/)
 
 This module provides a simple standardized interface while keeping the

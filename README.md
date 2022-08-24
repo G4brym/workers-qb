@@ -1,12 +1,14 @@
 # workers-qb
 
-Zero dependencies SQL Builder for Cloudflare D1 Workers
+Zero dependencies Query Builder for Cloudflare D1 Workers
 
 This module provides a simple standardized interface while keeping the benefits and speed of using raw queries over a 
 traditional ORM.
 
 `workers-qb` is not intended to provide ORM-like functionality, rather to make it easier to interact with the database 
 from code for direct SQL access using convenient wrapper methods.
+
+Read the documentation [Here](https://workers-qb.massadas.com/)!
 
 ## Features
 - [x] Zero dependencies.

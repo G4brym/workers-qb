@@ -1,5 +1,5 @@
 site_name: workers-qb
-site_description: Zero dependencies SQL Builder for Cloudflare D1 Workers
+site_description: Zero dependencies Query Builder for Cloudflare D1 Workers
 site_url: https://workers-qb.massadas.com/
 docs_dir: pages
 theme:
@@ -35,12 +35,14 @@ nav:
   - workers-qb: index.md
   - getting-started.md
   - basic-queries.md
-#  - Advanced Queries:
-#      - advanced-queries/fields.md
-#      - advanced-queries/group.md
-#      - advanced-queries/having.md
-#      - advanced-queries/order.md
-#      - advanced-queries/auxiliary-queries.md
+  - Advanced Queries:
+      - advanced-queries/fields.md
+      - advanced-queries/where.md
+      - advanced-queries/groupBy.md
+      - advanced-queries/having.md
+      - advanced-queries/orderBy.md
+      - advanced-queries/limit.md
+      - advanced-queries/returning.md
 markdown_extensions:
   - toc:
       permalink: true
