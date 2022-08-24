@@ -39,4 +39,20 @@ export interface Delete{
     returning?: string | Array<string>
 }
 
+export interface Result{
+    changes?: number
+    duration: number
+    lastRowId?: number
+    results?: Array<Record<string, string | boolean | number | null>>
+    served_by: string
+    success: boolean
+}
 
+export interface ResultOne{
+    changes?: number
+    duration: number
+    lastRowId?: number
+    results?: Record<string, string | boolean | number | null>
+    served_by: string
+    success: boolean
+}

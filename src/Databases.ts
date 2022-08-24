@@ -15,8 +15,6 @@ export class D1QB extends QueryBuilder {
       stmt = stmt.bind(...params.arguments)
     }
 
-    console.log(params)
-
     if (params.fetchType === FetchTypes.ONE) {
       return stmt.first()
     } else if (params.fetchType === FetchTypes.ALL) {

@@ -1,6 +1,6 @@
 {
   "name": "workers-qb",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Zero dependencies Query Builder for Cloudflare D1 Workers",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",

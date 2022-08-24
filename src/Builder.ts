@@ -1,4 +1,4 @@
-import {Delete, Insert, SelectAll, SelectOne, Update} from "./interfaces";
+import {Delete, Insert, Result, ResultOne, SelectAll, SelectOne, Update} from "./interfaces";
 import {FetchTypes, OrderTypes} from "./enums";
 
 export class QueryBuilder {
@@ -10,27 +10,32 @@ export class QueryBuilder {
     tableName: string,
     schema: string,
     ifNotExists?: boolean
-  }): Promise<any> {
+  }): Promise<Result> {
     return this.execute({
       query: `CREATE TABLE ${(params.ifNotExists)? 'IF NOT EXISTS': ''} ${params.tableName} (${params.schema})`
     })
   }
 
-  async dropTable(params: {tableName: string, ifExists?: boolean}): Promise<any> {
+  async dropTable(params: {tableName: string, ifExists?: boolean}): Promise<Result> {
     return this.execute({
       query: `DROP TABLE ${(params.ifExists)? 'IF EXISTS': ''} ${params.tableName}`
     })
   }
 
-  async fetchOne(params: SelectOne): Promise<any> {
-    return this.execute({
+  async fetchOne(params: SelectOne): Promise<ResultOne> {
+    const data = await this.execute({
       query: this._select({...params, limit: 1}),
       arguments: params.where ? params.where.params : undefined,
       fetchType: FetchTypes.ALL,
     })
+
+    return {
+      ...data,
+      results: data.results[0]
+    }
   }
 
-  async fetchAll(params: SelectAll): Promise<any> {
+  async fetchAll(params: SelectAll): Promise<Result> {
     return this.execute({
       query: this._select(params),
       arguments: params.where ? params.where.params : undefined,
@@ -38,7 +43,7 @@ export class QueryBuilder {
     })
   }
 
-  async insert(params: Insert): Promise<any> {
+  async insert(params: Insert): Promise<Result> {
     return this.execute({
       query: this._insert(params),
       arguments: Object.values(params.data),
@@ -46,7 +51,7 @@ export class QueryBuilder {
     })
   }
 
-  async update(params: Update): Promise<any> {
+  async update(params: Update): Promise<Result> {
     return this.execute({
       query: this._update(params),
       arguments: params.where && params.where.params ? Object.values(params.data).concat(params.where.params) : Object.values(params.data),
@@ -54,7 +59,7 @@ export class QueryBuilder {
     })
   }
 
-  async delete(params: Delete): Promise<any> {
+  async delete(params: Delete): Promise<Result> {
     return this.execute({
       query: this._delete(params),
       arguments: params.where ? params.where.params : undefined,
