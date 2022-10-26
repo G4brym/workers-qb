@@ -121,3 +121,4 @@ dist
 .idea/
 
 docs/site
+.DS_Store

@@ -1,6 +1,6 @@
 # workers-qb
 
-Zero dependencies Query Builder for [Cloudflare D1](https://blog.cloudflare.com/introducing-d1/) 
+Zero dependencies Query Builder for [Cloudflare D1](https://blog.cloudflare.com/introducing-d1/)
 [Workers](https://developers.cloudflare.com/workers/)
 
 This module provides a simple standardized interface while keeping the
@@ -12,6 +12,7 @@ code for direct SQL access using convenient wrapper methods.
 Read the documentation [Here](https://workers-qb.massadas.com/)!
 
 ## Features
+
 - [x] Zero dependencies.
 - [x] Fully typed/TypeScript support
 - [x] SQL Type checking with compatible IDE's
@@ -28,17 +29,18 @@ npm install workers-qb
 ```
 
 ## Basic Usage
+
 ```ts
 import { D1QB } from 'workers-qb'
 const qb = new D1QB(env.DB)
 
 const fetched = await qb.fetchOne({
-    tableName: "employees",
-    fields: "count(*) as count",
-    where: {
-      conditions: "active = ?1",
-      params: [true]
-    },
+  tableName: 'employees',
+  fields: 'count(*) as count',
+  where: {
+    conditions: 'active = ?1',
+    params: [true],
+  },
 })
 
 console.log(`Company has ${fetched.results.count} active employees`)
@@ -50,12 +52,12 @@ console.log(`Company has ${fetched.results.count} active employees`)
 const qb = new D1QB(env.DB)
 
 const fetched = await qb.fetchOne({
-    tableName: "employees",
-    fields: "count(*) as count",
-    where: {
-      conditions: "department = ?1",
-      params: ["HQ"]
-    },
+  tableName: 'employees',
+  fields: 'count(*) as count',
+  where: {
+    conditions: 'department = ?1',
+    params: ['HQ'],
+  },
 })
 
 console.log(`There are ${fetched.results.count} employees in the HR department`)
@@ -68,25 +70,22 @@ import { OrderTypes } from 'workers-qb'
 const qb = new D1QB(env.DB)
 
 const fetched = await qb.fetchAll({
-    tableName: "employees",
-    fields: [
-        "role",
-        "count(*) as count",
-    ],
-    where: {
-      conditions: "department = ?1",
-      params: ["HR"]
-    },
-    groupBy: "role",
-    orderBy: {
-      "count": OrderTypes.DESC,
-    },
+  tableName: 'employees',
+  fields: ['role', 'count(*) as count'],
+  where: {
+    conditions: 'department = ?1',
+    params: ['HR'],
+  },
+  groupBy: 'role',
+  orderBy: {
+    count: OrderTypes.DESC,
+  },
 })
 
 console.log(`Roles in the HR department:`)
 
 fetched.results.forEach((employee) => {
-    console.log(`${employee.role} has ${employee.count} employees`)
+  console.log(`${employee.role} has ${employee.count} employees`)
 })
 ```
 
@@ -96,31 +95,31 @@ fetched.results.forEach((employee) => {
 const qb = new D1QB(env.DB)
 
 const inserted = await qb.insert({
-    tableName: "employees",
-    data: {
-        name: "Joe",
-        role: "manager",
-        department: "store",
-    },
-    returning: "*",
+  tableName: 'employees',
+  data: {
+    name: 'Joe',
+    role: 'manager',
+    department: 'store',
+  },
+  returning: '*',
 })
 
-console.log(inserted)  // This will contain the data after SQL triggers and primary keys that are automated
+console.log(inserted) // This will contain the data after SQL triggers and primary keys that are automated
 ```
 
 #### Updating rows
 
 ```ts
 const updated = await qb.update({
-    tableName: "employees",
-    data: {
-      role: "CEO",
-      department: "HQ",
-    },
-    where: {
-      conditions: "id = ?1",
-      params: [123]
-    },
+  tableName: 'employees',
+  data: {
+    role: 'CEO',
+    department: 'HQ',
+  },
+  where: {
+    conditions: 'id = ?1',
+    params: [123],
+  },
 })
 
 console.log(`Lines affected in this query: ${updated.changes}`)
@@ -130,11 +129,11 @@ console.log(`Lines affected in this query: ${updated.changes}`)
 
 ```ts
 const deleted = await qb.delete({
-    tableName: "employees",
-    where: {
-      conditions: "id = ?1",
-      params: [123]
-    },
+  tableName: 'employees',
+  where: {
+    conditions: 'id = ?1',
+    params: [123],
+  },
 })
 
 console.log(`Lines affected in this query: ${deleted.changes}`)
@@ -144,20 +143,18 @@ console.log(`Lines affected in this query: ${deleted.changes}`)
 
 ```ts
 const created = await qb.createTable({
-    tableName: "testTable",
-    schema: `
+  tableName: 'testTable',
+  schema: `
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL
     `,
-    ifNotExists: true,
+  ifNotExists: true,
 })
-
 
 const dropped = await qb.dropTable({
-    tableName: "testTable"
+  tableName: 'testTable',
 })
 ```
-
 
 ## Development
 
@@ -227,31 +224,31 @@ You can then create a, for example, **testsql.ts** file with the content:
 import { D1QB } from 'workers-qb'
 const qb = new D1QB(env.DB)
 
-console.log("Creating table...")
+console.log('Creating table...')
 const created = await qb.createTable({
-    tableName: "testTable",
-    schema: `
+  tableName: 'testTable',
+  schema: `
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL
     `,
-    ifNotExists: true,
+  ifNotExists: true,
 })
 console.log(created)
 
-console.log("Inserting rows...")
+console.log('Inserting rows...')
 const inserted = await qb.insert({
-    tableName: "testTable",
-    data: {
-        name: "my name",
-    },
-    returning: "*",
+  tableName: 'testTable',
+  data: {
+    name: 'my name',
+  },
+  returning: '*',
 })
 console.log(inserted)
 
-console.log("Selecting rows...")
+console.log('Selecting rows...')
 const selected = await qb.fetchAll({
-    tableName: "testTable",
-    fields: "*"
+  tableName: 'testTable',
+  fields: '*',
 })
 console.log(selected)
 ```

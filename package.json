@@ -19,7 +19,9 @@
     "package": "npm run build && npm pack",
     "test": "jest --no-cache --runInBand",
     "test:cov": "jest --coverage --no-cache --runInBand",
-    "addscope": "node tools/packagejson name @g4brym/workers-qb"
+    "addscope": "node tools/packagejson name @g4brym/workers-qb",
+    "prettify": "prettier . --write --ignore-unknown",
+    "prepare": "husky install"
   },
   "publishConfig": {
     "access": "public"
@@ -61,7 +63,6 @@
   "bugs": {
     "url": "https://github.com/G4brym/workers-qb/issues"
   },
-  "dependencies": {},
   "devDependencies": {
     "@commitlint/cli": "^13.1.0",
     "@commitlint/config-conventional": "^13.1.0",

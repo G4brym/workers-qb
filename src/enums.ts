@@ -1,9 +1,9 @@
 export enum OrderTypes {
-  ASC = "ASC",
-  DESC = "DESC",
+  ASC = 'ASC',
+  DESC = 'DESC',
 }
 
 export enum FetchTypes {
-  ONE = "ONE",
-  ALL = "ALL",
+  ONE = 'ONE',
+  ALL = 'ALL',
 }

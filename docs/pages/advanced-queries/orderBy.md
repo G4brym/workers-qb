@@ -1,9 +1,9 @@
 The order field can receive multiple inputs and all of them will result in the same query:
 
-* a single string
-* an array of strings
-* an object of a {string: another string} (field + orientation)
-* an object of a {string: instance of the Order Enum} (field + orientation)
+- a single string
+- an array of strings
+- an object of a {string: another string} (field + orientation)
+- an object of a {string: instance of the Order Enum} (field + orientation)
 
 ## Order by a single field with the default orientation
 
@@ -11,23 +11,23 @@ The order field can receive multiple inputs and all of them will result in the s
 const qb = new D1QB(env.DB)
 
 const fetched = await qb.fetchAll({
-    tableName: "employees",
-    fields: "*",
-    orderBy: "id"
+  tableName: 'employees',
+  fields: '*',
+  orderBy: 'id',
 })
 ```
 
 ## Order by a single field with the Order Enum orientation
 
 ```ts
-import {OrderTypes} from "workers-qb";
+import { OrderTypes } from 'workers-qb'
 
 const qb = new D1QB(env.DB)
 
 const fetched = await qb.fetchAll({
-  tableName: "employees",
-  fields: "*",
-  orderBy: {id: OrderTypes.DESC}
+  tableName: 'employees',
+  fields: '*',
+  orderBy: { id: OrderTypes.DESC },
 })
 ```
 
@@ -37,8 +37,8 @@ const fetched = await qb.fetchAll({
 const qb = new D1QB(env.DB)
 
 const fetched = await qb.fetchAll({
-  tableName: "employees",
-  fields: "*",
-  orderBy: {id: 'DESC'}
+  tableName: 'employees',
+  fields: '*',
+  orderBy: { id: 'DESC' },
 })
 ```

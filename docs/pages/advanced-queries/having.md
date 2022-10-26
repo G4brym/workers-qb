@@ -7,16 +7,13 @@ conditions as you want
 const qb = new D1QB(env.DB)
 
 const fetched = await qb.fetchAll({
-    tableName: "employees",
-    fields: [
-        "department",
-        "count(*) as total"
-    ],
-  groupBy: "department",
-  having: "active = true"
+  tableName: 'employees',
+  fields: ['department', 'count(*) as total'],
+  groupBy: 'department',
+  having: 'active = true',
 })
 
 fetched.results.forEach((obj) => {
-    console.log(`Department ${obj.department} has ${obj.total} active employees`)
+  console.log(`Department ${obj.department} has ${obj.total} active employees`)
 })
 ```

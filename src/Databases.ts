@@ -1,14 +1,18 @@
-import {QueryBuilder} from "./Builder";
-import {FetchTypes} from "./enums";
+import { QueryBuilder } from './Builder'
+import { FetchTypes } from './enums'
 
 export class D1QB extends QueryBuilder {
-  private db: any;
+  private db: any
   constructor(db: any) {
-    super();
-    this.db = db;
+    super()
+    this.db = db
   }
 
-  async execute(params: {query: String, arguments?: (string | number | boolean | null)[], fetchType?: FetchTypes}): Promise<any> {
+  async execute(params: {
+    query: String
+    arguments?: (string | number | boolean | null)[]
+    fetchType?: FetchTypes
+  }): Promise<any> {
     let stmt = this.db.prepare(params.query)
 
     if (params.arguments) {

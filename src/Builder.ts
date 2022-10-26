@@ -1,37 +1,37 @@
-import {Delete, Insert, Result, ResultOne, SelectAll, SelectOne, Update} from "./interfaces";
-import {FetchTypes, OrderTypes} from "./enums";
+import { Delete, Insert, Result, ResultOne, SelectAll, SelectOne, Update } from './interfaces'
+import { FetchTypes, OrderTypes } from './enums'
 
 export class QueryBuilder {
-  async execute(params: {query: String, arguments?: (string | number | boolean | null)[], fetchType?: FetchTypes}): Promise<any> {
-    throw new Error("Execute method not implemented");
+  async execute(params: {
+    query: String
+    arguments?: (string | number | boolean | null)[]
+    fetchType?: FetchTypes
+  }): Promise<any> {
+    throw new Error('Execute method not implemented')
   }
 
-  async createTable(params: {
-    tableName: string,
-    schema: string,
-    ifNotExists?: boolean
-  }): Promise<Result> {
+  async createTable(params: { tableName: string; schema: string; ifNotExists?: boolean }): Promise<Result> {
     return this.execute({
-      query: `CREATE TABLE ${(params.ifNotExists)? 'IF NOT EXISTS': ''} ${params.tableName} (${params.schema})`
+      query: `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName} (${params.schema})`,
     })
   }
 
-  async dropTable(params: {tableName: string, ifExists?: boolean}): Promise<Result> {
+  async dropTable(params: { tableName: string; ifExists?: boolean }): Promise<Result> {
     return this.execute({
-      query: `DROP TABLE ${(params.ifExists)? 'IF EXISTS': ''} ${params.tableName}`
+      query: `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`,
     })
   }
 
   async fetchOne(params: SelectOne): Promise<ResultOne> {
     const data = await this.execute({
-      query: this._select({...params, limit: 1}),
+      query: this._select({ ...params, limit: 1 }),
       arguments: params.where ? params.where.params : undefined,
       fetchType: FetchTypes.ALL,
     })
 
     return {
       ...data,
-      results: data.results[0]
+      results: data.results[0],
     }
   }
 
@@ -54,7 +54,10 @@ export class QueryBuilder {
   async update(params: Update): Promise<Result> {
     return this.execute({
       query: this._update(params),
-      arguments: params.where && params.where.params ? Object.values(params.data).concat(params.where.params) : Object.values(params.data),
+      arguments:
+        params.where && params.where.params
+          ? Object.values(params.data).concat(params.where.params)
+          : Object.values(params.data),
       fetchType: FetchTypes.ALL,
     })
   }
@@ -68,15 +71,14 @@ export class QueryBuilder {
   }
 
   _insert(params: Insert): string {
-    const columns = Object.keys(params.data).join(", ")
+    const columns = Object.keys(params.data).join(', ')
     const values: Array<string> = []
     Object.keys(params.data).forEach((key, index) => {
-      values.push(`?${index+1}`)
+      values.push(`?${index + 1}`)
     })
 
     return (
-      `INSERT INTO ${params.tableName} (${columns}) VALUES(${values.join(", ")})` +
-      this._returning(params.returning)
+      `INSERT INTO ${params.tableName} (${columns}) VALUES(${values.join(', ')})` + this._returning(params.returning)
     )
   }
 
@@ -85,22 +87,18 @@ export class QueryBuilder {
 
     const set: Array<string> = []
     Object.entries(params.data).forEach(([key, value], index) => {
-      set.push(`${key} = ?${whereParamsLength+index+1}`)
+      set.push(`${key} = ?${whereParamsLength + index + 1}`)
     })
 
     return (
-      `UPDATE ${params.tableName} SET (${set.join(", ")})` +
+      `UPDATE ${params.tableName} SET (${set.join(', ')})` +
       this._where(params.where?.conditions) +
       this._returning(params.returning)
     )
   }
 
   _delete(params: Delete): string {
-    return (
-      `DELETE FROM ${params.tableName}` +
-      this._where(params.where?.conditions) +
-      this._returning(params.returning)
-    )
+    return `DELETE FROM ${params.tableName}` + this._where(params.where?.conditions) + this._returning(params.returning)
   }
 
   _select(params: SelectAll): string {
@@ -116,21 +114,21 @@ export class QueryBuilder {
   }
 
   _fields(value: string | Array<string>): string {
-    if(typeof value === 'string') return value
+    if (typeof value === 'string') return value
 
     return value.join(', ')
   }
 
   _where(value?: string | Array<string>): string {
     if (!value) return ''
-    if(typeof value === 'string') return ` WHERE ${value}`
+    if (typeof value === 'string') return ` WHERE ${value}`
 
     return ` WHERE ${value.join(' AND ')}`
   }
 
   _groupBy(value?: string | Array<string>): string {
     if (!value) return ''
-    if(typeof value === 'string') return ` GROUP BY ${value}`
+    if (typeof value === 'string') return ` GROUP BY ${value}`
 
     return ` GROUP BY ${value.join(', ')}`
   }
@@ -143,9 +141,10 @@ export class QueryBuilder {
 
   _orderBy(value?: string | Array<string> | Record<string, string | OrderTypes>): string {
     if (!value) return ''
-    if(typeof value === 'string') return ` ORDER BY ${value}`
+    if (typeof value === 'string') return ` ORDER BY ${value}`
 
-    if(value.constructor.name.toLowerCase() === 'array') { // @ts-ignore
+    if (value.constructor.name.toLowerCase() === 'array') {
+      // @ts-ignore
       return ` ORDER BY ${value.join(', ')}`
     }
 
@@ -171,7 +170,7 @@ export class QueryBuilder {
 
   _returning(value?: string | Array<string>): string {
     if (!value) return ''
-    if(typeof value === 'string') return ` RETURNING ${value}`
+    if (typeof value === 'string') return ` RETURNING ${value}`
 
     return ` RETURNING ${value.join(', ')}`
   }

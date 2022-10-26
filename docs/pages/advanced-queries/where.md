@@ -7,11 +7,11 @@ Currently due to a limitation in D1, there is only support for ordered parameter
 const qb = new D1QB(env.DB)
 
 const fetched = await qb.fetchAll({
-    tableName: "employees",
-    fields: "*",
-    where: {
-        conditions: "active = true"
-    }
+  tableName: 'employees',
+  fields: '*',
+  where: {
+    conditions: 'active = true',
+  },
 })
 ```
 
@@ -21,14 +21,11 @@ const fetched = await qb.fetchAll({
 const qb = new D1QB(env.DB)
 
 const fetched = await qb.fetchAll({
-    tableName: "employees",
-    fields: "*",
-    where: {
-        conditions: [
-            "active = true",
-            'department = "HR"'
-        ]
-    }
+  tableName: 'employees',
+  fields: '*',
+  where: {
+    conditions: ['active = true', 'department = "HR"'],
+  },
 })
 ```
 
@@ -38,12 +35,12 @@ const fetched = await qb.fetchAll({
 const qb = new D1QB(env.DB)
 
 const fetched = await qb.fetchAll({
-    tableName: "employees",
-    fields: "*",
-    where: {
-        conditions: "department = ?1",
-        params: ["HR"]
-    },
+  tableName: 'employees',
+  fields: '*',
+  where: {
+    conditions: 'department = ?1',
+    params: ['HR'],
+  },
 })
 ```
 
@@ -53,24 +50,23 @@ const fetched = await qb.fetchAll({
 const qb = new D1QB(env.DB)
 
 async function countEmployees(department?: string): number {
-    const conditions = []
-  
-    if (department)
-        conditions.push("department = ?1")
-    
-    const fetched = await qb.fetchAll({
-        tableName: "employees",
-        fields: "count(*) as count",
-        where: {
-            conditions: conditions,
-            params: ["HR"]
-        },
-    })
-    
-    return fetched.results.count
+  const conditions = []
+
+  if (department) conditions.push('department = ?1')
+
+  const fetched = await qb.fetchAll({
+    tableName: 'employees',
+    fields: 'count(*) as count',
+    where: {
+      conditions: conditions,
+      params: ['HR'],
+    },
+  })
+
+  return fetched.results.count
 }
 
 const allEmployees = await countEmployees()
 
-const hrEmployees = await countEmployees("HR")
+const hrEmployees = await countEmployees('HR')
 ```

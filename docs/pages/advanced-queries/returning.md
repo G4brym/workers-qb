@@ -6,13 +6,13 @@ The returning field allows you to return data after inserts/updates have been pe
 const qb = new D1QB(env.DB)
 
 const inserted = await qb.insert({
-    tableName: "employees",
-    data: {
-        name: "Joe",
-        role: "manager",
-        department: "store",
-    },
-    returning: "id",
+  tableName: 'employees',
+  data: {
+    name: 'Joe',
+    role: 'manager',
+    department: 'store',
+  },
+  returning: 'id',
 })
 
 console.log(`Joe just got the employee id: ${inserted.results.id}`)
@@ -24,13 +24,13 @@ console.log(`Joe just got the employee id: ${inserted.results.id}`)
 const qb = new D1QB(env.DB)
 
 const inserted = await qb.insert({
-    tableName: "employees",
-    data: {
-        name: "Joe",
-        role: "manager",
-        department: "store",
-    },
-    returning: "*",
+  tableName: 'employees',
+  data: {
+    name: 'Joe',
+    role: 'manager',
+    department: 'store',
+  },
+  returning: '*',
 })
 ```
 
@@ -40,15 +40,12 @@ const inserted = await qb.insert({
 const qb = new D1QB(env.DB)
 
 const inserted = await qb.insert({
-    tableName: "employees",
-    data: {
-        name: "Joe",
-        role: "manager",
-        department: "store",
-    },
-    returning: [
-        "id",
-        "salary"
-    ],
+  tableName: 'employees',
+  data: {
+    name: 'Joe',
+    role: 'manager',
+    department: 'store',
+  },
+  returning: ['id', 'salary'],
 })
 ```
