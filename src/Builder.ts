@@ -1,5 +1,5 @@
 import { Delete, Insert, Result, ResultOne, SelectAll, SelectOne, Update } from './interfaces'
-import {ConflictTypes, FetchTypes, OrderTypes} from './enums'
+import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 
 export class QueryBuilder {
   async execute(params: {
@@ -71,7 +71,7 @@ export class QueryBuilder {
   }
 
   _onConflict(resolution?: string | ConflictTypes): string {
-    if(resolution) {
+    if (resolution) {
       return `OR ${resolution} `
     }
     return ''
@@ -85,7 +85,9 @@ export class QueryBuilder {
     })
 
     return (
-      `INSERT ${this._onConflict(params.onConflict)}INTO ${params.tableName} (${columns}) VALUES(${values.join(', ')})` + this._returning(params.returning)
+      `INSERT ${this._onConflict(params.onConflict)}INTO ${params.tableName} (${columns}) VALUES(${values.join(
+        ', '
+      )})` + this._returning(params.returning)
     )
   }
 

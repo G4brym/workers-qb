@@ -10,7 +10,6 @@ Available resolution methods are:
 
 For more information on what each resolution means, refer to the [official SQLite docs here](https://www.sqlite.org/lang_conflict.html)
 
-
 ## On Conflict ignore
 
 ```ts

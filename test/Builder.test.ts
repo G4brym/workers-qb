@@ -1,5 +1,5 @@
-import {QuerybuilderTest} from './utils'
-import {ConflictTypes, OrderTypes} from '../src/enums'
+import { QuerybuilderTest } from './utils'
+import { ConflictTypes, OrderTypes } from '../src/enums'
 
 describe('QueryBuilder', () => {
   //////

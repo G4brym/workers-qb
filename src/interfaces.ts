@@ -1,4 +1,4 @@
-import {ConflictTypes, OrderTypes} from './enums'
+import { ConflictTypes, OrderTypes } from './enums'
 
 export interface Where {
   conditions: string | Array<string>
