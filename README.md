@@ -16,7 +16,8 @@ Read the documentation [Here](https://workers-qb.massadas.com/)!
 - [x] Zero dependencies.
 - [x] Fully typed/TypeScript support
 - [x] SQL Type checking with compatible IDE's
-- [x] Insert/Update/Select/Delete queries
+- [x] Insert/Update/Select/Delete/Join queries
+- [x] On Conflict for Inserts and Updates
 - [x] Create/drop tables
 - [x] Keep where conditions simple in code
 - [ ] Bulk insert/update

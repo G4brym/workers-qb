@@ -16,7 +16,8 @@ The `workers-qb` currently provides:
 - Zero dependencies.
 - Fully typed/TypeScript support
 - SQL Type checking with compatible IDE's
-- Insert/Update/Select/Delete queries
+- Insert/Update/Select/Delete/Join queries
+- On Conflict for Inserts and Updates
 - Create/drop tables
 - Keep where conditions simple in code
 
