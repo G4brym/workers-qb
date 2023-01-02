@@ -57,6 +57,27 @@ describe('QueryBuilder', () => {
   //////
   // Update
   //////
+  test('update one field with one where and verify arguments', async () => {
+    const qb = new QuerybuilderTest()
+    let execute = jest.spyOn(qb, 'execute')
+
+    qb.update({
+      tableName: 'testTable',
+      data: {
+        my_field: 'test_data',
+      },
+      where: {
+        conditions: 'field = ?1',
+        params: ['test_where'],
+      },
+    })
+
+    expect(execute).toHaveBeenCalledWith({
+      query: 'UPDATE testTable SET my_field = ?2 WHERE field = ?1',
+      arguments: ['test_where', 'test_data'],
+      fetchType: 'ALL',
+    })
+  })
   test('update one field with one where without returning', async () => {
     const query = new QuerybuilderTest()._update({
       tableName: 'testTable',
@@ -69,7 +90,7 @@ describe('QueryBuilder', () => {
       },
     })
 
-    expect(query).toEqual('UPDATE testTable SET (my_field = ?2) ' + 'WHERE field = ?1')
+    expect(query).toEqual('UPDATE testTable SET my_field = ?2 WHERE field = ?1')
   })
 
   test('update multiple field with one where without returning', async () => {
@@ -85,7 +106,7 @@ describe('QueryBuilder', () => {
       },
     })
 
-    expect(query).toEqual('UPDATE testTable SET (my_field = ?2, another = ?3) ' + 'WHERE field = ?1')
+    expect(query).toEqual('UPDATE testTable SET my_field = ?2, another = ?3 WHERE field = ?1')
   })
 
   test('update multiple field with multiple where without returning', async () => {
@@ -101,7 +122,7 @@ describe('QueryBuilder', () => {
       },
     })
 
-    expect(query).toEqual('UPDATE testTable SET (my_field = ?3, another = ?4) ' + 'WHERE field = ?1 AND id = ?2')
+    expect(query).toEqual('UPDATE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2')
   })
 
   test('update multiple field with multiple where with one returning', async () => {
@@ -118,9 +139,7 @@ describe('QueryBuilder', () => {
       returning: 'id',
     })
 
-    expect(query).toEqual(
-      'UPDATE testTable SET (my_field = ?3, another = ?4) ' + 'WHERE field = ?1 AND id = ?2 RETURNING id'
-    )
+    expect(query).toEqual('UPDATE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id')
   })
 
   test('update multiple field with multiple where with multiple returning', async () => {
@@ -138,7 +157,7 @@ describe('QueryBuilder', () => {
     })
 
     expect(query).toEqual(
-      'UPDATE testTable SET (my_field = ?3, another = ?4) ' + 'WHERE field = ?1 AND id = ?2 RETURNING id, field'
+      'UPDATE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id, field'
     )
   })
 
@@ -179,7 +198,7 @@ describe('QueryBuilder', () => {
       returning: 'id',
     })
 
-    expect(query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 ' + 'RETURNING id')
+    expect(query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id')
   })
 
   test('delete with multiple where with multiple returning', async () => {
@@ -192,7 +211,7 @@ describe('QueryBuilder', () => {
       returning: ['id', 'field'],
     })
 
-    expect(query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 ' + 'RETURNING id, field')
+    expect(query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id, field')
   })
 
   //////
@@ -256,7 +275,7 @@ describe('QueryBuilder', () => {
       groupBy: 'type',
     })
 
-    expect(query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 ' + 'GROUP BY type')
+    expect(query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type')
   })
 
   test('select with multiple where and multiple group by', async () => {
@@ -270,7 +289,7 @@ describe('QueryBuilder', () => {
       groupBy: ['type', 'day'],
     })
 
-    expect(query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 ' + 'GROUP BY type, day')
+    expect(query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type, day')
   })
 
   test('select with multiple where and one group by and having', async () => {
@@ -286,7 +305,7 @@ describe('QueryBuilder', () => {
     })
 
     expect(query).toEqual(
-      'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 ' + 'GROUP BY type HAVING COUNT(trackid) > 15'
+      'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type HAVING COUNT(trackid) > 15'
     )
   })
 
@@ -302,7 +321,7 @@ describe('QueryBuilder', () => {
       orderBy: 'id',
     })
 
-    expect(query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 ' + 'GROUP BY type ORDER BY id')
+    expect(query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type ORDER BY id')
   })
 
   test('select with multiple where and one group by and multiple order by', async () => {
@@ -317,9 +336,7 @@ describe('QueryBuilder', () => {
       orderBy: ['id', 'timestamp'],
     })
 
-    expect(query).toEqual(
-      'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 ' + 'GROUP BY type ORDER BY id, timestamp'
-    )
+    expect(query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type ORDER BY id, timestamp')
   })
 
   test('select with multiple where and one group by and object order by', async () => {
@@ -338,7 +355,7 @@ describe('QueryBuilder', () => {
     })
 
     expect(query).toEqual(
-      'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 ' + 'GROUP BY type ORDER BY id ASC, timestamp DESC'
+      'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type ORDER BY id ASC, timestamp DESC'
     )
   })
 
@@ -355,8 +372,6 @@ describe('QueryBuilder', () => {
       offset: 15,
     })
 
-    expect(query).toEqual(
-      'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 ' + 'GROUP BY type LIMIT 10 OFFSET 15'
-    )
+    expect(query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type LIMIT 10 OFFSET 15')
   })
 })
