@@ -43,6 +43,7 @@ nav:
       - advanced-queries/orderBy.md
       - advanced-queries/limit.md
       - advanced-queries/returning.md
+      - advanced-queries/onConflict.md
 markdown_extensions:
   - toc:
       permalink: true

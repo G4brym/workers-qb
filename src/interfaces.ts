@@ -1,4 +1,4 @@
-import { OrderTypes } from './enums'
+import { ConflictTypes, OrderTypes } from './enums'
 
 export interface Where {
   conditions: string | Array<string>
@@ -24,6 +24,7 @@ export interface Insert {
   tableName: string
   data: Record<string, string | boolean | number | null>
   returning?: string | Array<string>
+  onConflict?: string | ConflictTypes
 }
 
 export interface Update {
@@ -31,6 +32,7 @@ export interface Update {
   data: Record<string, string | boolean | number | null>
   where: Where
   returning?: string | Array<string>
+  onConflict?: string | ConflictTypes
 }
 
 export interface Delete {
