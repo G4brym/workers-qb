@@ -1,4 +1,4 @@
-import { ConflictTypes, OrderTypes } from './enums'
+import { ConflictTypes, JoinTypes, OrderTypes } from './enums'
 
 export interface Where {
   conditions: string | Array<string>
@@ -6,10 +6,17 @@ export interface Where {
   params?: (string | boolean | number | null)[]
 }
 
+export interface Join {
+  type?: string | JoinTypes
+  table: string
+  on: string
+}
+
 export interface SelectOne {
   tableName: string
   fields: string | Array<string>
   where?: Where
+  join?: Join
   groupBy?: string | Array<string>
   having?: string
   orderBy?: string | Array<string> | Record<string, string | OrderTypes>

@@ -1,4 +1,4 @@
-import { Delete, Insert, Result, ResultOne, SelectAll, SelectOne, Update } from './interfaces'
+import { Delete, Insert, Join, Result, ResultOne, SelectAll, SelectOne, Update } from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 
 export class QueryBuilder {
@@ -113,6 +113,7 @@ export class QueryBuilder {
   _select(params: SelectAll): string {
     return (
       `SELECT ${this._fields(params.fields)} FROM ${params.tableName}` +
+      this._join(params.join) +
       this._where(params.where?.conditions) +
       this._groupBy(params.groupBy) +
       this._having(params.having) +
@@ -133,6 +134,13 @@ export class QueryBuilder {
     if (typeof value === 'string') return ` WHERE ${value}`
 
     return ` WHERE ${value.join(' AND ')}`
+  }
+
+  _join(value?: Join): string {
+    if (!value) return ''
+    const type = value.type ? ` ${value.type}` : ''
+
+    return `${type} JOIN ${value.table} ON ${value.on}`
   }
 
   _groupBy(value?: string | Array<string>): string {

@@ -15,3 +15,9 @@ export enum ConflictTypes {
   IGNORE = 'IGNORE',
   REPLACE = 'REPLACE',
 }
+
+export enum JoinTypes {
+  INNER = 'INNER',
+  LEFT = 'LEFT',
+  CROSS = 'CROSS',
+}

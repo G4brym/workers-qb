@@ -1,5 +1,5 @@
 import { QuerybuilderTest } from './utils'
-import { ConflictTypes, OrderTypes } from '../src/enums'
+import { ConflictTypes, JoinTypes, OrderTypes } from '../src/enums'
 
 describe('QueryBuilder', () => {
   //////
@@ -305,6 +305,45 @@ describe('QueryBuilder', () => {
     })
 
     expect(query).toEqual('SELECT * FROM testTable WHERE field = ?1')
+  })
+
+  test('select with simple join', async () => {
+    const query = new QuerybuilderTest()._select({
+      tableName: 'testTable',
+      fields: '*',
+      where: {
+        conditions: 'field = ?1',
+        params: ['test'],
+      },
+      join: {
+        table: 'employees',
+        on: 'testTable.employee_id = employees.id',
+      },
+    })
+
+    expect(query).toEqual(
+      'SELECT * FROM testTable JOIN employees ON testTable.employee_id = employees.id ' + 'WHERE field = ?1'
+    )
+  })
+
+  test('select with left join', async () => {
+    const query = new QuerybuilderTest()._select({
+      tableName: 'testTable',
+      fields: '*',
+      where: {
+        conditions: 'field = ?1',
+        params: ['test'],
+      },
+      join: {
+        type: JoinTypes.LEFT,
+        table: 'employees',
+        on: 'testTable.employee_id = employees.id',
+      },
+    })
+
+    expect(query).toEqual(
+      'SELECT * FROM testTable LEFT JOIN employees ON testTable.employee_id = employees.id ' + 'WHERE field = ?1'
+    )
   })
 
   test('select with one where no parameters', async () => {
