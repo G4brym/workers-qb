@@ -37,6 +37,7 @@ nav:
   - basic-queries.md
   - Advanced Queries:
       - advanced-queries/fields.md
+      - advanced-queries/join.md
       - advanced-queries/where.md
       - advanced-queries/groupBy.md
       - advanced-queries/having.md
