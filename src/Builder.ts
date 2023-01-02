@@ -56,7 +56,7 @@ export class QueryBuilder {
       query: this._update(params),
       arguments:
         params.where && params.where.params
-          ? Object.values(params.data).concat(params.where.params)
+          ? params.where.params.concat(Object.values(params.data))
           : Object.values(params.data),
       fetchType: FetchTypes.ALL,
     })
@@ -91,7 +91,7 @@ export class QueryBuilder {
     })
 
     return (
-      `UPDATE ${params.tableName} SET (${set.join(', ')})` +
+      `UPDATE ${params.tableName} SET ${set.join(', ')}` +
       this._where(params.where?.conditions) +
       this._returning(params.returning)
     )
