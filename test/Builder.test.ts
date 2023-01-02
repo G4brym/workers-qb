@@ -1,5 +1,5 @@
-import { QuerybuilderTest } from './utils'
-import { OrderTypes } from '../src/enums'
+import {QuerybuilderTest} from './utils'
+import {ConflictTypes, OrderTypes} from '../src/enums'
 
 describe('QueryBuilder', () => {
   //////
@@ -52,6 +52,34 @@ describe('QueryBuilder', () => {
     })
 
     expect(query).toEqual('INSERT INTO testTable (my_field, another) VALUES(?1, ?2) RETURNING id, my_field')
+  })
+
+  test('insert on conflict ignore', async () => {
+    const query = new QuerybuilderTest()._insert({
+      tableName: 'testTable',
+      data: {
+        my_field: 'test',
+        another: 123,
+      },
+      returning: ['id', 'my_field'],
+      onConflict: ConflictTypes.IGNORE,
+    })
+
+    expect(query).toEqual('INSERT OR IGNORE INTO testTable (my_field, another) VALUES(?1, ?2) RETURNING id, my_field')
+  })
+
+  test('insert on conflict replace', async () => {
+    const query = new QuerybuilderTest()._insert({
+      tableName: 'testTable',
+      data: {
+        my_field: 'test',
+        another: 123,
+      },
+      returning: ['id', 'my_field'],
+      onConflict: 'REPLACE',
+    })
+
+    expect(query).toEqual('INSERT OR REPLACE INTO testTable (my_field, another) VALUES(?1, ?2) RETURNING id, my_field')
   })
 
   //////
@@ -158,6 +186,46 @@ describe('QueryBuilder', () => {
 
     expect(query).toEqual(
       'UPDATE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id, field'
+    )
+  })
+
+  test('update on conflict ignore', async () => {
+    const query = new QuerybuilderTest()._update({
+      tableName: 'testTable',
+      data: {
+        my_field: 'test',
+        another: 123,
+      },
+      where: {
+        conditions: ['field = ?1', 'id = ?2'],
+        params: ['test', 345],
+      },
+      returning: ['id', 'field'],
+      onConflict: ConflictTypes.IGNORE,
+    })
+
+    expect(query).toEqual(
+      'UPDATE OR IGNORE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id, field'
+    )
+  })
+
+  test('update on conflict replace', async () => {
+    const query = new QuerybuilderTest()._update({
+      tableName: 'testTable',
+      data: {
+        my_field: 'test',
+        another: 123,
+      },
+      where: {
+        conditions: ['field = ?1', 'id = ?2'],
+        params: ['test', 345],
+      },
+      returning: ['id', 'field'],
+      onConflict: 'REPLACE',
+    })
+
+    expect(query).toEqual(
+      'UPDATE OR REPLACE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id, field'
     )
   })
 

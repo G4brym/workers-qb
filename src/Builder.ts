@@ -1,5 +1,5 @@
 import { Delete, Insert, Result, ResultOne, SelectAll, SelectOne, Update } from './interfaces'
-import { FetchTypes, OrderTypes } from './enums'
+import {ConflictTypes, FetchTypes, OrderTypes} from './enums'
 
 export class QueryBuilder {
   async execute(params: {
@@ -70,6 +70,13 @@ export class QueryBuilder {
     })
   }
 
+  _onConflict(resolution?: string | ConflictTypes): string {
+    if(resolution) {
+      return `OR ${resolution} `
+    }
+    return ''
+  }
+
   _insert(params: Insert): string {
     const columns = Object.keys(params.data).join(', ')
     const values: Array<string> = []
@@ -78,7 +85,7 @@ export class QueryBuilder {
     })
 
     return (
-      `INSERT INTO ${params.tableName} (${columns}) VALUES(${values.join(', ')})` + this._returning(params.returning)
+      `INSERT ${this._onConflict(params.onConflict)}INTO ${params.tableName} (${columns}) VALUES(${values.join(', ')})` + this._returning(params.returning)
     )
   }
 
@@ -91,7 +98,7 @@ export class QueryBuilder {
     })
 
     return (
-      `UPDATE ${params.tableName} SET ${set.join(', ')}` +
+      `UPDATE ${this._onConflict(params.onConflict)}${params.tableName} SET ${set.join(', ')}` +
       this._where(params.where?.conditions) +
       this._returning(params.returning)
     )
