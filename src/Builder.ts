@@ -1,10 +1,11 @@
 import { Delete, Insert, Join, Result, ResultOne, SelectAll, SelectOne, Update } from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
+import { Raw } from './tools'
 
 export class QueryBuilder {
   async execute(params: {
-    query: String
-    arguments?: (string | number | boolean | null)[]
+    query: string
+    arguments?: (string | number | boolean | null | Raw)[]
     fetchType?: FetchTypes
   }): Promise<any> {
     throw new Error('Execute method not implemented')
@@ -52,12 +53,21 @@ export class QueryBuilder {
   }
 
   async update(params: Update): Promise<Result> {
+    let args = Object.values(params.data)
+    if (params.where && params.where.params) {
+      args = params.where.params.concat(
+        Object.values(params.data).map((value) => {
+          if (value instanceof Raw) {
+            return value.content
+          }
+          return value
+        })
+      )
+    }
+
     return this.execute({
       query: this._update(params),
-      arguments:
-        params.where && params.where.params
-          ? params.where.params.concat(Object.values(params.data))
-          : Object.values(params.data),
+      arguments: args,
       fetchType: FetchTypes.ALL,
     })
   }
@@ -80,8 +90,12 @@ export class QueryBuilder {
   _insert(params: Insert): string {
     const columns = Object.keys(params.data).join(', ')
     const values: Array<string> = []
-    Object.keys(params.data).forEach((key, index) => {
-      values.push(`?${index + 1}`)
+    Object.entries(params.data).forEach(([key, value], index) => {
+      if (value instanceof Raw) {
+        values.push(value.content)
+      } else {
+        values.push(`?${index + 1}`)
+      }
     })
 
     return (
@@ -96,7 +110,11 @@ export class QueryBuilder {
 
     const set: Array<string> = []
     Object.entries(params.data).forEach(([key, value], index) => {
-      set.push(`${key} = ?${whereParamsLength + index + 1}`)
+      if (value instanceof Raw) {
+        set.push(`${key} = ${value.content}`)
+      } else {
+        set.push(`${key} = ?${whereParamsLength + index + 1}`)
+      }
     })
 
     return (

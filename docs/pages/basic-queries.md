@@ -44,6 +44,7 @@ fetched.results.forEach((employee) => {
 ## Inserting rows
 
 ```ts
+import { Raw } from 'workers-qb'
 const qb = new D1QB(env.DB)
 
 const inserted = await qb.insert({
@@ -52,6 +53,7 @@ const inserted = await qb.insert({
     name: 'Joe',
     role: 'manager',
     department: 'store',
+    created_at: new Raw('CURRENT_TIMESTAMP'),
   },
   returning: '*',
 })

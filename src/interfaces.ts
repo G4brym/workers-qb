@@ -1,4 +1,5 @@
 import { ConflictTypes, JoinTypes, OrderTypes } from './enums'
+import { Raw } from './tools'
 
 export interface Where {
   conditions: string | Array<string>
@@ -29,14 +30,14 @@ export interface SelectAll extends SelectOne {
 
 export interface Insert {
   tableName: string
-  data: Record<string, string | boolean | number | null>
+  data: Record<string, string | boolean | number | null | Raw>
   returning?: string | Array<string>
   onConflict?: string | ConflictTypes
 }
 
 export interface Update {
   tableName: string
-  data: Record<string, string | boolean | number | null>
+  data: Record<string, string | boolean | number | null | Raw>
   where: Where
   returning?: string | Array<string>
   onConflict?: string | ConflictTypes
