@@ -1,6 +1,6 @@
 import { QuerybuilderTest } from './utils'
 import { ConflictTypes, JoinTypes, OrderTypes } from '../src/enums'
-import { Raw } from "../src/tools";
+import { Raw } from '../src/tools'
 
 describe('QueryBuilder', () => {
   //////
@@ -129,7 +129,7 @@ describe('QueryBuilder', () => {
       data: {
         my_field: 'test_data',
         updated_at: new Raw('CURRENT_TIMESTAMP'),
-        another: '123'
+        another: '123',
       },
       where: {
         conditions: 'field = ?1',

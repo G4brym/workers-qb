@@ -1,6 +1,6 @@
-import {QueryBuilder} from './Builder'
-import {FetchTypes} from './enums'
-import {Raw} from "./tools";
+import { QueryBuilder } from './Builder'
+import { FetchTypes } from './enums'
+import { Raw } from './tools'
 
 export class D1QB extends QueryBuilder {
   private db: any
