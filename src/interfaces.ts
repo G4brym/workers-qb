@@ -17,7 +17,7 @@ export interface SelectOne {
   tableName: string
   fields: string | Array<string>
   where?: Where
-  join?: Join
+  join?: Join | Array<Join>
   groupBy?: string | Array<string>
   having?: string
   orderBy?: string | Array<string> | Record<string, string | OrderTypes>

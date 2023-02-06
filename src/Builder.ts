@@ -13,7 +13,10 @@ export class QueryBuilder {
 
   async createTable(params: { tableName: string; schema: string; ifNotExists?: boolean }): Promise<Result> {
     return this.execute({
-      query: `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName} (${params.schema})`,
+      query: `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName}
+              (
+                ${params.schema}
+              )`,
     })
   }
 
@@ -99,9 +102,9 @@ export class QueryBuilder {
     })
 
     return (
-      `INSERT ${this._onConflict(params.onConflict)}INTO ${params.tableName} (${columns}) VALUES(${values.join(
-        ', '
-      )})` + this._returning(params.returning)
+      `INSERT ${this._onConflict(params.onConflict)}INTO ${params.tableName} (${columns})` +
+      ` VALUES(${values.join(', ')})` +
+      this._returning(params.returning)
     )
   }
 
@@ -154,11 +157,20 @@ export class QueryBuilder {
     return ` WHERE ${value.join(' AND ')}`
   }
 
-  _join(value?: Join): string {
+  _join(value?: Join | Array<Join>): string {
     if (!value) return ''
-    const type = value.type ? ` ${value.type}` : ''
 
-    return `${type} JOIN ${value.table} ON ${value.on}`
+    if (!Array.isArray(value)) {
+      value = [value]
+    }
+
+    const joinQuery: Array<string> = []
+    value.forEach((item: Join) => {
+      const type = item.type ? `${item.type} ` : ''
+      joinQuery.push(`${type}JOIN ${item.table} ON ${item.on}`)
+    })
+
+    return ' ' + joinQuery.join(' ')
   }
 
   _groupBy(value?: string | Array<string>): string {
@@ -178,8 +190,7 @@ export class QueryBuilder {
     if (!value) return ''
     if (typeof value === 'string') return ` ORDER BY ${value}`
 
-    if (value.constructor.name.toLowerCase() === 'array') {
-      // @ts-ignore
+    if (Array.isArray(value)) {
       return ` ORDER BY ${value.join(', ')}`
     }
 

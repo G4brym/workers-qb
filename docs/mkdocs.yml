@@ -45,7 +45,8 @@ nav:
       - advanced-queries/limit.md
       - advanced-queries/returning.md
       - advanced-queries/onConflict.md
-      - advanced-queries/rawSql.md
+      - advanced-queries/raw-sql.md
+  - add-your-own-database.md
 markdown_extensions:
   - toc:
       permalink: true

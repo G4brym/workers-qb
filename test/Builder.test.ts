@@ -364,6 +364,34 @@ describe('QueryBuilder', () => {
     )
   })
 
+  test('select with multiple joins', async () => {
+    const query = new QuerybuilderTest()._select({
+      tableName: 'testTable',
+      fields: '*',
+      where: {
+        conditions: 'field = ?1',
+        params: ['test'],
+      },
+      join: [
+        {
+          table: 'employees',
+          on: 'testTable.employee_id = employees.id',
+        },
+        {
+          table: 'offices',
+          on: 'testTable.office_id = offices.id',
+        }
+      ],
+    })
+
+    expect(query).toEqual(
+      'SELECT * FROM testTable' +
+      ' JOIN employees ON testTable.employee_id = employees.id' +
+      ' JOIN offices ON testTable.office_id = offices.id' +
+      ' WHERE field = ?1'
+    )
+  })
+
   test('select with left join', async () => {
     const query = new QuerybuilderTest()._select({
       tableName: 'testTable',
