@@ -380,15 +380,15 @@ describe('QueryBuilder', () => {
         {
           table: 'offices',
           on: 'testTable.office_id = offices.id',
-        }
+        },
       ],
     })
 
     expect(query).toEqual(
       'SELECT * FROM testTable' +
-      ' JOIN employees ON testTable.employee_id = employees.id' +
-      ' JOIN offices ON testTable.office_id = offices.id' +
-      ' WHERE field = ?1'
+        ' JOIN employees ON testTable.employee_id = employees.id' +
+        ' JOIN offices ON testTable.office_id = offices.id' +
+        ' WHERE field = ?1'
     )
   })
 

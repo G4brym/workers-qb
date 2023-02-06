@@ -62,3 +62,24 @@ const fetched = await qb.fetchAll({
   },
 })
 ```
+
+## Multiple Joins
+
+```ts
+const qb = new D1QB(env.DB)
+
+const fetched = await qb.fetchAll({
+  tableName: 'employees',
+  fields: '*',
+  join: [
+    {
+      table: 'payroll',
+      on: 'payroll.employee_id = employees.id',
+    },
+    {
+      table: 'offices',
+      on: 'testTable.office_id = offices.id',
+    },
+  ],
+})
+```
