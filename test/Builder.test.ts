@@ -1,5 +1,6 @@
 import { QuerybuilderTest } from './utils'
 import { ConflictTypes, JoinTypes, OrderTypes } from '../src/enums'
+import { Raw } from "../src/tools";
 
 describe('QueryBuilder', () => {
   //////
@@ -14,6 +15,18 @@ describe('QueryBuilder', () => {
     })
 
     expect(query).toEqual('INSERT INTO testTable (my_field) VALUES(?1)')
+  })
+
+  test('insert with Raw sql values', async () => {
+    const query = new QuerybuilderTest()._insert({
+      tableName: 'testTable',
+      data: {
+        my_field: 'test',
+        created_at: new Raw('CURRENT_TIMESTAMP'),
+      },
+    })
+
+    expect(query).toEqual('INSERT INTO testTable (my_field, created_at) VALUES(?1, CURRENT_TIMESTAMP)')
   })
 
   test('insert multiple fields without returning', async () => {
@@ -106,6 +119,31 @@ describe('QueryBuilder', () => {
       fetchType: 'ALL',
     })
   })
+
+  test('update with Raw sql values', async () => {
+    const qb = new QuerybuilderTest()
+    let execute = jest.spyOn(qb, 'execute')
+
+    qb.update({
+      tableName: 'testTable',
+      data: {
+        my_field: 'test_data',
+        updated_at: new Raw('CURRENT_TIMESTAMP'),
+        another: '123'
+      },
+      where: {
+        conditions: 'field = ?1',
+        params: ['test_where'],
+      },
+    })
+
+    expect(execute).toHaveBeenCalledWith({
+      query: 'UPDATE testTable SET my_field = ?2, updated_at = CURRENT_TIMESTAMP, another = ?4 WHERE field = ?1',
+      arguments: ['test_where', 'test_data', 'CURRENT_TIMESTAMP', '123'],
+      fetchType: 'ALL',
+    })
+  })
+
   test('update one field with one where without returning', async () => {
     const query = new QuerybuilderTest()._update({
       tableName: 'testTable',
