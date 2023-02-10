@@ -48,24 +48,28 @@ export class QueryBuilder {
   }
 
   async insert(params: Insert): Promise<Result> {
+    let args: any[] = []
+
+    if (Array.isArray(params.data)) {
+      for (const row of params.data) {
+        args = args.concat(this._parse_arguments(row))
+      }
+    } else {
+      args = args.concat(this._parse_arguments(params.data))
+    }
+
     return this.execute({
       query: this._insert(params),
-      arguments: Object.values(params.data),
+      arguments: args,
       fetchType: FetchTypes.ALL,
     })
   }
 
   async update(params: Update): Promise<Result> {
-    let args = Object.values(params.data)
+    let args = this._parse_arguments(params.data)
+
     if (params.where && params.where.params) {
-      args = params.where.params.concat(
-        Object.values(params.data).map((value) => {
-          if (value instanceof Raw) {
-            return value.content
-          }
-          return value
-        })
-      )
+      args = params.where.params.concat(args)
     }
 
     return this.execute({
@@ -83,6 +87,15 @@ export class QueryBuilder {
     })
   }
 
+  _parse_arguments(row: Record<string, string | boolean | number | null | Raw>): Array<any> {
+    return Object.values(row).map((value) => {
+      if (value instanceof Raw) {
+        return value.content
+      }
+      return value
+    })
+  }
+
   _onConflict(resolution?: string | ConflictTypes): string {
     if (resolution) {
       return `OR ${resolution} `
@@ -91,19 +104,33 @@ export class QueryBuilder {
   }
 
   _insert(params: Insert): string {
-    const columns = Object.keys(params.data).join(', ')
-    const values: Array<string> = []
-    Object.entries(params.data).forEach(([key, value], index) => {
-      if (value instanceof Raw) {
-        values.push(value.content)
-      } else {
-        values.push(`?${index + 1}`)
-      }
-    })
+    const rows = []
+
+    if (!Array.isArray(params.data)) {
+      params.data = [params.data]
+    }
+
+    const columns = Object.keys(params.data[0]).join(', ')
+
+    let index = 1
+    for (const row of params.data) {
+      const values: Array<string> = []
+      Object.entries(row).forEach(([key, value]) => {
+        if (value instanceof Raw) {
+          values.push(value.content)
+        } else {
+          values.push(`?${index}`)
+        }
+
+        index += 1
+      })
+
+      rows.push(`(${values.join(', ')})`)
+    }
 
     return (
       `INSERT ${this._onConflict(params.onConflict)}INTO ${params.tableName} (${columns})` +
-      ` VALUES(${values.join(', ')})` +
+      ` VALUES ${rows.join(', ')}` +
       this._returning(params.returning)
     )
   }

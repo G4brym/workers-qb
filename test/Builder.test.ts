@@ -14,7 +14,7 @@ describe('QueryBuilder', () => {
       },
     })
 
-    expect(query).toEqual('INSERT INTO testTable (my_field) VALUES(?1)')
+    expect(query).toEqual('INSERT INTO testTable (my_field) VALUES (?1)')
   })
 
   test('insert with Raw sql values', async () => {
@@ -26,7 +26,7 @@ describe('QueryBuilder', () => {
       },
     })
 
-    expect(query).toEqual('INSERT INTO testTable (my_field, created_at) VALUES(?1, CURRENT_TIMESTAMP)')
+    expect(query).toEqual('INSERT INTO testTable (my_field, created_at) VALUES (?1, CURRENT_TIMESTAMP)')
   })
 
   test('insert multiple fields without returning', async () => {
@@ -38,7 +38,7 @@ describe('QueryBuilder', () => {
       },
     })
 
-    expect(query).toEqual('INSERT INTO testTable (my_field, another) VALUES(?1, ?2)')
+    expect(query).toEqual('INSERT INTO testTable (my_field, another) VALUES (?1, ?2)')
   })
 
   test('insert multiple fields with one returning', async () => {
@@ -51,7 +51,7 @@ describe('QueryBuilder', () => {
       returning: 'id',
     })
 
-    expect(query).toEqual('INSERT INTO testTable (my_field, another) VALUES(?1, ?2) RETURNING id')
+    expect(query).toEqual('INSERT INTO testTable (my_field, another) VALUES (?1, ?2) RETURNING id')
   })
 
   test('insert multiple fields with multiple returning', async () => {
@@ -64,7 +64,7 @@ describe('QueryBuilder', () => {
       returning: ['id', 'my_field'],
     })
 
-    expect(query).toEqual('INSERT INTO testTable (my_field, another) VALUES(?1, ?2) RETURNING id, my_field')
+    expect(query).toEqual('INSERT INTO testTable (my_field, another) VALUES (?1, ?2) RETURNING id, my_field')
   })
 
   test('insert on conflict ignore', async () => {
@@ -78,7 +78,7 @@ describe('QueryBuilder', () => {
       onConflict: ConflictTypes.IGNORE,
     })
 
-    expect(query).toEqual('INSERT OR IGNORE INTO testTable (my_field, another) VALUES(?1, ?2) RETURNING id, my_field')
+    expect(query).toEqual('INSERT OR IGNORE INTO testTable (my_field, another) VALUES (?1, ?2) RETURNING id, my_field')
   })
 
   test('insert on conflict replace', async () => {
@@ -92,7 +92,39 @@ describe('QueryBuilder', () => {
       onConflict: 'REPLACE',
     })
 
-    expect(query).toEqual('INSERT OR REPLACE INTO testTable (my_field, another) VALUES(?1, ?2) RETURNING id, my_field')
+    expect(query).toEqual('INSERT OR REPLACE INTO testTable (my_field, another) VALUES (?1, ?2) RETURNING id, my_field')
+  })
+
+  test('insert in bulk', async () => {
+    const qb = new QuerybuilderTest()
+    let execute = jest.spyOn(qb, 'execute')
+
+    const query = qb.insert({
+      tableName: 'testTable',
+      data: [
+        {
+          my_field: 'test1',
+          another: 123,
+        },
+        {
+          my_field: 'test2',
+          another: 456,
+        },
+        {
+          my_field: 'test3',
+          another: 789,
+        },
+      ],
+      returning: ['id', 'my_field'],
+      onConflict: 'REPLACE',
+    })
+
+    expect(execute).toHaveBeenCalledWith({
+      query:
+        'INSERT OR REPLACE INTO testTable (my_field, another) VALUES (?1, ?2), (?3, ?4), (?5, ?6) RETURNING id, my_field',
+      arguments: ['test1', 123, 'test2', 456, 'test3', 789],
+      fetchType: 'ALL',
+    })
   })
 
   //////

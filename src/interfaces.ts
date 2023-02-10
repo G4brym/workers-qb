@@ -30,7 +30,9 @@ export interface SelectAll extends SelectOne {
 
 export interface Insert {
   tableName: string
-  data: Record<string, string | boolean | number | null | Raw>
+  data:
+    | Record<string, string | boolean | number | null | Raw>
+    | Array<Record<string, string | boolean | number | null | Raw>>
   returning?: string | Array<string>
   onConflict?: string | ConflictTypes
 }

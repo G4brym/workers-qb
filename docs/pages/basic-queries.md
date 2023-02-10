@@ -61,6 +61,37 @@ const inserted = await qb.insert({
 console.log(`Joe just got the employee id: ${inserted.results.id}`)
 ```
 
+## Bulk Inserting rows
+
+```ts
+import { Raw } from 'workers-qb'
+const qb = new D1QB(env.DB)
+
+const inserted = await qb.insert({
+  tableName: 'employees',
+  data: [
+    {
+      name: 'Joe',
+      role: 'manager',
+      department: 'store',
+      created_at: new Raw('CURRENT_TIMESTAMP'),
+    },
+    {
+      name: 'John',
+      role: 'employee',
+      department: 'store',
+      created_at: new Raw('CURRENT_TIMESTAMP'),
+    },
+    {
+      name: 'Mickael',
+      role: 'employee',
+      department: 'store',
+      created_at: new Raw('CURRENT_TIMESTAMP'),
+    },
+  ],
+})
+```
+
 ## Updating rows
 
 ```ts
