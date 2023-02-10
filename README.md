@@ -20,7 +20,7 @@ Read the documentation [Here](https://workers-qb.massadas.com/)!
 - [x] On Conflict for Inserts and Updates
 - [x] Create/drop tables
 - [x] Keep where conditions simple in code
-- [ ] Bulk insert/update
+- [x] Bulk insert
 - [ ] Named parameters (waiting for full support in D1)
 
 ## Installation
@@ -108,6 +108,37 @@ const inserted = await qb.insert({
 })
 
 console.log(inserted) // This will contain the data after SQL triggers and primary keys that are automated
+```
+
+## Bulk Inserting rows
+
+```ts
+import { Raw } from 'workers-qb'
+const qb = new D1QB(env.DB)
+
+const inserted = await qb.insert({
+  tableName: 'employees',
+  data: [
+    {
+      name: 'Joe',
+      role: 'manager',
+      department: 'store',
+      created_at: new Raw('CURRENT_TIMESTAMP'),
+    },
+    {
+      name: 'John',
+      role: 'employee',
+      department: 'store',
+      created_at: new Raw('CURRENT_TIMESTAMP'),
+    },
+    {
+      name: 'Mickael',
+      role: 'employee',
+      department: 'store',
+      created_at: new Raw('CURRENT_TIMESTAMP'),
+    },
+  ],
+})
 ```
 
 #### Updating rows
