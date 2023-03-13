@@ -1,4 +1,4 @@
-import { QueryBuilder } from '../src'
+import { QueryBuilder } from '../src/Builder'
 import { FetchTypes } from '../src/enums'
 import { Raw } from '../src/tools'
 
