@@ -21,7 +21,6 @@
     "prepublishOnly": "pinst --disable",
     "postpublish": "pinst --enable",
     "build": "rollup -c",
-    "clean": "node tools/cleanup",
     "package": "npm run build && npm pack",
     "test": "jest --no-cache --runInBand",
     "test:cov": "jest --coverage --no-cache --runInBand",
