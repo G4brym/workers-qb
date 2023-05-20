@@ -16,7 +16,7 @@ export default {
         conditions: 'active = ?1',
         params: [true],
       },
-    })
+    });
 
     ctx.waitUntil(qb.close());
     return Response.json({

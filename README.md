@@ -107,6 +107,8 @@ export default {
 }
 ```
 
+## Basic queries
+
 #### Fetching a single record
 
 ```ts
