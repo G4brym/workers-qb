@@ -1,7 +1,7 @@
 {
   "name": "workers-qb",
   "version": "0.0.1",
-  "description": "Zero dependencies Query Builder for Cloudflare D1 Workers",
+  "description": "Zero dependencies Query Builder for Cloudflare Workers",
   "main": "./dist/workers-qb.js",
   "types": "./dist/workers-qb.d.ts",
   "exports": {
@@ -68,6 +68,8 @@
   "devDependencies": {
     "@commitlint/cli": "^13.1.0",
     "@commitlint/config-conventional": "^13.1.0",
+    "@rollup/plugin-terser": "^0.2.1",
+    "@rollup/plugin-typescript": "^10.0.1",
     "@types/jest": "^27.0.1",
     "@typescript-eslint/eslint-plugin": "^4.31.1",
     "@typescript-eslint/parser": "^4.31.1",
@@ -78,11 +80,12 @@
     "jest": "^28.1.2",
     "pinst": "^2.1.6",
     "prettier": "^2.4.0",
-    "ts-jest": "^28.0.5",
-    "@rollup/plugin-terser": "^0.2.1",
-    "@rollup/plugin-typescript": "^10.0.1",
     "rollup": "^3.8.1",
     "rollup-plugin-bundle-size": "^1.0.3",
+    "ts-jest": "^28.0.5",
     "typescript": "^4.8.4"
+  },
+  "optionalDependencies": {
+    "pg": "^8.11.0"
   }
 }

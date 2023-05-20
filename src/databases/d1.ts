@@ -1,8 +1,9 @@
-import { QueryBuilder } from './Builder'
-import { FetchTypes } from './enums'
-import { Raw } from './tools'
+import { QueryBuilder } from '../Builder'
+import { FetchTypes } from '../enums'
+import { Raw } from '../tools'
+import { D1Result, D1ResultOne } from '../interfaces'
 
-export class D1QB extends QueryBuilder {
+export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
   private db: any
 
   constructor(db: any) {

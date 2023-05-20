@@ -51,20 +51,34 @@ export interface Delete {
   returning?: string | Array<string>
 }
 
-export interface Result {
+export interface D1Result {
   changes?: number
   duration: number
-  lastRowId?: number
+  lastRowId?: string | number
   results?: Array<Record<string, string | boolean | number | null>>
   served_by: string
   success: boolean
 }
 
-export interface ResultOne {
+export interface D1ResultOne {
   changes?: number
   duration: number
-  lastRowId?: number
+  lastRowId?: string | number
   results?: Record<string, string | boolean | number | null>
   served_by: string
   success: boolean
+}
+
+export interface PGResult {
+  command: string
+  lastRowId?: string | number
+  rowCount: number
+  results?: Array<Record<string, string | boolean | number | null>>
+}
+
+export interface PGResultOne {
+  command: string
+  lastRowId?: string | number
+  rowCount: number
+  results?: Record<string, string | boolean | number | null>
 }

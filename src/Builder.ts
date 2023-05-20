@@ -1,8 +1,8 @@
-import { Delete, Insert, Join, Result, ResultOne, SelectAll, SelectOne, Update } from './interfaces'
+import { Delete, Insert, Join, SelectAll, SelectOne, Update } from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Raw } from './tools'
 
-export class QueryBuilder {
+export class QueryBuilder<GenericResult, GenericResultOne> {
   async execute(params: {
     query: string
     arguments?: (string | number | boolean | null | Raw)[]
@@ -11,7 +11,7 @@ export class QueryBuilder {
     throw new Error('Execute method not implemented')
   }
 
-  async createTable(params: { tableName: string; schema: string; ifNotExists?: boolean }): Promise<Result> {
+  async createTable(params: { tableName: string; schema: string; ifNotExists?: boolean }): Promise<GenericResult> {
     return this.execute({
       query: `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName}
               (
@@ -20,13 +20,13 @@ export class QueryBuilder {
     })
   }
 
-  async dropTable(params: { tableName: string; ifExists?: boolean }): Promise<Result> {
+  async dropTable(params: { tableName: string; ifExists?: boolean }): Promise<GenericResult> {
     return this.execute({
       query: `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`,
     })
   }
 
-  async fetchOne(params: SelectOne): Promise<ResultOne> {
+  async fetchOne(params: SelectOne): Promise<GenericResultOne> {
     const data = await this.execute({
       query: this._select({ ...params, limit: 1 }),
       arguments: params.where ? params.where.params : undefined,
@@ -35,11 +35,11 @@ export class QueryBuilder {
 
     return {
       ...data,
-      results: data.results[0],
+      results: data.results.length > 0 ? data.results[0] : null,
     }
   }
 
-  async fetchAll(params: SelectAll): Promise<Result> {
+  async fetchAll(params: SelectAll): Promise<GenericResult> {
     return this.execute({
       query: this._select(params),
       arguments: params.where ? params.where.params : undefined,
@@ -47,7 +47,7 @@ export class QueryBuilder {
     })
   }
 
-  async insert(params: Insert): Promise<Result> {
+  async insert(params: Insert): Promise<GenericResult> {
     let args: any[] = []
 
     if (Array.isArray(params.data)) {
@@ -65,7 +65,7 @@ export class QueryBuilder {
     })
   }
 
-  async update(params: Update): Promise<Result> {
+  async update(params: Update): Promise<GenericResult> {
     let args = this._parse_arguments(params.data)
 
     if (params.where && params.where.params) {
@@ -79,7 +79,7 @@ export class QueryBuilder {
     })
   }
 
-  async delete(params: Delete): Promise<Result> {
+  async delete(params: Delete): Promise<GenericResult> {
     return this.execute({
       query: this._delete(params),
       arguments: params.where ? params.where.params : undefined,
@@ -115,7 +115,7 @@ export class QueryBuilder {
     let index = 1
     for (const row of params.data) {
       const values: Array<string> = []
-      Object.entries(row).forEach(([key, value]) => {
+      Object.values(row).forEach((value) => {
         if (value instanceof Raw) {
           values.push(value.content)
         } else {
