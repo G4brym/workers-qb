@@ -50,6 +50,7 @@ a connection pool in front of your PostgreSQL.
 
 ```ts
 import { PGQB } from 'workers-qb'
+import { Client } from 'pg'
 
 export interface Env {
   DB_URL: string
@@ -57,7 +58,7 @@ export interface Env {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const qb = new PGQB(env.DB_URL)
+    const qb = new PGQB(new Client(env.DB_URL))
     await qb.connect()
 
     const fetched = await qb.fetchOne({

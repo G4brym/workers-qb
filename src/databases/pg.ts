@@ -3,26 +3,13 @@ import { FetchTypes } from '../enums'
 import { Raw } from '../tools'
 import { PGResult, PGResultOne } from '../interfaces'
 
-let pg: any
-try {
-  pg = require('pg')
-} catch (er) {
-  pg = null
-}
-
 export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
-  private dbUrl: string
   private client: any
 
-  constructor(dbUrl: string) {
-    if (pg === null) {
-      throw new Error('You must have "pg" installed, in order to use PGQB!')
-    }
-
+  constructor(client: any) {
     super()
 
-    this.dbUrl = dbUrl
-    this.client = new pg.Client(this.dbUrl)
+    this.client = client
   }
 
   async connect() {

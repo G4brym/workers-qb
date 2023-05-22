@@ -31,26 +31,14 @@ import { FetchTypes } from '../enums'
 import { Raw } from '../tools'
 import { PGResult, PGResultOne } from '../interfaces'
 
-let pg: any
-try {
-  pg = require('pg')
-} catch (er) {
-  pg = null
-}
-
 export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
   private dbUrl: string
   private client: any
 
-  constructor(dbUrl: string) {
-    if (pg === null) {
-      throw new Error('You must have "pg" installed, in order to use PGQB!')
-    }
-
+  constructor(client: any) {
     super()
 
-    this.dbUrl = dbUrl
-    this.client = new pg.Client(this.dbUrl)
+    this.client = client
   }
 
   async connect() {
@@ -105,7 +93,9 @@ export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
 Then we can initiate this PGQB class and call it with the usual workers-qb interface
 
 ```ts
-const qb = new PGQB('postgresql://user:password@hostname:5432/db_name')
+import { Client } from 'pg'
+
+const qb = new PGQB(new Client('postgresql://user:password@hostname:5432/db_name'))
 const fetched = await qb.fetchAll({
   tableName: 'devices',
   fields: '*',

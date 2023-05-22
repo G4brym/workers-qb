@@ -84,8 +84,5 @@
     "rollup-plugin-bundle-size": "^1.0.3",
     "ts-jest": "^28.0.5",
     "typescript": "^4.8.4"
-  },
-  "optionalDependencies": {
-    "pg": "^8.11.0"
   }
 }
