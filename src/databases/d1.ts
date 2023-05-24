@@ -19,13 +19,7 @@ export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
     let stmt = this.db.prepare(params.query)
 
     if (params.arguments) {
-      const args = params.arguments.map((value) => {
-        if (value instanceof Raw) {
-          return value.content
-        }
-        return value
-      })
-      stmt = stmt.bind(...args)
+      stmt = stmt.bind(...params.arguments)
     }
 
     if (params.fetchType === FetchTypes.ONE) {

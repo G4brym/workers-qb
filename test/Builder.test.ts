@@ -170,8 +170,8 @@ describe('QueryBuilder', () => {
     })
 
     expect(execute).toHaveBeenCalledWith({
-      query: 'UPDATE testTable SET my_field = ?2, updated_at = CURRENT_TIMESTAMP, another = ?4 WHERE field = ?1',
-      arguments: ['test_where', 'test_data', 'CURRENT_TIMESTAMP', '123'],
+      query: 'UPDATE testTable SET my_field = ?2, updated_at = CURRENT_TIMESTAMP, another = ?3 WHERE field = ?1',
+      arguments: ['test_where', 'test_data', '123'],
       fetchType: 'ALL',
     })
   })

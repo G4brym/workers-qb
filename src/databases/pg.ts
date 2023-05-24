@@ -30,15 +30,8 @@ export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
     let result
 
     if (params.arguments) {
-      const args = params.arguments.map((value) => {
-        if (value instanceof Raw) {
-          return value.content
-        }
-        return value
-      })
-
       result = await this.client.query({
-        values: args,
+        values: params.arguments,
         text: query,
       })
     } else {

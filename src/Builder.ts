@@ -47,7 +47,7 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     })
   }
 
-  async insert(params: Insert): Promise<GenericResult> {
+  async insert(params: Insert): Promise<GenericResultOne | GenericResult> {
     let args: any[] = []
 
     if (Array.isArray(params.data)) {
@@ -61,7 +61,7 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     return this.execute({
       query: this._insert(params),
       arguments: args,
-      fetchType: FetchTypes.ALL,
+      fetchType: Array.isArray(params.data) ? FetchTypes.ALL : FetchTypes.ONE,
     })
   }
 
@@ -88,11 +88,10 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
   }
 
   _parse_arguments(row: Record<string, string | boolean | number | null | Raw>): Array<any> {
-    return Object.values(row).map((value) => {
-      if (value instanceof Raw) {
-        return value.content
-      }
-      return value
+    // Raw parameters are placed directly in the query, and keeping them here would result in more parameters that are
+    // expected in the query and could result in weird results or outright errors when using PostgreSQL
+    return Object.values(row).filter((value) => {
+      return !(value instanceof Raw)
     })
   }
 
@@ -117,12 +116,12 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
       const values: Array<string> = []
       Object.values(row).forEach((value) => {
         if (value instanceof Raw) {
+          // Raw parameters should not increase the index, as they are not a real parameter
           values.push(value.content)
         } else {
           values.push(`?${index}`)
+          index += 1
         }
-
-        index += 1
       })
 
       rows.push(`(${values.join(', ')})`)
@@ -139,13 +138,16 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     const whereParamsLength: number = params.where && params.where.params ? Object.keys(params.where.params).length : 0
 
     const set: Array<string> = []
-    Object.entries(params.data).forEach(([key, value], index) => {
+    let index = 1
+    for (const [key, value] of Object.entries(params.data)) {
       if (value instanceof Raw) {
+        // Raw parameters should not increase the index, as they are not a real parameter
         set.push(`${key} = ${value.content}`)
       } else {
-        set.push(`${key} = ?${whereParamsLength + index + 1}`)
+        set.push(`${key} = ?${whereParamsLength + index}`)
+        index += 1
       }
-    })
+    }
 
     return (
       `UPDATE ${this._onConflict(params.onConflict)}${params.tableName} SET ${set.join(', ')}` +
