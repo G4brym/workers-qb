@@ -22,10 +22,17 @@ export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
       stmt = stmt.bind(...params.arguments)
     }
 
-    if (params.fetchType === FetchTypes.ONE) {
-      return stmt.first()
-    } else if (params.fetchType === FetchTypes.ALL) {
-      return stmt.all()
+    if (params.fetchType === FetchTypes.ONE || params.fetchType === FetchTypes.ALL) {
+      const resp = await stmt.all()
+
+      return {
+        changes: resp.meta?.changes,
+        duration: resp.meta?.duration,
+        last_row_id: resp.meta?.last_row_id,
+        served_by: resp.meta?.served_by,
+        success: resp.success,
+        results: params.fetchType === FetchTypes.ONE && resp.results.length > 0 ? resp.results[0] : resp.results,
+      }
     }
 
     return stmt.run()

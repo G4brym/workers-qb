@@ -58,10 +58,12 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
       args = args.concat(this._parse_arguments(params.data))
     }
 
+    const fetchType = Array.isArray(params.data) ? FetchTypes.ALL : FetchTypes.ONE
+
     return this.execute({
       query: this._insert(params),
       arguments: args,
-      fetchType: Array.isArray(params.data) ? FetchTypes.ALL : FetchTypes.ONE,
+      fetchType: fetchType,
     })
   }
 

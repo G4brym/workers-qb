@@ -45,7 +45,7 @@ export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
         command: result.command,
         lastRowId: result.oid,
         rowCount: result.rowCount,
-        results: result.rows,
+        results: params.fetchType === FetchTypes.ONE && result.rows.length > 0 ? result.rows[0] : result.rows,
       }
     }
 
