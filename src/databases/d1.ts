@@ -18,6 +18,12 @@ export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
   }): Promise<any> {
     let stmt = this.db.prepare(params.query)
 
+    if (this._debugger) {
+      console.log({
+        'workers-qb': params,
+      })
+    }
+
     if (params.arguments) {
       stmt = stmt.bind(...params.arguments)
     }
