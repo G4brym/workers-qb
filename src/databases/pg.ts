@@ -27,6 +27,12 @@ export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
   }): Promise<any> {
     const query = params.query.replaceAll('?', '$')
 
+    if (this._debugger) {
+      console.log({
+        'workers-qb': params,
+      })
+    }
+
     let result
 
     if (params.arguments) {

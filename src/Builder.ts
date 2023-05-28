@@ -3,6 +3,12 @@ import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Raw } from './tools'
 
 export class QueryBuilder<GenericResult, GenericResultOne> {
+  _debugger = false
+
+  setDebugger(state: boolean): void {
+    this._debugger = state
+  }
+
   async execute(params: {
     query: string
     arguments?: (string | number | boolean | null | Raw)[]
