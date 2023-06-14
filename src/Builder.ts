@@ -1,4 +1,4 @@
-import { Delete, Insert, Join, SelectAll, SelectOne, Update } from './interfaces'
+import { Delete, Insert, Join, SelectAll, SelectOne, Update, Subquery } from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Raw } from './tools'
 
@@ -204,7 +204,9 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     const joinQuery: Array<string> = []
     value.forEach((item: Join) => {
       const type = item.type ? `${item.type} ` : ''
-      joinQuery.push(`${type}JOIN ${item.table} ON ${item.on}`)
+      joinQuery.push(
+        `${type}JOIN ${typeof item.table === 'string' ? item.table : this._subquery(item.table)} ON ${item.on}`
+      )
     })
 
     return ' ' + joinQuery.join(' ')
@@ -256,5 +258,13 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     if (typeof value === 'string') return ` RETURNING ${value}`
 
     return ` RETURNING ${value.join(', ')}`
+  }
+
+  _subquery(value?: string | Subquery): string {
+    if (!value) return ''
+
+    if (typeof value === 'string') return ` (${value})`
+
+    return `(${this._select(value)}) AS ${value.alias}`
   }
 }

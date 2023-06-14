@@ -444,6 +444,67 @@ describe('QueryBuilder', () => {
     )
   })
 
+  test('select with subquery join', async () => {
+    const query = new QuerybuilderTest()._select({
+      tableName: 'testTable',
+      fields: '*',
+      where: {
+        conditions: 'field = ?1',
+        params: ['test'],
+      },
+      join: {
+        table: {
+          tableName: 'otherTable',
+          fields: ['test_table_id', 'GROUP_CONCAT(attribute) AS attributes'],
+          groupBy: 'test_table_id',
+          alias: 'otherTableGrouped',
+        },
+        on: 'testTable.id = otherTableGrouped.test_table_id',
+      },
+    })
+
+    expect(query).toEqual(
+      'SELECT * FROM testTable JOIN (SELECT test_table_id, GROUP_CONCAT(attribute) AS attributes FROM otherTable GROUP BY test_table_id) AS otherTableGrouped ON testTable.id = otherTableGrouped.test_table_id WHERE field = ?1'
+    )
+  })
+
+  test('select with nested subquery joins', async () => {
+    const query = new QuerybuilderTest()._select({
+      tableName: 'testTable',
+      fields: '*',
+      where: {
+        conditions: 'field = ?1',
+        params: ['test'],
+      },
+      join: {
+        table: {
+          tableName: 'otherTable',
+          fields: [
+            'test_table_id',
+            'GROUP_CONCAT(attribute) AS attributes',
+            'GROUP_CONCAT(other_attributes, ";") AS other_attributes',
+          ],
+          groupBy: 'test_table_id',
+          alias: 'otherTableGrouped',
+          join: {
+            table: {
+              tableName: 'otherTableTwo',
+              fields: ['other_table_id', 'GROUP_CONCAT(other_attribute) AS other_attributes'],
+              groupBy: 'other_table_id',
+              alias: 'otherTableTwoGrouped',
+            },
+            on: 'otherTable.id = otherTableTwoGrouped.other_table_id',
+          },
+        },
+        on: 'testTable.id = otherTableGrouped.test_table_id',
+      },
+    })
+
+    expect(query).toEqual(
+      'SELECT * FROM testTable JOIN (SELECT test_table_id, GROUP_CONCAT(attribute) AS attributes, GROUP_CONCAT(other_attributes, ";") AS other_attributes FROM otherTable JOIN (SELECT other_table_id, GROUP_CONCAT(other_attribute) AS other_attributes FROM otherTableTwo GROUP BY other_table_id) AS otherTableTwoGrouped ON otherTable.id = otherTableTwoGrouped.other_table_id GROUP BY test_table_id) AS otherTableGrouped ON testTable.id = otherTableGrouped.test_table_id WHERE field = ?1'
+    )
+  })
+
   test('select with one where no parameters', async () => {
     const query = new QuerybuilderTest()._select({
       tableName: 'testTable',
