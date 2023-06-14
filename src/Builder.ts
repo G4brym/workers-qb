@@ -265,6 +265,11 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
 
     if (typeof value === 'string') return ` (${value})`
 
-    return `(${this._select(value)}) AS ${value.alias}`
+    if (value.alias) {
+      return `(${this._select(value)}) AS ${value.alias}`
+    }
+      
+    return `(${this._select(value)})`
+    
   }
 }
