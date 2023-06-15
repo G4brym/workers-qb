@@ -9,8 +9,9 @@ export interface Where {
 
 export interface Join {
   type?: string | JoinTypes
-  table: string | Subquery
+  table: string | SelectAll
   on: string
+  alias?: string
 }
 
 export interface SelectOne {
@@ -26,10 +27,6 @@ export interface SelectOne {
 
 export interface SelectAll extends SelectOne {
   limit?: number
-}
-
-export interface Subquery extends SelectAll {
-  alias?: string
 }
 
 export interface Insert {

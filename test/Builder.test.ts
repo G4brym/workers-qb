@@ -457,9 +457,9 @@ describe('QueryBuilder', () => {
           tableName: 'otherTable',
           fields: ['test_table_id', 'GROUP_CONCAT(attribute) AS attributes'],
           groupBy: 'test_table_id',
-          alias: 'otherTableGrouped',
         },
         on: 'testTable.id = otherTableGrouped.test_table_id',
+        alias: 'otherTableGrouped',
       },
     })
 
@@ -485,18 +485,18 @@ describe('QueryBuilder', () => {
             'GROUP_CONCAT(other_attributes, ";") AS other_attributes',
           ],
           groupBy: 'test_table_id',
-          alias: 'otherTableGrouped',
           join: {
             table: {
               tableName: 'otherTableTwo',
               fields: ['other_table_id', 'GROUP_CONCAT(other_attribute) AS other_attributes'],
               groupBy: 'other_table_id',
-              alias: 'otherTableTwoGrouped',
             },
             on: 'otherTable.id = otherTableTwoGrouped.other_table_id',
+            alias: 'otherTableTwoGrouped',
           },
         },
         on: 'testTable.id = otherTableGrouped.test_table_id',
+        alias: 'otherTableGrouped',
       },
     })
 
