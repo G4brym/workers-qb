@@ -9,8 +9,9 @@ export interface Where {
 
 export interface Join {
   type?: string | JoinTypes
-  table: string
+  table: string | SelectAll
   on: string
+  alias?: string
 }
 
 export interface SelectOne {

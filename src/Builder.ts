@@ -204,7 +204,11 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     const joinQuery: Array<string> = []
     value.forEach((item: Join) => {
       const type = item.type ? `${item.type} ` : ''
-      joinQuery.push(`${type}JOIN ${item.table} ON ${item.on}`)
+      joinQuery.push(
+        `${type}JOIN ${typeof item.table === 'string' ? item.table : `(${this._select(item.table)})`}${
+          item.alias ? ` AS ${item.alias}` : ''
+        } ON ${item.on}`
+      )
     })
 
     return ' ' + joinQuery.join(' ')
