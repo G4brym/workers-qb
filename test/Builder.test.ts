@@ -99,32 +99,36 @@ describe('QueryBuilder', () => {
     const qb = new QuerybuilderTest()
     let execute = jest.spyOn(qb, 'execute')
 
-    const query = qb.insert({
-      tableName: 'testTable',
-      data: [
-        {
-          my_field: 'test1',
-          another: 123,
-        },
-        {
-          my_field: 'test2',
-          another: 456,
-        },
-        {
-          my_field: 'test3',
-          another: 789,
-        },
-      ],
-      returning: ['id', 'my_field'],
-      onConflict: 'REPLACE',
-    }).execute()
+    const query = qb
+      .insert({
+        tableName: 'testTable',
+        data: [
+          {
+            my_field: 'test1',
+            another: 123,
+          },
+          {
+            my_field: 'test2',
+            another: 456,
+          },
+          {
+            my_field: 'test3',
+            another: 789,
+          },
+        ],
+        returning: ['id', 'my_field'],
+        onConflict: 'REPLACE',
+      })
+      .execute()
 
-    expect(execute).toHaveBeenCalledWith(new Query(
-      qb.execute,
-      'INSERT OR REPLACE INTO testTable (my_field, another) VALUES (?1, ?2), (?3, ?4), (?5, ?6) RETURNING id, my_field',
-      ['test1', 123, 'test2', 456, 'test3', 789],
-      FetchTypes.ALL,
-    ))
+    expect(execute).toHaveBeenCalledWith(
+      new Query(
+        qb.execute,
+        'INSERT OR REPLACE INTO testTable (my_field, another) VALUES (?1, ?2), (?3, ?4), (?5, ?6) RETURNING id, my_field',
+        ['test1', 123, 'test2', 456, 'test3', 789],
+        FetchTypes.ALL
+      )
+    )
   })
 
   //////
@@ -145,12 +149,14 @@ describe('QueryBuilder', () => {
       },
     }).execute()
 
-    expect(execute).toHaveBeenCalledWith(new Query(
-      qb.execute,
-      'UPDATE testTable SET my_field = ?2 WHERE field = ?1',
-      ['test_where', 'test_data'],
-      FetchTypes.ALL,
-    ))
+    expect(execute).toHaveBeenCalledWith(
+      new Query(
+        qb.execute,
+        'UPDATE testTable SET my_field = ?2 WHERE field = ?1',
+        ['test_where', 'test_data'],
+        FetchTypes.ALL
+      )
+    )
   })
 
   test('update with Raw sql values', async () => {
@@ -170,12 +176,14 @@ describe('QueryBuilder', () => {
       },
     }).execute()
 
-    expect(execute).toHaveBeenCalledWith(new Query(
-      qb.execute,
-      'UPDATE testTable SET my_field = ?2, updated_at = CURRENT_TIMESTAMP, another = ?3 WHERE field = ?1',
-      ['test_where', 'test_data', '123'],
-      FetchTypes.ALL,
-    ))
+    expect(execute).toHaveBeenCalledWith(
+      new Query(
+        qb.execute,
+        'UPDATE testTable SET my_field = ?2, updated_at = CURRENT_TIMESTAMP, another = ?3 WHERE field = ?1',
+        ['test_where', 'test_data', '123'],
+        FetchTypes.ALL
+      )
+    )
   })
 
   test('update one field with one where without returning', async () => {

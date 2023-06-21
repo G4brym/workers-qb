@@ -1,4 +1,4 @@
-import { FetchTypes } from "enums"
+import { FetchTypes } from 'enums'
 
 export class Raw {
   public isRaw = true
@@ -8,16 +8,16 @@ export class Raw {
   }
 }
 
-export class Query{
+export class Query {
   executeMethod: (query: Query) => Promise<any>
   public query: string
   public arguments?: (string | number | boolean | null | Raw)[]
   public fetchType?: FetchTypes
 
   constructor(
-    executeMethod: (query: Query) => Promise<any>, 
-    query: string, 
-    args?: (string | number | boolean | null | Raw)[], 
+    executeMethod: (query: Query) => Promise<any>,
+    query: string,
+    args?: (string | number | boolean | null | Raw)[],
     fetchType?: FetchTypes
   ) {
     this.executeMethod = executeMethod

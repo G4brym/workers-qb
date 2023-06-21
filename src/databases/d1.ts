@@ -50,7 +50,7 @@ export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
         'workers-qb': queryArray,
       })
     }
-    
+
     const statements = queryArray.map((query) => {
       let stmt = this.db.prepare(query.query)
       if (query.arguments) {
@@ -61,34 +61,42 @@ export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
 
     const responses = await this.db.batch(statements)
 
-    return responses.map((resp: {
-      results: any[] | null,
-      success: boolean,
-      meta: {
-        duration: number,
-        changes: any,
-        last_row_id: any,
-        served_by: any,
-      }
-    }, i: number) => {
-      if (queryArray[i]) {
-        return {
-          changes: resp.meta?.changes,
-          duration: resp.meta?.duration,
-          last_row_id: resp.meta?.last_row_id,
-          served_by: resp.meta?.served_by,
-          success: resp.success,
-          results: queryArray[i].fetchType === FetchTypes.ONE && resp.results && resp.results.length > 0 ? resp.results[0] : resp.results,
+    return responses.map(
+      (
+        resp: {
+          results: any[] | null
+          success: boolean
+          meta: {
+            duration: number
+            changes: any
+            last_row_id: any
+            served_by: any
+          }
+        },
+        i: number
+      ) => {
+        if (queryArray[i]) {
+          return {
+            changes: resp.meta?.changes,
+            duration: resp.meta?.duration,
+            last_row_id: resp.meta?.last_row_id,
+            served_by: resp.meta?.served_by,
+            success: resp.success,
+            results:
+              queryArray[i].fetchType === FetchTypes.ONE && resp.results && resp.results.length > 0
+                ? resp.results[0]
+                : resp.results,
+          }
+        } else {
+          return {
+            changes: resp.meta?.changes,
+            duration: resp.meta?.duration,
+            last_row_id: resp.meta?.last_row_id,
+            served_by: resp.meta?.served_by,
+            success: resp.success,
+          }
         }
-      } else {
-        return {
-          changes: resp.meta?.changes,
-          duration: resp.meta?.duration,
-          last_row_id: resp.meta?.last_row_id,
-          served_by: resp.meta?.served_by,
-          success: resp.success,
-        }
       }
-    })
+    )
   }
 }
