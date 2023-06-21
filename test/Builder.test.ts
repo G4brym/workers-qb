@@ -1,6 +1,6 @@
 import { QuerybuilderTest } from './utils'
-import { ConflictTypes, JoinTypes, OrderTypes } from '../src/enums'
-import { Raw } from '../src/tools'
+import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from '../src/enums'
+import { Query, Raw } from '../src/tools'
 
 describe('QueryBuilder', () => {
   //////
@@ -117,14 +117,14 @@ describe('QueryBuilder', () => {
       ],
       returning: ['id', 'my_field'],
       onConflict: 'REPLACE',
-    })
+    }).execute()
 
-    expect(execute).toHaveBeenCalledWith({
-      query:
-        'INSERT OR REPLACE INTO testTable (my_field, another) VALUES (?1, ?2), (?3, ?4), (?5, ?6) RETURNING id, my_field',
-      arguments: ['test1', 123, 'test2', 456, 'test3', 789],
-      fetchType: 'ALL',
-    })
+    expect(execute).toHaveBeenCalledWith(new Query(
+      qb.execute,
+      'INSERT OR REPLACE INTO testTable (my_field, another) VALUES (?1, ?2), (?3, ?4), (?5, ?6) RETURNING id, my_field',
+      ['test1', 123, 'test2', 456, 'test3', 789],
+      FetchTypes.ALL,
+    ))
   })
 
   //////
@@ -143,13 +143,14 @@ describe('QueryBuilder', () => {
         conditions: 'field = ?1',
         params: ['test_where'],
       },
-    })
+    }).execute()
 
-    expect(execute).toHaveBeenCalledWith({
-      query: 'UPDATE testTable SET my_field = ?2 WHERE field = ?1',
-      arguments: ['test_where', 'test_data'],
-      fetchType: 'ALL',
-    })
+    expect(execute).toHaveBeenCalledWith(new Query(
+      qb.execute,
+      'UPDATE testTable SET my_field = ?2 WHERE field = ?1',
+      ['test_where', 'test_data'],
+      FetchTypes.ALL,
+    ))
   })
 
   test('update with Raw sql values', async () => {
@@ -167,13 +168,14 @@ describe('QueryBuilder', () => {
         conditions: 'field = ?1',
         params: ['test_where'],
       },
-    })
+    }).execute()
 
-    expect(execute).toHaveBeenCalledWith({
-      query: 'UPDATE testTable SET my_field = ?2, updated_at = CURRENT_TIMESTAMP, another = ?3 WHERE field = ?1',
-      arguments: ['test_where', 'test_data', '123'],
-      fetchType: 'ALL',
-    })
+    expect(execute).toHaveBeenCalledWith(new Query(
+      qb.execute,
+      'UPDATE testTable SET my_field = ?2, updated_at = CURRENT_TIMESTAMP, another = ?3 WHERE field = ?1',
+      ['test_where', 'test_data', '123'],
+      FetchTypes.ALL,
+    ))
   })
 
   test('update one field with one where without returning', async () => {
