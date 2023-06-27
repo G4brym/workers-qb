@@ -34,7 +34,7 @@ export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
       return {
         changes: resp.meta?.changes,
         duration: resp.meta?.duration,
-        lastRowId: resp.meta?.last_row_id,
+        last_row_id: resp.meta?.last_row_id,
         served_by: resp.meta?.served_by,
         success: resp.success,
         results: query.fetchType === FetchTypes.ONE && resp.results.length > 0 ? resp.results[0] : resp.results,

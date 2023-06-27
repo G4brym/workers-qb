@@ -1,6 +1,7 @@
 import { QuerybuilderTest } from './utils'
 import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from '../src/enums'
 import { Query, Raw } from '../src/tools'
+import { D1QB } from '../src/databases/d1'
 
 describe('QueryBuilder', () => {
   //////
@@ -649,5 +650,28 @@ describe('QueryBuilder', () => {
     })
 
     expect(query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type LIMIT 10 OFFSET 15')
+  })
+
+  //////
+  // Batch execute
+  //////
+  test('batch execute with fetch one and fetch all', async () => {
+    const db = {
+      batch: jest.fn((queries: string[]): Promise<any> => Promise.resolve([])),
+      prepare: (q: string): string => q,
+    }
+    const qb = new D1QB(db)
+    qb.batchExecute([
+      qb.fetchOne({
+        tableName: 'testTable',
+        fields: '*',
+      }),
+      qb.fetchAll({
+        tableName: 'testTable',
+        fields: '*',
+      }),
+    ])
+
+    expect(db.batch).toHaveBeenCalledWith(['SELECT * FROM testTable LIMIT 1', 'SELECT * FROM testTable'])
   })
 })
