@@ -1,6 +1,6 @@
 import { QueryBuilder } from '../Builder'
 import { FetchTypes } from '../enums'
-import { Raw } from '../tools'
+import { Query } from '../tools'
 import { PGResult, PGResultOne } from '../interfaces'
 
 export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
@@ -20,41 +20,41 @@ export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
     await this.client.end()
   }
 
-  async execute(params: {
-    query: String
-    arguments?: (string | number | boolean | null | Raw)[]
-    fetchType?: FetchTypes
-  }): Promise<any> {
-    const query = params.query.replaceAll('?', '$')
+  async execute(query: Query): Promise<PGResultOne | PGResult> {
+    const queryString = query.query.replaceAll('?', '$')
 
     if (this._debugger) {
       console.log({
-        'workers-qb': params,
+        'workers-qb': query,
       })
     }
 
     let result
 
-    if (params.arguments) {
+    if (query.arguments) {
       result = await this.client.query({
-        values: params.arguments,
-        text: query,
+        values: query.arguments,
+        text: queryString,
       })
     } else {
       result = await this.client.query({
-        text: query,
+        text: queryString,
       })
     }
 
-    if (params.fetchType === FetchTypes.ONE || params.fetchType === FetchTypes.ALL) {
+    if (query.fetchType === FetchTypes.ONE || query.fetchType === FetchTypes.ALL) {
       return {
         command: result.command,
         lastRowId: result.oid,
         rowCount: result.rowCount,
-        results: params.fetchType === FetchTypes.ONE && result.rows.length > 0 ? result.rows[0] : result.rows,
+        results: query.fetchType === FetchTypes.ONE && result.rows.length > 0 ? result.rows[0] : result.rows,
       }
     }
 
-    return null
+    return {
+      command: result.command,
+      lastRowId: result.oid,
+      rowCount: result.rowCount,
+    }
   }
 }

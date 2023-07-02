@@ -1,6 +1,7 @@
 import { QuerybuilderTest } from './utils'
-import { ConflictTypes, JoinTypes, OrderTypes } from '../src/enums'
-import { Raw } from '../src/tools'
+import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from '../src/enums'
+import { Query, Raw } from '../src/tools'
+import { D1QB } from '../src/databases/d1'
 
 describe('QueryBuilder', () => {
   //////
@@ -99,32 +100,36 @@ describe('QueryBuilder', () => {
     const qb = new QuerybuilderTest()
     let execute = jest.spyOn(qb, 'execute')
 
-    const query = qb.insert({
-      tableName: 'testTable',
-      data: [
-        {
-          my_field: 'test1',
-          another: 123,
-        },
-        {
-          my_field: 'test2',
-          another: 456,
-        },
-        {
-          my_field: 'test3',
-          another: 789,
-        },
-      ],
-      returning: ['id', 'my_field'],
-      onConflict: 'REPLACE',
-    })
+    const query = qb
+      .insert({
+        tableName: 'testTable',
+        data: [
+          {
+            my_field: 'test1',
+            another: 123,
+          },
+          {
+            my_field: 'test2',
+            another: 456,
+          },
+          {
+            my_field: 'test3',
+            another: 789,
+          },
+        ],
+        returning: ['id', 'my_field'],
+        onConflict: 'REPLACE',
+      })
+      .execute()
 
-    expect(execute).toHaveBeenCalledWith({
-      query:
+    expect(execute).toHaveBeenCalledWith(
+      new Query(
+        qb.execute,
         'INSERT OR REPLACE INTO testTable (my_field, another) VALUES (?1, ?2), (?3, ?4), (?5, ?6) RETURNING id, my_field',
-      arguments: ['test1', 123, 'test2', 456, 'test3', 789],
-      fetchType: 'ALL',
-    })
+        ['test1', 123, 'test2', 456, 'test3', 789],
+        FetchTypes.ALL
+      )
+    )
   })
 
   //////
@@ -143,13 +148,16 @@ describe('QueryBuilder', () => {
         conditions: 'field = ?1',
         params: ['test_where'],
       },
-    })
+    }).execute()
 
-    expect(execute).toHaveBeenCalledWith({
-      query: 'UPDATE testTable SET my_field = ?2 WHERE field = ?1',
-      arguments: ['test_where', 'test_data'],
-      fetchType: 'ALL',
-    })
+    expect(execute).toHaveBeenCalledWith(
+      new Query(
+        qb.execute,
+        'UPDATE testTable SET my_field = ?2 WHERE field = ?1',
+        ['test_where', 'test_data'],
+        FetchTypes.ALL
+      )
+    )
   })
 
   test('update with Raw sql values', async () => {
@@ -167,13 +175,16 @@ describe('QueryBuilder', () => {
         conditions: 'field = ?1',
         params: ['test_where'],
       },
-    })
+    }).execute()
 
-    expect(execute).toHaveBeenCalledWith({
-      query: 'UPDATE testTable SET my_field = ?2, updated_at = CURRENT_TIMESTAMP, another = ?3 WHERE field = ?1',
-      arguments: ['test_where', 'test_data', '123'],
-      fetchType: 'ALL',
-    })
+    expect(execute).toHaveBeenCalledWith(
+      new Query(
+        qb.execute,
+        'UPDATE testTable SET my_field = ?2, updated_at = CURRENT_TIMESTAMP, another = ?3 WHERE field = ?1',
+        ['test_where', 'test_data', '123'],
+        FetchTypes.ALL
+      )
+    )
   })
 
   test('update one field with one where without returning', async () => {
@@ -639,5 +650,28 @@ describe('QueryBuilder', () => {
     })
 
     expect(query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type LIMIT 10 OFFSET 15')
+  })
+
+  //////
+  // Batch execute
+  //////
+  test('batch execute with fetch one and fetch all', async () => {
+    const db = {
+      batch: jest.fn((queries: string[]): Promise<any> => Promise.resolve([])),
+      prepare: (q: string): string => q,
+    }
+    const qb = new D1QB(db)
+    qb.batchExecute([
+      qb.fetchOne({
+        tableName: 'testTable',
+        fields: '*',
+      }),
+      qb.fetchAll({
+        tableName: 'testTable',
+        fields: '*',
+      }),
+    ])
+
+    expect(db.batch).toHaveBeenCalledWith(['SELECT * FROM testTable LIMIT 1', 'SELECT * FROM testTable'])
   })
 })

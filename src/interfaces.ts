@@ -55,7 +55,7 @@ export interface Delete {
 export interface D1Result {
   changes?: number
   duration: number
-  lastRowId?: string | number
+  last_row_id?: string | number
   results?: Array<Record<string, string | boolean | number | null>>
   served_by: string
   success: boolean
@@ -64,7 +64,7 @@ export interface D1Result {
 export interface D1ResultOne {
   changes?: number
   duration: number
-  lastRowId?: string | number
+  last_row_id?: string | number
   results?: Record<string, string | boolean | number | null>
   served_by: string
   success: boolean

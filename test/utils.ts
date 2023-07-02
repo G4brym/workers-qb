@@ -1,14 +1,13 @@
 import { QueryBuilder } from '../src/Builder'
-import { FetchTypes } from '../src/enums'
-import { Raw } from '../src/tools'
+import { Query } from '../src/tools'
 import { D1Result, D1ResultOne } from '../src/interfaces'
 
 export class QuerybuilderTest extends QueryBuilder<D1Result, D1ResultOne> {
-  async execute(params: {
-    query: string
-    arguments?: (string | number | boolean | null | Raw)[]
-    fetchType?: FetchTypes
-  }): Promise<any> {
-    return null
+  async execute(query: Query): Promise<D1Result | D1ResultOne> {
+    return {
+      duration: 0,
+      success: true,
+      served_by: 'test',
+    }
   }
 }

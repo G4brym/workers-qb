@@ -1,6 +1,6 @@
 import { Delete, Insert, Join, SelectAll, SelectOne, Update } from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
-import { Raw } from './tools'
+import { Query, Raw } from './tools'
 
 export class QueryBuilder<GenericResult, GenericResultOne> {
   _debugger = false
@@ -9,51 +9,42 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     this._debugger = state
   }
 
-  async execute(params: {
-    query: string
-    arguments?: (string | number | boolean | null | Raw)[]
-    fetchType?: FetchTypes
-  }): Promise<any> {
+  async execute(query: Query): Promise<GenericResultOne | GenericResult> {
     throw new Error('Execute method not implemented')
   }
 
-  async createTable(params: { tableName: string; schema: string; ifNotExists?: boolean }): Promise<GenericResult> {
-    return this.execute({
-      query: `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName}
+  async batchExecute(queryArray: Query[]): Promise<(GenericResultOne | GenericResult)[]> {
+    throw new Error('Batch execute method not implemented')
+  }
+
+  createTable(params: { tableName: string; schema: string; ifNotExists?: boolean }): Query {
+    return new Query(
+      this.execute,
+      `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName}
               (
                 ${params.schema}
-              )`,
-    })
+              )`
+    )
   }
 
-  async dropTable(params: { tableName: string; ifExists?: boolean }): Promise<GenericResult> {
-    return this.execute({
-      query: `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`,
-    })
+  dropTable(params: { tableName: string; ifExists?: boolean }): Query {
+    return new Query(this.execute, `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`)
   }
 
-  async fetchOne(params: SelectOne): Promise<GenericResultOne> {
-    const data = await this.execute({
-      query: this._select({ ...params, limit: 1 }),
-      arguments: params.where ? params.where.params : undefined,
-      fetchType: FetchTypes.ALL,
-    })
-
-    return {
-      ...data,
-      results: data.results.length > 0 ? data.results[0] : null,
-    }
+  fetchOne(params: SelectOne): Query {
+    return new Query(
+      this.execute,
+      this._select({ ...params, limit: 1 }),
+      params.where ? params.where.params : undefined,
+      FetchTypes.ONE
+    )
   }
 
-  async fetchAll(params: SelectAll): Promise<GenericResult> {
-    return this.execute({
-      query: this._select(params),
-      arguments: params.where ? params.where.params : undefined,
-      fetchType: FetchTypes.ALL,
-    })
+  fetchAll(params: SelectAll): Query {
+    return new Query(this.execute, this._select(params), params.where ? params.where.params : undefined, FetchTypes.ALL)
   }
 
-  async insert(params: Insert): Promise<GenericResultOne | GenericResult> {
+  insert(params: Insert): Query {
     let args: any[] = []
 
     if (Array.isArray(params.data)) {
@@ -66,33 +57,21 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
 
     const fetchType = Array.isArray(params.data) ? FetchTypes.ALL : FetchTypes.ONE
 
-    return this.execute({
-      query: this._insert(params),
-      arguments: args,
-      fetchType: fetchType,
-    })
+    return new Query(this.execute, this._insert(params), args, fetchType)
   }
 
-  async update(params: Update): Promise<GenericResult> {
+  update(params: Update): Query {
     let args = this._parse_arguments(params.data)
 
     if (params.where && params.where.params) {
       args = params.where.params.concat(args)
     }
 
-    return this.execute({
-      query: this._update(params),
-      arguments: args,
-      fetchType: FetchTypes.ALL,
-    })
+    return new Query(this.execute, this._update(params), args, FetchTypes.ALL)
   }
 
-  async delete(params: Delete): Promise<GenericResult> {
-    return this.execute({
-      query: this._delete(params),
-      arguments: params.where ? params.where.params : undefined,
-      fetchType: FetchTypes.ALL,
-    })
+  delete(params: Delete): Query {
+    return new Query(this.execute, this._delete(params), params.where ? params.where.params : undefined, FetchTypes.ALL)
   }
 
   _parse_arguments(row: Record<string, string | boolean | number | null | Raw>): Array<any> {
