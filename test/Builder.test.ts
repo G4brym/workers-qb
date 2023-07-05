@@ -124,7 +124,8 @@ describe('QueryBuilder', () => {
 
     expect(execute).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: 'INSERT OR REPLACE INTO testTable (my_field, another) VALUES (?1, ?2), (?3, ?4), (?5, ?6) RETURNING id, my_field',
+        query:
+          'INSERT OR REPLACE INTO testTable (my_field, another) VALUES (?1, ?2), (?3, ?4), (?5, ?6) RETURNING id, my_field',
         arguments: ['test1', 123, 'test2', 456, 'test3', 789],
         fetchType: FetchTypes.ALL,
       })
@@ -153,7 +154,7 @@ describe('QueryBuilder', () => {
       expect.objectContaining({
         query: 'UPDATE testTable SET my_field = ?2 WHERE field = ?1',
         arguments: ['test_where', 'test_data'],
-        fetchType: FetchTypes.ALL
+        fetchType: FetchTypes.ALL,
       })
     )
   })
@@ -179,7 +180,7 @@ describe('QueryBuilder', () => {
       expect.objectContaining({
         query: 'UPDATE testTable SET my_field = ?2, updated_at = CURRENT_TIMESTAMP, another = ?3 WHERE field = ?1',
         arguments: ['test_where', 'test_data', '123'],
-        fetchType: FetchTypes.ALL
+        fetchType: FetchTypes.ALL,
       })
     )
   })
