@@ -34,11 +34,12 @@ plugins:
 nav:
   - workers-qb: index.md
   - getting-started.md
+  - basic-queries.md
+  - upgrading-from-0.x.md
   - Supported Databases:
       - databases/cloudflare-d1.md
       - databases/postgresql.md
       - databases/bring-your-own-database.md
-  - basic-queries.md
   - Advanced Queries:
       - advanced-queries/fields.md
       - advanced-queries/join.md

@@ -91,3 +91,29 @@ const fetched = await qb
   })
   .execute()
 ```
+
+## Join with a sub-query
+
+```ts
+const qb = new D1QB(env.DB)
+
+const result = new QuerybuilderTest()
+  .fetchAll({
+    tableName: 'testTable',
+    fields: '*',
+    where: {
+      conditions: 'field = ?1',
+      params: ['test'],
+    },
+    join: {
+      table: {
+        tableName: 'otherTable',
+        fields: ['test_table_id', 'GROUP_CONCAT(attribute) AS attributes'],
+        groupBy: 'test_table_id',
+      },
+      on: 'testTable.id = otherTableGrouped.test_table_id',
+      alias: 'otherTableGrouped',
+    },
+  })
+  .execute()
+```

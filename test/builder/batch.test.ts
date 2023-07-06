@@ -7,17 +7,17 @@ describe('Batch Builder', () => {
       prepare: (q: string): string => q,
     }
     const qb = new D1QB(db)
-    qb.batchExecute([
+    await qb.batchExecute([
       qb.fetchOne({
-        tableName: 'testTable',
+        tableName: 'tableA',
         fields: '*',
       }),
       qb.fetchAll({
-        tableName: 'testTable',
+        tableName: 'tableB',
         fields: '*',
       }),
     ])
 
-    expect(db.batch).toHaveBeenCalledWith(['SELECT * FROM testTable LIMIT 1', 'SELECT * FROM testTable'])
+    expect(db.batch).toHaveBeenCalledWith(['SELECT * FROM tableA LIMIT 1', 'SELECT * FROM tableB'])
   })
 })
