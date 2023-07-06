@@ -13,18 +13,20 @@ Note that SQLite doesn't support RIGHT JOIN neither FULL JOIN.
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: ['role', 'department', 'payroll.salary'],
-  where: {
-    conditions: 'department = ?1',
-    params: ['HR'],
-  },
-  join: {
-    table: 'payroll',
-    on: 'payroll.employee_id = employees.id',
-  },
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: ['role', 'department', 'payroll.salary'],
+    where: {
+      conditions: 'department = ?1',
+      params: ['HR'],
+    },
+    join: {
+      table: 'payroll',
+      on: 'payroll.employee_id = employees.id',
+    },
+  })
+  .execute()
 ```
 
 ## Explicit Inner Join
@@ -32,19 +34,21 @@ const fetched = await qb.fetchAll({
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: ['role', 'department', 'payroll.salary'],
-  where: {
-    conditions: 'department = ?1',
-    params: ['HR'],
-  },
-  join: {
-    type: JoinTypes.INNER,
-    table: 'payroll',
-    on: 'payroll.employee_id = employees.id',
-  },
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: ['role', 'department', 'payroll.salary'],
+    where: {
+      conditions: 'department = ?1',
+      params: ['HR'],
+    },
+    join: {
+      type: JoinTypes.INNER,
+      table: 'payroll',
+      on: 'payroll.employee_id = employees.id',
+    },
+  })
+  .execute()
 ```
 
 ## Left Join
@@ -52,15 +56,17 @@ const fetched = await qb.fetchAll({
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: '*',
-  join: {
-    type: JoinTypes.LEFT,
-    table: 'payroll',
-    on: 'payroll.employee_id = employees.id',
-  },
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: '*',
+    join: {
+      type: JoinTypes.LEFT,
+      table: 'payroll',
+      on: 'payroll.employee_id = employees.id',
+    },
+  })
+  .execute()
 ```
 
 ## Multiple Joins
@@ -68,18 +74,20 @@ const fetched = await qb.fetchAll({
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: '*',
-  join: [
-    {
-      table: 'payroll',
-      on: 'payroll.employee_id = employees.id',
-    },
-    {
-      table: 'offices',
-      on: 'testTable.office_id = offices.id',
-    },
-  ],
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: '*',
+    join: [
+      {
+        table: 'payroll',
+        on: 'payroll.employee_id = employees.id',
+      },
+      {
+        table: 'offices',
+        on: 'testTable.office_id = offices.id',
+      },
+    ],
+  })
+  .execute()
 ```

@@ -6,12 +6,14 @@ conditions as you want
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: ['department', 'count(*) as total'],
-  groupBy: 'department',
-  having: 'active = true',
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: ['department', 'count(*) as total'],
+    groupBy: 'department',
+    having: 'active = true',
+  })
+  .execute()
 
 fetched.results.forEach((obj) => {
   console.log(`Department ${obj.department} has ${obj.total} active employees`)

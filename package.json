@@ -17,7 +17,6 @@
     "README.md"
   ],
   "scripts": {
-    "postinstall": "husky install",
     "prepublishOnly": "pinst --disable",
     "postpublish": "pinst --enable",
     "build": "rollup -c",
@@ -25,7 +24,7 @@
     "test": "jest --no-cache --runInBand",
     "test:cov": "jest --coverage --no-cache --runInBand",
     "addscope": "node tools/packagejson name @g4brym/workers-qb",
-    "prettify": "prettier . --write --ignore-unknown",
+    "prettify": "prettier --check . || (prettier -w .; exit 1)",
     "prepare": "husky install"
   },
   "publishConfig": {

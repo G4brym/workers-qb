@@ -5,11 +5,13 @@ The limit and offset parameter can receive only numbers
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: '*',
-  limit: 5,
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: '*',
+    limit: 5,
+  })
+  .execute()
 ```
 
 ## Simple limit with offset
@@ -17,10 +19,12 @@ const fetched = await qb.fetchAll({
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: '*',
-  limit: 5,
-  offset: 10,
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: '*',
+    limit: 5,
+    offset: 10,
+  })
+  .execute()
 ```

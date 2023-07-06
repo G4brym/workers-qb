@@ -5,15 +5,17 @@ The returning field allows you to return data after inserts/updates have been pe
 ```ts
 const qb = new D1QB(env.DB)
 
-const inserted = await qb.insert({
-  tableName: 'employees',
-  data: {
-    name: 'Joe',
-    role: 'manager',
-    department: 'store',
-  },
-  returning: 'id',
-})
+const inserted = await qb
+  .insert({
+    tableName: 'employees',
+    data: {
+      name: 'Joe',
+      role: 'manager',
+      department: 'store',
+    },
+    returning: 'id',
+  })
+  .execute()
 
 console.log(`Joe just got the employee id: ${inserted.results.id}`)
 ```
@@ -23,15 +25,17 @@ console.log(`Joe just got the employee id: ${inserted.results.id}`)
 ```ts
 const qb = new D1QB(env.DB)
 
-const inserted = await qb.insert({
-  tableName: 'employees',
-  data: {
-    name: 'Joe',
-    role: 'manager',
-    department: 'store',
-  },
-  returning: '*',
-})
+const inserted = await qb
+  .insert({
+    tableName: 'employees',
+    data: {
+      name: 'Joe',
+      role: 'manager',
+      department: 'store',
+    },
+    returning: '*',
+  })
+  .execute()
 ```
 
 ## Returning multiple fields
@@ -39,13 +43,15 @@ const inserted = await qb.insert({
 ```ts
 const qb = new D1QB(env.DB)
 
-const inserted = await qb.insert({
-  tableName: 'employees',
-  data: {
-    name: 'Joe',
-    role: 'manager',
-    department: 'store',
-  },
-  returning: ['id', 'salary'],
-})
+const inserted = await qb
+  .insert({
+    tableName: 'employees',
+    data: {
+      name: 'Joe',
+      role: 'manager',
+      department: 'store',
+    },
+    returning: ['id', 'salary'],
+  })
+  .execute()
 ```

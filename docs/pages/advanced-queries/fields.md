@@ -6,19 +6,23 @@ to don't have to join the string together
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: '*',
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: '*',
+  })
+  .execute()
 ```
 
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: 'name, birth_date',
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: 'name, birth_date',
+  })
+  .execute()
 ```
 
 ## Selecting with a list of strings
@@ -33,8 +37,10 @@ if (includeDepartments) {
 
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: fields,
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: fields,
+  })
+  .execute()
 ```
