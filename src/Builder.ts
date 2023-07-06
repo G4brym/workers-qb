@@ -19,7 +19,9 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
 
   createTable(params: { tableName: string; schema: string; ifNotExists?: boolean }): Query {
     return new Query(
-      this.execute,
+      (q: Query) => {
+        return this.execute(q)
+      },
       `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName}
               (
                 ${params.schema}
@@ -28,12 +30,16 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
   }
 
   dropTable(params: { tableName: string; ifExists?: boolean }): Query {
-    return new Query(this.execute, `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`)
+    return new Query((q: Query) => {
+      return this.execute(q)
+    }, `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`)
   }
 
   fetchOne(params: SelectOne): Query {
     return new Query(
-      this.execute,
+      (q: Query) => {
+        return this.execute(q)
+      },
       this._select({ ...params, limit: 1 }),
       params.where ? params.where.params : undefined,
       FetchTypes.ONE
@@ -41,7 +47,14 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
   }
 
   fetchAll(params: SelectAll): Query {
-    return new Query(this.execute, this._select(params), params.where ? params.where.params : undefined, FetchTypes.ALL)
+    return new Query(
+      (q: Query) => {
+        return this.execute(q)
+      },
+      this._select(params),
+      params.where ? params.where.params : undefined,
+      FetchTypes.ALL
+    )
   }
 
   insert(params: Insert): Query {
@@ -57,7 +70,14 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
 
     const fetchType = Array.isArray(params.data) ? FetchTypes.ALL : FetchTypes.ONE
 
-    return new Query(this.execute, this._insert(params), args, fetchType)
+    return new Query(
+      (q: Query) => {
+        return this.execute(q)
+      },
+      this._insert(params),
+      args,
+      fetchType
+    )
   }
 
   update(params: Update): Query {
@@ -67,11 +87,25 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
       args = params.where.params.concat(args)
     }
 
-    return new Query(this.execute, this._update(params), args, FetchTypes.ALL)
+    return new Query(
+      (q: Query) => {
+        return this.execute(q)
+      },
+      this._update(params),
+      args,
+      FetchTypes.ALL
+    )
   }
 
   delete(params: Delete): Query {
-    return new Query(this.execute, this._delete(params), params.where ? params.where.params : undefined, FetchTypes.ALL)
+    return new Query(
+      (q: Query) => {
+        return this.execute(q)
+      },
+      this._delete(params),
+      params.where ? params.where.params : undefined,
+      FetchTypes.ALL
+    )
   }
 
   _parse_arguments(row: Record<string, string | boolean | number | null | Raw>): Array<any> {
