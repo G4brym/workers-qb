@@ -9,7 +9,6 @@ on:
       - '.editorconfig'
     branches:
       - main
-      - master
   pull_request:
     paths-ignore:
       - 'docs/**'
@@ -18,7 +17,6 @@ on:
       - '.editorconfig'
     branches:
       - main
-      - master
 
 jobs:
   test:
