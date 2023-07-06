@@ -15,15 +15,17 @@ For more information on what each resolution means, refer to the [official SQLit
 ```ts
 const qb = new D1QB(env.DB)
 
-const inserted = await qb.insert({
-  tableName: 'employees',
-  data: {
-    name: 'Joe',
-    role: 'manager',
-    department: 'store',
-  },
-  onConflict: ConflictTypes.IGNORE,
-})
+const inserted = await qb
+  .insert({
+    tableName: 'employees',
+    data: {
+      name: 'Joe',
+      role: 'manager',
+      department: 'store',
+    },
+    onConflict: ConflictTypes.IGNORE,
+  })
+  .execute()
 ```
 
 ## On Conflict replace
@@ -31,16 +33,18 @@ const inserted = await qb.insert({
 ```ts
 const qb = new D1QB(env.DB)
 
-const updated = await qb.update({
-  tableName: 'employees',
-  data: {
-    role: 'CEO',
-    department: 'HQ',
-  },
-  where: {
-    conditions: 'id = ?1',
-    params: [123],
-  },
-  onConflict: 'REPLACE',
-})
+const updated = await qb
+  .update({
+    tableName: 'employees',
+    data: {
+      role: 'CEO',
+      department: 'HQ',
+    },
+    where: {
+      conditions: 'id = ?1',
+      params: [123],
+    },
+    onConflict: 'REPLACE',
+  })
+  .execute()
 ```

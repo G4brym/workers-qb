@@ -6,13 +6,15 @@ Currently due to a limitation in D1, there is only support for ordered parameter
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: '*',
-  where: {
-    conditions: 'active = true',
-  },
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: '*',
+    where: {
+      conditions: 'active = true',
+    },
+  })
+  .execute()
 ```
 
 ## Where with multiple conditions
@@ -20,13 +22,15 @@ const fetched = await qb.fetchAll({
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: '*',
-  where: {
-    conditions: ['active = true', 'department = "HR"'],
-  },
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: '*',
+    where: {
+      conditions: ['active = true', 'department = "HR"'],
+    },
+  })
+  .execute()
 ```
 
 ## Simple where with parameters
@@ -34,14 +38,16 @@ const fetched = await qb.fetchAll({
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: '*',
-  where: {
-    conditions: 'department = ?1',
-    params: ['HR'],
-  },
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: '*',
+    where: {
+      conditions: 'department = ?1',
+      params: ['HR'],
+    },
+  })
+  .execute()
 ```
 
 ## Where with advanced conditions
@@ -54,14 +60,16 @@ async function countEmployees(department?: string): number {
 
   if (department) conditions.push('department = ?1')
 
-  const fetched = await qb.fetchAll({
-    tableName: 'employees',
-    fields: 'count(*) as count',
-    where: {
-      conditions: conditions,
-      params: ['HR'],
-    },
-  })
+  const fetched = await qb
+    .fetchAll({
+      tableName: 'employees',
+      fields: 'count(*) as count',
+      where: {
+        conditions: conditions,
+        params: ['HR'],
+      },
+    })
+    .execute()
 
   return fetched.results.count
 }

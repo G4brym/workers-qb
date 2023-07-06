@@ -10,11 +10,13 @@ The order field can receive multiple inputs and all of them will result in the s
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: '*',
-  orderBy: 'id',
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: '*',
+    orderBy: 'id',
+  })
+  .execute()
 ```
 
 ## Order by a single field with the Order Enum orientation
@@ -24,11 +26,13 @@ import { OrderTypes } from 'workers-qb'
 
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: '*',
-  orderBy: { id: OrderTypes.DESC },
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: '*',
+    orderBy: { id: OrderTypes.DESC },
+  })
+  .execute()
 ```
 
 ## Order by a single field with a string orientation
@@ -36,9 +40,11 @@ const fetched = await qb.fetchAll({
 ```ts
 const qb = new D1QB(env.DB)
 
-const fetched = await qb.fetchAll({
-  tableName: 'employees',
-  fields: '*',
-  orderBy: { id: 'DESC' },
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'employees',
+    fields: '*',
+    orderBy: { id: 'DESC' },
+  })
+  .execute()
 ```

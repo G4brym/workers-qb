@@ -96,8 +96,10 @@ Then we can initiate this PGQB class and call it with the usual workers-qb inter
 import { Client } from 'pg'
 
 const qb = new PGQB(new Client('postgresql://user:password@hostname:5432/db_name'))
-const fetched = await qb.fetchAll({
-  tableName: 'devices',
-  fields: '*',
-})
+const fetched = await qb
+  .fetchAll({
+    tableName: 'devices',
+    fields: '*',
+  })
+  .execute()
 ```
