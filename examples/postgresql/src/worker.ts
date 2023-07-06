@@ -10,14 +10,16 @@ export default {
     const qb = new PGQB(new Client(env.DB_URL));
     await qb.connect();
 
-    const fetched = await qb.fetchOne({
-      tableName: 'employees',
-      fields: 'count(*) as count',
-      where: {
-        conditions: 'active = ?1',
-        params: [true],
-      },
-    });
+    const fetched = await qb
+      .fetchOne({
+        tableName: 'employees',
+        fields: 'count(*) as count',
+        where: {
+          conditions: 'active = ?1',
+          params: [true],
+        },
+      })
+      .execute();
 
     ctx.waitUntil(qb.close());
     return Response.json({

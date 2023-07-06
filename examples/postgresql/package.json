@@ -13,6 +13,6 @@
   },
   "dependencies": {
     "pg": "^8.11.0",
-    "workers-qb": "^0.1.9"
+    "workers-qb": "^1.0.0"
   }
 }
