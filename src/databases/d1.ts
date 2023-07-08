@@ -37,7 +37,7 @@ export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
         last_row_id: resp.meta?.last_row_id,
         served_by: resp.meta?.served_by,
         success: resp.success,
-        results: query.fetchType === FetchTypes.ONE && resp.results.length > 0 ? resp.results[0] : resp.results,
+        results: query.fetchType === FetchTypes.ONE ? resp.results[0] : resp.results,
       }
     }
 
@@ -64,7 +64,7 @@ export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
     return responses.map(
       (
         resp: {
-          results: any[] | null
+          results?: any[]
           success: boolean
           meta: {
             duration: number
@@ -82,10 +82,7 @@ export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
             last_row_id: resp.meta?.last_row_id,
             served_by: resp.meta?.served_by,
             success: resp.success,
-            results:
-              queryArray[i].fetchType === FetchTypes.ONE && resp.results && resp.results.length > 0
-                ? resp.results[0]
-                : resp.results,
+            results: queryArray[i].fetchType === FetchTypes.ONE ? resp.results?.[0] : resp.results,
           }
         } else {
           return {
