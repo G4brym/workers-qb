@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Zero dependencies Query Builder for Cloudflare Workers",
   "main": "./dist/workers-qb.js",
-  "types": "./dist/workers-qb.d.ts",
+  "types": "./dist/src/workers-qb.d.ts",
   "exports": {
     ".": {
       "types": "./dist/src/workers-qb.d.ts",
