@@ -29,19 +29,25 @@ export interface SelectAll extends SelectOne {
   limit?: number
 }
 
+export interface ConflictUpsert {
+  column: string | Array<string>
+  data: Record<string, string | boolean | number | null | Raw>
+  where?: Where
+}
+
 export interface Insert {
   tableName: string
   data:
     | Record<string, string | boolean | number | null | Raw>
     | Array<Record<string, string | boolean | number | null | Raw>>
   returning?: string | Array<string>
-  onConflict?: string | ConflictTypes
+  onConflict?: string | ConflictTypes | ConflictUpsert
 }
 
 export interface Update {
   tableName: string
   data: Record<string, string | boolean | number | null | Raw>
-  where: Where
+  where?: Where
   returning?: string | Array<string>
   onConflict?: string | ConflictTypes
 }

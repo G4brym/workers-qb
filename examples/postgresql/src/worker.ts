@@ -6,7 +6,7 @@ export interface Env {
 }
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  fetch: async function (request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const qb = new PGQB(new Client(env.DB_URL));
     await qb.connect();
 

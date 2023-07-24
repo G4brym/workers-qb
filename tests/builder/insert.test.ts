@@ -137,4 +137,40 @@ describe('Insert Builder', () => {
     expect(result.arguments).toEqual(['test1', 123, 'test2', 456, 'test3', 789])
     expect(result.fetchType).toEqual('ALL')
   })
+
+  test('upsert', async () => {
+    const result = new QuerybuilderTest().insert({
+      tableName: 'phonebook2',
+      data: {
+        name: 'Alice',
+        phonenumber: '704-555-1212',
+        validDate: '2018-05-08',
+      },
+      onConflict: {
+        column: 'name',
+        data: {
+          phonenumber: 'excluded.phonenumber',
+          validDate: 'excluded.validDate',
+        },
+        where: {
+          conditions: 'excluded.validDate > ?1',
+          params: ['phonebook2.validDate'],
+        },
+      },
+    })
+
+    expect(result.query).toEqual(
+      'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?4, ?5, ?6) ON CONFLICT (name) DO ' +
+        'UPDATE SET phonenumber = ?2, validDate = ?3 WHERE excluded.validDate > ?1'
+    )
+    expect(result.arguments).toEqual([
+      'phonebook2.validDate',
+      'Alice',
+      '704-555-1212',
+      '2018-05-08',
+      'excluded.phonenumber',
+      'excluded.validDate',
+    ])
+    expect(result.fetchType).toEqual('ONE')
+  })
 })

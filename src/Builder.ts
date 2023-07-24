@@ -1,4 +1,4 @@
-import { Delete, Insert, Join, SelectAll, SelectOne, Update } from './interfaces'
+import { ConflictUpsert, Delete, Insert, Join, SelectAll, SelectOne, Update } from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Query, Raw } from './tools'
 
@@ -60,12 +60,23 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
   insert(params: Insert): Query {
     let args: any[] = []
 
+    // 1 - on conflict where parameters
+    if (typeof params.onConflict === 'object' && params.onConflict.where?.params) {
+      args = args.concat(params.onConflict.where.params)
+    }
+
+    // 2 - insert data parameters
     if (Array.isArray(params.data)) {
       for (const row of params.data) {
         args = args.concat(this._parse_arguments(row))
       }
     } else {
       args = args.concat(this._parse_arguments(params.data))
+    }
+
+    // 3 - on conflict data parameters
+    if (typeof params.onConflict === 'object' && params.onConflict.data) {
+      args = args.concat(Object.values(params.onConflict.data))
     }
 
     const fetchType = Array.isArray(params.data) ? FetchTypes.ALL : FetchTypes.ONE
@@ -116,8 +127,22 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     })
   }
 
-  _onConflict(resolution?: string | ConflictTypes): string {
+  _onConflict(resolution?: string | ConflictTypes | ConflictUpsert): string {
     if (resolution) {
+      if (typeof resolution === 'object') {
+        if (!Array.isArray(resolution.column)) {
+          resolution.column = [resolution.column]
+        }
+
+        const _update_query = this.update({
+          tableName: '_REPLACE_',
+          data: resolution.data,
+          where: resolution.where,
+        }).query.replace(' _REPLACE_', '') // Replace here is to lint the query
+
+        return ` ON CONFLICT (${resolution.column.join(', ')}) DO ${_update_query}`
+      }
+
       return `OR ${resolution} `
     }
     return ''
@@ -131,8 +156,24 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     }
 
     const columns = Object.keys(params.data[0]).join(', ')
-
     let index = 1
+
+    let orConflict = '',
+      onConflict = ''
+    if (params.onConflict && typeof params.onConflict === 'object') {
+      onConflict = this._onConflict(params.onConflict)
+
+      if (params.onConflict.where?.params) {
+        index += params.onConflict.where?.params.length
+      }
+
+      if (params.onConflict.data) {
+        index += Object.keys(params.onConflict.data).length
+      }
+    } else {
+      orConflict = this._onConflict(params.onConflict)
+    }
+
     for (const row of params.data) {
       const values: Array<string> = []
       Object.values(row).forEach((value) => {
@@ -149,8 +190,9 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     }
 
     return (
-      `INSERT ${this._onConflict(params.onConflict)}INTO ${params.tableName} (${columns})` +
+      `INSERT ${orConflict}INTO ${params.tableName} (${columns})` +
       ` VALUES ${rows.join(', ')}` +
+      onConflict +
       this._returning(params.returning)
     )
   }
