@@ -2,6 +2,7 @@ import { Delete, Insert, Join, SelectAll, SelectOne, Update } from './interfaces
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Query, Raw } from './tools'
 
+// example change
 export class QueryBuilder<GenericResult, GenericResultOne> {
   _debugger = false
 
