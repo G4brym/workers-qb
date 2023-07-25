@@ -68,8 +68,43 @@ This will generate this query
 
 ```sql
 INSERT INTO phonebook2 (name, phonenumber, validDate)
-VALUES (?2, ?3, ?4)
+VALUES (?1, ?2, ?3)
 ON CONFLICT (name) DO UPDATE SET phonenumber = excluded.phonenumber,
                                  validDate   = excluded.validDate
+WHERE excluded.validDate > phonebook2.validDate
+```
+
+## Upsert with multiple columns
+
+```ts
+const qb = new D1QB(env.DB)
+
+const upserted = await qb
+  .insert({
+    tableName: 'phonebook2',
+    data: {
+      name: 'Alice',
+      phonenumber: '704-555-1212',
+      validDate: '2018-05-08',
+    },
+    onConflict: {
+      column: ['name', 'phonenumber'],
+      data: {
+        validDate: new Raw('excluded.validDate'),
+      },
+      where: {
+        conditions: 'excluded.validDate > phonebook2.validDate',
+      },
+    },
+  })
+  .execute()
+```
+
+This will generate this query
+
+```sql
+INSERT INTO phonebook2 (name, phonenumber, validDate)
+VALUES (?1, ?2, ?3)
+ON CONFLICT (name, phonenumber) DO UPDATE SET validDate = excluded.validDate
 WHERE excluded.validDate > phonebook2.validDate
 ```

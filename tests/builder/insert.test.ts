@@ -267,4 +267,31 @@ describe('Insert Builder', () => {
     expect(result.arguments).toEqual(['2023-01-01', 'Alice', '704-555-1212', '2018-05-08'])
     expect(result.fetchType).toEqual('ONE')
   })
+
+  test('upsert with Raw and multiple columns', async () => {
+    const result = new QuerybuilderTest().insert({
+      tableName: 'phonebook2',
+      data: {
+        name: 'Alice',
+        phonenumber: '704-555-1212',
+        validDate: '2018-05-08',
+      },
+      onConflict: {
+        column: ['name', 'phonenumber'],
+        data: {
+          validDate: new Raw('excluded.validDate'),
+        },
+        where: {
+          conditions: 'excluded.validDate > phonebook2.validDate',
+        },
+      },
+    })
+
+    expect(result.query).toEqual(
+      'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?1, ?2, ?3) ON CONFLICT (name, phonenumber) DO ' +
+        'UPDATE SET validDate = excluded.validDate WHERE excluded.validDate > phonebook2.validDate'
+    )
+    expect(result.arguments).toEqual(['Alice', '704-555-1212', '2018-05-08'])
+    expect(result.fetchType).toEqual('ONE')
+  })
 })
