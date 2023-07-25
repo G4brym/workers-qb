@@ -50,6 +50,7 @@ nav:
       - advanced-queries/limit.md
       - advanced-queries/returning.md
       - advanced-queries/onConflict.md
+      - advanced-queries/upsert.md
       - advanced-queries/raw-sql.md
 markdown_extensions:
   - toc:
