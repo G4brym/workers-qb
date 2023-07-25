@@ -60,23 +60,25 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
   insert(params: Insert): Query {
     let args: any[] = []
 
-    // 1 - on conflict where parameters
-    if (typeof params.onConflict === 'object' && params.onConflict.where?.params) {
-      args = args.concat(params.onConflict.where.params)
+    if (typeof params.onConflict === 'object') {
+      if (params.onConflict.where?.params) {
+        // 1 - on conflict where parameters
+        args = args.concat(params.onConflict.where.params)
+      }
+
+      if (params.onConflict.data) {
+        // 2 - on conflict data parameters
+        args = args.concat(this._parse_arguments(params.onConflict.data))
+      }
     }
 
-    // 2 - insert data parameters
+    // 3 - insert data parameters
     if (Array.isArray(params.data)) {
       for (const row of params.data) {
         args = args.concat(this._parse_arguments(row))
       }
     } else {
       args = args.concat(this._parse_arguments(params.data))
-    }
-
-    // 3 - on conflict data parameters
-    if (typeof params.onConflict === 'object' && params.onConflict.data) {
-      args = args.concat(Object.values(params.onConflict.data))
     }
 
     const fetchType = Array.isArray(params.data) ? FetchTypes.ALL : FetchTypes.ONE
@@ -168,7 +170,7 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
       }
 
       if (params.onConflict.data) {
-        index += Object.keys(params.onConflict.data).length
+        index += this._parse_arguments(params.onConflict.data).length
       }
     } else {
       orConflict = this._onConflict(params.onConflict)

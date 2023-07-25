@@ -152,9 +152,40 @@ describe('Insert Builder', () => {
           phonenumber: 'excluded.phonenumber',
           validDate: 'excluded.validDate',
         },
+      },
+    })
+
+    expect(result.query).toEqual(
+      'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?3, ?4, ?5) ON CONFLICT (name) DO ' +
+        'UPDATE SET phonenumber = ?1, validDate = ?2'
+    )
+    expect(result.arguments).toEqual([
+      'excluded.phonenumber',
+      'excluded.validDate',
+      'Alice',
+      '704-555-1212',
+      '2018-05-08',
+    ])
+    expect(result.fetchType).toEqual('ONE')
+  })
+
+  test('upsert with where', async () => {
+    const result = new QuerybuilderTest().insert({
+      tableName: 'phonebook2',
+      data: {
+        name: 'Alice',
+        phonenumber: '704-555-1212',
+        validDate: '2018-05-08',
+      },
+      onConflict: {
+        column: 'name',
+        data: {
+          phonenumber: 'excluded.phonenumber',
+          validDate: 'excluded.validDate',
+        },
         where: {
           conditions: 'excluded.validDate > ?1',
-          params: ['phonebook2.validDate'],
+          params: ['2023-01-01'],
         },
       },
     })
@@ -164,13 +195,76 @@ describe('Insert Builder', () => {
         'UPDATE SET phonenumber = ?2, validDate = ?3 WHERE excluded.validDate > ?1'
     )
     expect(result.arguments).toEqual([
-      'phonebook2.validDate',
+      '2023-01-01',
+      'excluded.phonenumber',
+      'excluded.validDate',
       'Alice',
       '704-555-1212',
       '2018-05-08',
+    ])
+    expect(result.fetchType).toEqual('ONE')
+  })
+
+  test('upsert with inline where', async () => {
+    const result = new QuerybuilderTest().insert({
+      tableName: 'phonebook2',
+      data: {
+        name: 'Alice',
+        phonenumber: '704-555-1212',
+        validDate: '2018-05-08',
+      },
+      onConflict: {
+        column: 'name',
+        data: {
+          phonenumber: 'excluded.phonenumber',
+          validDate: 'excluded.validDate',
+        },
+        where: {
+          conditions: 'excluded.validDate > phonebook2.validDate',
+        },
+      },
+    })
+
+    expect(result.query).toEqual(
+      'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?3, ?4, ?5) ON CONFLICT (name) DO ' +
+        'UPDATE SET phonenumber = ?1, validDate = ?2 WHERE excluded.validDate > phonebook2.validDate'
+    )
+    expect(result.arguments).toEqual([
       'excluded.phonenumber',
       'excluded.validDate',
+      'Alice',
+      '704-555-1212',
+      '2018-05-08',
     ])
+    expect(result.fetchType).toEqual('ONE')
+  })
+
+  test('upsert with where and Raw', async () => {
+    const result = new QuerybuilderTest().insert({
+      tableName: 'phonebook2',
+      data: {
+        name: 'Alice',
+        phonenumber: '704-555-1212',
+        validDate: '2018-05-08',
+      },
+      onConflict: {
+        column: 'name',
+        data: {
+          phonenumber: new Raw('excluded.phonenumber'),
+          validDate: new Raw('excluded.validDate'),
+        },
+        where: {
+          conditions: 'excluded.validDate > ?1',
+          params: ['2023-01-01'],
+        },
+      },
+    })
+
+    expect(result.query).toEqual(
+      'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?2, ?3, ?4) ON CONFLICT (name) DO ' +
+        'UPDATE SET phonenumber = excluded.phonenumber, validDate = excluded.validDate WHERE excluded.validDate > ?1'
+    )
+    expect(result.arguments).toEqual(['2023-01-01', 'Alice', '704-555-1212', '2018-05-08'])
     expect(result.fetchType).toEqual('ONE')
   })
 })
