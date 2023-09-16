@@ -154,3 +154,13 @@ const dropped = await qb.dropTable({
   tableName: 'testTable',
 })
 ```
+
+## Access the underlying db client
+
+```ts
+const qb = new D1QB(env.DB)
+
+let stmt = qb.db.prepare(query.query)
+
+const resp = await stmt.all()
+```

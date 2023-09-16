@@ -4,20 +4,20 @@ import { Query } from '../tools'
 import { PGResult, PGResultOne } from '../interfaces'
 
 export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
-  private client: any
+  public db: any
 
-  constructor(client: any) {
+  constructor(db: any) {
     super()
 
-    this.client = client
+    this.db = db
   }
 
   async connect() {
-    await this.client.connect()
+    await this.db.connect()
   }
 
   async close() {
-    await this.client.end()
+    await this.db.end()
   }
 
   async execute(query: Query): Promise<PGResultOne | PGResult> {
@@ -32,12 +32,12 @@ export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
     let result
 
     if (query.arguments) {
-      result = await this.client.query({
+      result = await this.db.query({
         values: query.arguments,
         text: queryString,
       })
     } else {
-      result = await this.client.query({
+      result = await this.db.query({
         text: queryString,
       })
     }

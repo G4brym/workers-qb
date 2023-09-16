@@ -4,7 +4,7 @@ import { Query } from '../tools'
 import { D1Result, D1ResultOne } from '../interfaces'
 
 export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
-  private db: any
+  public db: any
 
   constructor(db: any) {
     super()
