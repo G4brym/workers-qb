@@ -1,4 +1,4 @@
-import { ConflictUpsert, Delete, Insert, Join, SelectAll, SelectOne, Update } from './interfaces'
+import { ConflictUpsert, Delete, Insert, Join, RawQuery, SelectAll, SelectOne, Update } from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Query, Raw } from './tools'
 
@@ -54,6 +54,17 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
       this._select(params),
       params.where ? params.where.params : undefined,
       FetchTypes.ALL
+    )
+  }
+
+  raw(params: RawQuery): Query {
+    return new Query(
+      (q: Query) => {
+        return this.execute(q)
+      },
+      params.query,
+      params.args,
+      params.fetchType
     )
   }
 
