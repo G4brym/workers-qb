@@ -172,7 +172,7 @@ const result = await qb
 ```ts
 const qb = new D1QB(env.DB)
 
-let stmt = qb.db.prepare(query.query)
+let stmt = qb.db.prepare('select * from employees')
 
 const resp = await stmt.all()
 ```
