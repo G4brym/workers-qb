@@ -1,4 +1,4 @@
-import { ConflictTypes, JoinTypes, OrderTypes } from './enums'
+import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from './enums'
 import { Raw } from './tools'
 
 export interface Where {
@@ -23,6 +23,12 @@ export interface SelectOne {
   having?: string
   orderBy?: string | Array<string> | Record<string, string | OrderTypes>
   offset?: number
+}
+
+export interface RawQuery {
+  query: string
+  args?: (string | number | boolean | null | Raw)[]
+  fetchType?: FetchTypes
 }
 
 export interface SelectAll extends SelectOne {

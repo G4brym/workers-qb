@@ -155,6 +155,18 @@ const dropped = await qb.dropTable({
 })
 ```
 
+## Raw Queries
+
+```ts
+const result = await qb
+  .raw({
+    query: 'select * from employees where department = $1',
+    params: ['HQ'],
+    fetch: FetchTypes.ALL,
+  })
+  .execute()
+```
+
 ## Access the underlying db client
 
 ```ts
