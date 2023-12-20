@@ -72,3 +72,6 @@ extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/G4brym/workers-qb
+  analytics:
+    provider: google
+    property: G-B6B3TLN6EN
