@@ -18,6 +18,11 @@ describe('Batch Builder', () => {
       }),
     ])
 
-    expect(db.batch).toHaveBeenCalledWith(['SELECT * FROM tableA LIMIT 1', 'SELECT * FROM tableB'])
+    expect(db.batch).toHaveBeenCalledWith([
+      `SELECT *
+       FROM tableA LIMIT 1`,
+      `SELECT *
+       FROM tableB`,
+    ])
   })
 })

@@ -4,10 +4,16 @@ import terser from '@rollup/plugin-terser'
 import typescript from '@rollup/plugin-typescript'
 
 export default defineConfig({
-  input: 'src/workers-qb.ts',
+  input: 'src/index.ts',
   output: [
-    { format: 'cjs', file: 'dist/workers-qb.js' },
-    { format: 'es', file: 'dist/workers-qb.mjs' },
+    { format: 'cjs', file: 'dist/index.js' },
+    { format: 'es', file: 'dist/index.mjs' },
   ],
-  plugins: [typescript(), terser(), bundleSize()],
+  plugins: [
+    typescript({
+      sourceMap: false,
+    }),
+    terser(),
+    bundleSize(),
+  ],
 })

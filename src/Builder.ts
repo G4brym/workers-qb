@@ -1,41 +1,59 @@
-import { ConflictUpsert, Delete, Insert, Join, RawQuery, SelectAll, SelectOne, Update } from './interfaces'
+import {
+  ArrayResult,
+  ConflictUpsert,
+  DefaultObject,
+  Delete,
+  EitherResult,
+  Insert,
+  Join,
+  OneResult,
+  RawQuery,
+  SelectAll,
+  SelectOne,
+  Update,
+} from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Query, Raw } from './tools'
 
-export class QueryBuilder<GenericResult, GenericResultOne> {
+export class QueryBuilder<GenericResultWrapper> {
   _debugger = false
 
   setDebugger(state: boolean): void {
     this._debugger = state
   }
 
-  async execute(query: Query): Promise<GenericResultOne | GenericResult> {
+  async execute(query: Query): Promise<any> {
     throw new Error('Execute method not implemented')
   }
 
-  async batchExecute(queryArray: Query[]): Promise<(GenericResultOne | GenericResult)[]> {
+  async batchExecute(queryArray: Query[]): Promise<any[]> {
     throw new Error('Batch execute method not implemented')
   }
 
-  createTable(params: { tableName: string; schema: string; ifNotExists?: boolean }): Query {
+  createTable<GenericResult = undefined>(params: {
+    tableName: string
+    schema: string
+    ifNotExists?: boolean
+  }): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
     return new Query(
       (q: Query) => {
         return this.execute(q)
       },
       `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName}
-              (
-                ${params.schema}
-              )`
+      ( ${params.schema})`
     )
   }
 
-  dropTable(params: { tableName: string; ifExists?: boolean }): Query {
+  dropTable<GenericResult = undefined>(params: {
+    tableName: string
+    ifExists?: boolean
+  }): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
     return new Query((q: Query) => {
       return this.execute(q)
     }, `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`)
   }
 
-  fetchOne(params: SelectOne): Query {
+  fetchOne<GenericResult = DefaultObject>(params: SelectOne): Query<OneResult<GenericResultWrapper, GenericResult>> {
     return new Query(
       (q: Query) => {
         return this.execute(q)
@@ -46,7 +64,7 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     )
   }
 
-  fetchAll(params: SelectAll): Query {
+  fetchAll<GenericResult = DefaultObject>(params: SelectAll): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
     return new Query(
       (q: Query) => {
         return this.execute(q)
@@ -57,7 +75,7 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     )
   }
 
-  raw(params: RawQuery): Query {
+  raw<GenericResult = DefaultObject>(params: RawQuery): Query<EitherResult<GenericResultWrapper, GenericResult>> {
     return new Query(
       (q: Query) => {
         return this.execute(q)
@@ -68,7 +86,7 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     )
   }
 
-  insert(params: Insert): Query {
+  insert<GenericResult = DefaultObject>(params: Insert): Query<EitherResult<GenericResultWrapper, GenericResult>> {
     let args: any[] = []
 
     if (typeof params.onConflict === 'object') {
@@ -104,7 +122,7 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     )
   }
 
-  update(params: Update): Query {
+  update<GenericResult = DefaultObject>(params: Update): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
     let args = this._parse_arguments(params.data)
 
     if (params.where && params.where.params) {
@@ -121,7 +139,7 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     )
   }
 
-  delete(params: Delete): Query {
+  delete<GenericResult = DefaultObject>(params: Delete): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
     return new Query(
       (q: Query) => {
         return this.execute(q)
@@ -203,7 +221,7 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     }
 
     return (
-      `INSERT ${orConflict}INTO ${params.tableName} (${columns})` +
+      `INSERT ${orConflict} INTO ${params.tableName} (${columns})` +
       ` VALUES ${rows.join(', ')}` +
       onConflict +
       this._returning(params.returning)
@@ -226,19 +244,26 @@ export class QueryBuilder<GenericResult, GenericResultOne> {
     }
 
     return (
-      `UPDATE ${this._onConflict(params.onConflict)}${params.tableName} SET ${set.join(', ')}` +
+      `UPDATE ${this._onConflict(params.onConflict)}${params.tableName}
+       SET ${set.join(', ')}` +
       this._where(params.where?.conditions) +
       this._returning(params.returning)
     )
   }
 
   _delete(params: Delete): string {
-    return `DELETE FROM ${params.tableName}` + this._where(params.where?.conditions) + this._returning(params.returning)
+    return (
+      `DELETE
+            FROM ${params.tableName}` +
+      this._where(params.where?.conditions) +
+      this._returning(params.returning)
+    )
   }
 
   _select(params: SelectAll): string {
     return (
-      `SELECT ${this._fields(params.fields)} FROM ${params.tableName}` +
+      `SELECT ${this._fields(params.fields)}
+       FROM ${params.tableName}` +
       this._join(params.join) +
       this._where(params.where?.conditions) +
       this._groupBy(params.groupBy) +

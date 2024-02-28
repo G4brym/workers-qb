@@ -1,9 +1,9 @@
 import { QueryBuilder } from '../Builder'
 import { FetchTypes } from '../enums'
 import { Query } from '../tools'
-import { D1Result, D1ResultOne } from '../interfaces'
+import { D1Result } from '../interfaces'
 
-export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
+export class D1QB extends QueryBuilder<D1Result> {
   public db: any
 
   constructor(db: any) {
@@ -11,7 +11,7 @@ export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
     this.db = db
   }
 
-  async execute(query: Query): Promise<D1ResultOne | D1Result> {
+  async execute(query: Query) {
     let stmt = this.db.prepare(query.query)
 
     if (this._debugger) {
@@ -44,7 +44,7 @@ export class D1QB extends QueryBuilder<D1Result, D1ResultOne> {
     return stmt.run()
   }
 
-  async batchExecute(queryArray: Query[]): Promise<(D1ResultOne | D1Result)[]> {
+  async batchExecute(queryArray: Query[]) {
     if (this._debugger) {
       console.log({
         'workers-qb': queryArray,

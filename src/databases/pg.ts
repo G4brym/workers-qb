@@ -1,9 +1,9 @@
 import { QueryBuilder } from '../Builder'
 import { FetchTypes } from '../enums'
 import { Query } from '../tools'
-import { PGResult, PGResultOne } from '../interfaces'
+import { PGResult } from '../interfaces'
 
-export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
+export class PGQB extends QueryBuilder<PGResult> {
   public db: any
 
   constructor(db: any) {
@@ -20,7 +20,7 @@ export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
     await this.db.end()
   }
 
-  async execute(query: Query): Promise<PGResultOne | PGResult> {
+  async execute(query: Query) {
     const queryString = query.query.replaceAll('?', '$')
 
     if (this._debugger) {

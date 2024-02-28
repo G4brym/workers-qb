@@ -1,4 +1,4 @@
-import { QuerybuilderTest } from '../utils'
+import { QuerybuilderTest, trimQuery } from '../utils'
 import { ConflictTypes } from '../../src/enums'
 import { Raw } from '../../src/tools'
 
@@ -15,7 +15,7 @@ describe('Update Builder', () => {
       },
     })
 
-    expect(result.query).toEqual('UPDATE testTable SET my_field = ?2 WHERE field = ?1')
+    expect(trimQuery(result.query)).toEqual('UPDATE testTable SET my_field = ?2 WHERE field = ?1')
     expect(result.arguments).toEqual(['test_where', 'test_data'])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -34,7 +34,7 @@ describe('Update Builder', () => {
       },
     })
 
-    expect(result.query).toEqual(
+    expect(trimQuery(result.query)).toEqual(
       'UPDATE testTable SET my_field = ?2, updated_at = CURRENT_TIMESTAMP, another = ?3 WHERE field = ?1'
     )
     expect(result.arguments).toEqual(['test_where', 'test_data', '123'])
@@ -53,7 +53,7 @@ describe('Update Builder', () => {
       },
     })
 
-    expect(result.query).toEqual('UPDATE testTable SET my_field = ?2 WHERE field = ?1')
+    expect(trimQuery(result.query)).toEqual('UPDATE testTable SET my_field = ?2 WHERE field = ?1')
     expect(result.arguments).toEqual(['test', 'test_update'])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -71,7 +71,7 @@ describe('Update Builder', () => {
       },
     })
 
-    expect(result.query).toEqual('UPDATE testTable SET my_field = ?2, another = ?3 WHERE field = ?1')
+    expect(trimQuery(result.query)).toEqual('UPDATE testTable SET my_field = ?2, another = ?3 WHERE field = ?1')
     expect(result.arguments).toEqual(['test', 'test_update', 123])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -89,7 +89,9 @@ describe('Update Builder', () => {
       },
     })
 
-    expect(result.query).toEqual('UPDATE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2')
+    expect(trimQuery(result.query)).toEqual(
+      'UPDATE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2'
+    )
     expect(result.arguments).toEqual(['test', 345, 'test_update', 123])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -108,7 +110,7 @@ describe('Update Builder', () => {
       returning: 'id',
     })
 
-    expect(result.query).toEqual(
+    expect(trimQuery(result.query)).toEqual(
       'UPDATE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id'
     )
     expect(result.arguments).toEqual(['test', 345, 'test_update', 123])
@@ -129,7 +131,7 @@ describe('Update Builder', () => {
       returning: ['id', 'field'],
     })
 
-    expect(result.query).toEqual(
+    expect(trimQuery(result.query)).toEqual(
       'UPDATE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id, field'
     )
     expect(result.arguments).toEqual(['test', 345, 'test_update', 123])
@@ -151,7 +153,7 @@ describe('Update Builder', () => {
       onConflict: ConflictTypes.IGNORE,
     })
 
-    expect(result.query).toEqual(
+    expect(trimQuery(result.query)).toEqual(
       'UPDATE OR IGNORE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id, field'
     )
     expect(result.arguments).toEqual(['test', 345, 'test_update', 123])
@@ -173,7 +175,7 @@ describe('Update Builder', () => {
       onConflict: 'REPLACE',
     })
 
-    expect(result.query).toEqual(
+    expect(trimQuery(result.query)).toEqual(
       'UPDATE OR REPLACE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id, field'
     )
     expect(result.arguments).toEqual(['test', 345, 'test_update', 123])

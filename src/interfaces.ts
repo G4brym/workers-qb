@@ -1,20 +1,23 @@
 import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from './enums'
 import { Raw } from './tools'
+import { IsEqual, Merge, Primitive, Simplify } from './typefest'
 
-export interface Where {
+export type DefaultObject = Record<string, Primitive>
+
+export type Where = {
   conditions: string | Array<string>
   // TODO: enable named parameters Record<string, string | boolean | number | null>
-  params?: (string | boolean | number | null)[]
+  params?: (string | boolean | number | null | Raw)[]
 }
 
-export interface Join {
+export type Join = {
   type?: string | JoinTypes
   table: string | SelectAll
   on: string
   alias?: string
 }
 
-export interface SelectOne {
+export type SelectOne = {
   tableName: string
   fields: string | Array<string>
   where?: Where
@@ -25,23 +28,23 @@ export interface SelectOne {
   offset?: number
 }
 
-export interface RawQuery {
+export type RawQuery = {
   query: string
   args?: (string | number | boolean | null | Raw)[]
   fetchType?: FetchTypes
 }
 
-export interface SelectAll extends SelectOne {
+export type SelectAll = SelectOne & {
   limit?: number
 }
 
-export interface ConflictUpsert {
+export type ConflictUpsert = {
   column: string | Array<string>
   data: Record<string, string | boolean | number | null | Raw>
   where?: Where
 }
 
-export interface Insert {
+export type Insert = {
   tableName: string
   data:
     | Record<string, string | boolean | number | null | Raw>
@@ -50,7 +53,7 @@ export interface Insert {
   onConflict?: string | ConflictTypes | ConflictUpsert
 }
 
-export interface Update {
+export type Update = {
   tableName: string
   data: Record<string, string | boolean | number | null | Raw>
   where?: Where
@@ -58,40 +61,40 @@ export interface Update {
   onConflict?: string | ConflictTypes
 }
 
-export interface Delete {
+export type Delete = {
   tableName: string
   where: Where
   returning?: string | Array<string>
 }
 
-export interface D1Result {
+export type D1Result = {
   changes?: number
   duration: number
   last_row_id?: string | number
-  results?: Array<Record<string, string | boolean | number | null>>
   served_by: string
   success: boolean
 }
 
-export interface D1ResultOne {
-  changes?: number
-  duration: number
-  last_row_id?: string | number
-  results?: Record<string, string | boolean | number | null>
-  served_by: string
-  success: boolean
-}
-
-export interface PGResult {
+export type PGResult = {
   command: string
   lastRowId?: string | number
   rowCount: number
-  results?: Array<Record<string, string | boolean | number | null>>
 }
 
-export interface PGResultOne {
-  command: string
-  lastRowId?: string | number
-  rowCount: number
-  results?: Record<string, string | boolean | number | null>
-}
+export type ArrayResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Array<Result> }>
+export type OneResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Result }>
+export type EitherResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Array<Result> | Result }>
+
+// Types bellow are WIP to improve even more type hints for raw and insert queries
+export type GetFetchValue<T> = T extends { fetchType?: infer U } ? U : never
+export type SwitchFetch<P, A, B> = IsEqual<P, FetchTypes.ALL> extends true
+  ? ArrayResult<A, B>
+  : IsEqual<P, FetchTypes.ONE> extends true
+  ? OneResult<A, B>
+  : A
+
+export type FindResult<P, A, B> = Simplify<SwitchFetch<GetFetchValue<P>, A, B>>
+
+// raw<GenericResult=DefaultObject, P extends RawQuery = RawQuery>(params: P): Query<FindResult<P, GenericResultWrapper, GenericResult>> {
+//
+// }

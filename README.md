@@ -47,10 +47,16 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const qb = new D1QB(env.DB)
 
-    const fetched = await qb
-      .fetchOne({
+    type Employee = {
+      name: string
+      role: string
+      level: number
+    }
+
+    const employeeList = await qb
+      .fetchOne<Employee>({
         tableName: 'employees',
-        fields: 'count(*) as count',
+        fields: '*',
         where: {
           conditions: 'active = ?1',
           params: [true],
@@ -58,8 +64,11 @@ export default {
       })
       .execute()
 
+    // You get IDE type hints on each employee data, like:
+    // employeeList.results[0].name
+
     return Response.json({
-      activeEmployees: fetched.results?.count || 0,
+      activeEmployees: employeeList.results?.length || 0,
     })
   },
 }

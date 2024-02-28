@@ -1,14 +1,15 @@
 {
   "name": "workers-qb",
   "version": "0.0.1",
+  "type": "module",
   "description": "Zero dependencies Query Builder for Cloudflare Workers",
-  "main": "./dist/workers-qb.js",
-  "types": "./dist/src/workers-qb.d.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/src/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/src/workers-qb.d.ts",
-      "import": "./dist/workers-qb.mjs",
-      "require": "./dist/workers-qb.js"
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     }
   },
   "files": [
@@ -21,8 +22,8 @@
     "postpublish": "pinst --enable",
     "build": "rollup -c",
     "package": "npm run build && npm pack",
-    "test": "jest --no-cache --runInBand",
-    "test:cov": "jest --coverage --no-cache --runInBand",
+    "test": "jest --config jest.config.cjs --no-cache --runInBand",
+    "test:cov": "jest --config jest.config.cjs --coverage --no-cache --runInBand",
     "addscope": "node tools/packagejson name @g4brym/workers-qb",
     "prettify": "prettier --check . || (prettier -w .; exit 1)",
     "prepare": "husky install"
@@ -83,5 +84,29 @@
     "rollup-plugin-bundle-size": "^1.0.3",
     "ts-jest": "^28.0.5",
     "typescript": "^4.8.4"
+  },
+  "prettier": {
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "arrowParens": "always",
+    "printWidth": 120
+  },
+  "eslintConfig": {
+    "parser": "@typescript-eslint/parser",
+    "extends": [
+      "plugin:@typescript-eslint/recommended",
+      "prettier"
+    ],
+    "parserOptions": {
+      "sourceType": "module"
+    },
+    "rules": {
+      "prettier/prettier": "error"
+    },
+    "plugins": [
+      "@typescript-eslint",
+      "prettier"
+    ]
   }
 }
