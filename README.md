@@ -54,7 +54,7 @@ export default {
     }
 
     const employeeList = await qb
-      .fetchOne<Employee>({
+      .fetchAll<Employee>({
         tableName: 'employees',
         fields: '*',
         where: {
