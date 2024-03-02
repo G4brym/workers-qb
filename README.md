@@ -19,8 +19,8 @@ Currently, 2 databases are supported:
 
 - [x] Zero dependencies.
 - [x] Fully typed/TypeScript support
-- [x] SQL Type checking with compatible IDE's
-- [x] Create/drop tables
+- [x] [Type Checks for data read](https://workers-qb.massadas.com/type-check/)
+- [x] [Create/drop tables](https://workers-qb.massadas.com/basic-queries/#dropping-and-creating-tables)
 - [x] [Insert/Bulk Inserts/Update/Select/Delete/Join queries](https://workers-qb.massadas.com/basic-queries/)
 - [x] [On Conflict for Inserts and Updates](https://workers-qb.massadas.com/advanced-queries/onConflict/)
 - [x] [Upsert](https://workers-qb.massadas.com/advanced-queries/upsert/)
