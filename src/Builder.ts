@@ -11,9 +11,11 @@ import {
   SelectAll,
   SelectOne,
   Update,
+  Where,
 } from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Query, Raw } from './tools'
+import * as console from 'console'
 
 export class QueryBuilder<GenericResultWrapper> {
   _debugger = false
@@ -59,7 +61,9 @@ export class QueryBuilder<GenericResultWrapper> {
         return this.execute(q)
       },
       this._select({ ...params, limit: 1 }),
-      params.where ? params.where.params : undefined,
+      typeof params.where === 'object' && !Array.isArray(params.where) && params.where.params
+        ? params.where.params
+        : undefined,
       FetchTypes.ONE
     )
   }
@@ -70,7 +74,9 @@ export class QueryBuilder<GenericResultWrapper> {
         return this.execute(q)
       },
       this._select(params),
-      params.where ? params.where.params : undefined,
+      typeof params.where === 'object' && !Array.isArray(params.where) && params.where.params
+        ? params.where.params
+        : undefined,
       FetchTypes.ALL
     )
   }
@@ -90,7 +96,11 @@ export class QueryBuilder<GenericResultWrapper> {
     let args: any[] = []
 
     if (typeof params.onConflict === 'object') {
-      if (params.onConflict.where?.params) {
+      if (
+        typeof params.onConflict?.where === 'object' &&
+        !Array.isArray(params.onConflict?.where) &&
+        params.onConflict?.where.params
+      ) {
         // 1 - on conflict where parameters
         args = args.concat(params.onConflict.where.params)
       }
@@ -125,8 +135,8 @@ export class QueryBuilder<GenericResultWrapper> {
   update<GenericResult = DefaultObject>(params: Update): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
     let args = this._parse_arguments(params.data)
 
-    if (params.where && params.where.params) {
-      args = params.where.params.concat(args)
+    if (typeof params.where === 'object' && !Array.isArray(params.where) && params.where.params) {
+      args = (params.where.params as Array<any>).concat(args)
     }
 
     return new Query(
@@ -145,7 +155,9 @@ export class QueryBuilder<GenericResultWrapper> {
         return this.execute(q)
       },
       this._delete(params),
-      params.where ? params.where.params : undefined,
+      typeof params.where === 'object' && !Array.isArray(params.where) && params.where.params
+        ? params.where.params
+        : undefined,
       FetchTypes.ALL
     )
   }
@@ -194,8 +206,12 @@ export class QueryBuilder<GenericResultWrapper> {
     if (params.onConflict && typeof params.onConflict === 'object') {
       onConflict = this._onConflict(params.onConflict)
 
-      if (params.onConflict.where?.params) {
-        index += params.onConflict.where?.params.length
+      if (
+        typeof params.onConflict?.where === 'object' &&
+        !Array.isArray(params.onConflict?.where) &&
+        params.onConflict?.where.params
+      ) {
+        index += (params.onConflict.where?.params).length
       }
 
       if (params.onConflict.data) {
@@ -229,7 +245,10 @@ export class QueryBuilder<GenericResultWrapper> {
   }
 
   _update(params: Update): string {
-    const whereParamsLength: number = params.where && params.where.params ? Object.keys(params.where.params).length : 0
+    const whereParamsLength: number =
+      typeof params.where === 'object' && !Array.isArray(params.where) && params.where.params
+        ? Object.keys(params.where.params as Array<any>).length
+        : 0
 
     const set: Array<string> = []
     let index = 1
@@ -246,7 +265,7 @@ export class QueryBuilder<GenericResultWrapper> {
     return (
       `UPDATE ${this._onConflict(params.onConflict)}${params.tableName}
        SET ${set.join(', ')}` +
-      this._where(params.where?.conditions) +
+      this._where(params.where) +
       this._returning(params.returning)
     )
   }
@@ -255,7 +274,7 @@ export class QueryBuilder<GenericResultWrapper> {
     return (
       `DELETE
             FROM ${params.tableName}` +
-      this._where(params.where?.conditions) +
+      this._where(params.where) +
       this._returning(params.returning)
     )
   }
@@ -265,7 +284,7 @@ export class QueryBuilder<GenericResultWrapper> {
       `SELECT ${this._fields(params.fields)}
        FROM ${params.tableName}` +
       this._join(params.join) +
-      this._where(params.where?.conditions) +
+      this._where(params.where) +
       this._groupBy(params.groupBy) +
       this._having(params.having) +
       this._orderBy(params.orderBy) +
@@ -274,17 +293,24 @@ export class QueryBuilder<GenericResultWrapper> {
     )
   }
 
-  _fields(value: string | Array<string>): string {
+  _fields(value?: string | Array<string>): string {
+    if (!value) return '*'
     if (typeof value === 'string') return value
 
     return value.join(', ')
   }
 
-  _where(value?: string | Array<string>): string {
+  _where(value?: Where): string {
     if (!value) return ''
-    if (typeof value === 'string') return ` WHERE ${value}`
+    let conditions = value
 
-    return ` WHERE ${value.join(' AND ')}`
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      conditions = value.conditions
+    }
+
+    if (typeof conditions === 'string') return ` WHERE ${conditions.toString()}`
+
+    return ` WHERE ${(conditions as Array<string>).join(' AND ')}`
   }
 
   _join(value?: Join | Array<Join>): string {

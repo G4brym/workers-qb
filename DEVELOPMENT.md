@@ -90,7 +90,6 @@ console.log(inserted)
 console.log('Selecting rows...')
 const selected = await qb.fetchAll({
   tableName: 'testTable',
-  fields: '*',
 })
 console.log(selected)
 ```

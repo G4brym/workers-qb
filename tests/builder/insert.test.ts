@@ -272,6 +272,51 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
+  test('upsert with simplified where', async () => {
+    const result = new QuerybuilderTest().insert({
+      tableName: 'phonebook2',
+      data: {
+        name: 'Alice',
+        phonenumber: '704-555-1212',
+        validDate: '2018-05-08',
+      },
+      onConflict: {
+        column: 'name',
+        data: {
+          phonenumber: new Raw('excluded.phonenumber'),
+          validDate: new Raw('excluded.validDate'),
+        },
+        where: 'excluded.validDate > Date(now())',
+      },
+    })
+  })
+
+  test('upsert with simplified where list', async () => {
+    const result = new QuerybuilderTest().insert({
+      tableName: 'phonebook2',
+      data: {
+        name: 'Alice',
+        phonenumber: '704-555-1212',
+        validDate: '2018-05-08',
+      },
+      onConflict: {
+        column: 'name',
+        data: {
+          phonenumber: new Raw('excluded.phonenumber'),
+          validDate: new Raw('excluded.validDate'),
+        },
+        where: ['excluded.validDate > Date(now())', 'active = true'],
+      },
+    })
+
+    expect(trimQuery(result.query)).toEqual(
+      'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?1, ?2, ?3) ON CONFLICT (name) DO ' +
+        'UPDATE SET phonenumber = excluded.phonenumber, validDate = excluded.validDate WHERE excluded.validDate > Date(now()) AND active = true'
+    )
+    expect(result.arguments).toEqual(['Alice', '704-555-1212', '2018-05-08'])
+    expect(result.fetchType).toEqual('ONE')
+  })
+
   test('upsert with Raw and multiple columns', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'phonebook2',

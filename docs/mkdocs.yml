@@ -34,8 +34,8 @@ plugins:
 nav:
   - workers-qb: index.md
   - getting-started.md
+  - type-check.md
   - basic-queries.md
-  - upgrading-from-0.x.md
   - Supported Databases:
       - databases/cloudflare-d1.md
       - databases/postgresql.md

@@ -8,7 +8,6 @@ const qb = new D1QB(env.DB)
 const fetched = await qb
   .fetchAll({
     tableName: 'employees',
-    fields: '*',
     limit: 5,
   })
   .execute()
@@ -22,7 +21,6 @@ const qb = new D1QB(env.DB)
 const fetched = await qb
   .fetchAll({
     tableName: 'employees',
-    fields: '*',
     limit: 5,
     offset: 10,
   })

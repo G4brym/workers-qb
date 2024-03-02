@@ -65,11 +65,9 @@ export default {
     const fetched = await qb.batchExecute([
       qb.fetchAll({
         tableName: 'tableA',
-        fields: '*',
       }),
       qb.fetchAll({
         tableName: 'tableB',
-        fields: '*',
       }),
     ])
 

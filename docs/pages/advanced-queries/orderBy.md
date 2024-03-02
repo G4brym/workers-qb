@@ -13,7 +13,6 @@ const qb = new D1QB(env.DB)
 const fetched = await qb
   .fetchAll({
     tableName: 'employees',
-    fields: '*',
     orderBy: 'id',
   })
   .execute()
@@ -29,7 +28,6 @@ const qb = new D1QB(env.DB)
 const fetched = await qb
   .fetchAll({
     tableName: 'employees',
-    fields: '*',
     orderBy: { id: OrderTypes.DESC },
   })
   .execute()
@@ -43,7 +41,6 @@ const qb = new D1QB(env.DB)
 const fetched = await qb
   .fetchAll({
     tableName: 'employees',
-    fields: '*',
     orderBy: { id: 'DESC' },
   })
   .execute()

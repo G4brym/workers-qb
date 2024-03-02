@@ -15,6 +15,28 @@ describe('Delete Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
+  test('delete with simplified where', async () => {
+    const result = new QuerybuilderTest().delete({
+      tableName: 'testTable',
+      where: 'field = false',
+    })
+
+    expect(trimQuery(result.query)).toEqual('DELETE FROM testTable WHERE field = false')
+    expect(result.arguments).toEqual(undefined)
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  test('delete with simplified where list', async () => {
+    const result = new QuerybuilderTest().delete({
+      tableName: 'testTable',
+      where: ['field = false', 'active = false'],
+    })
+
+    expect(trimQuery(result.query)).toEqual('DELETE FROM testTable WHERE field = false AND active = false')
+    expect(result.arguments).toEqual(undefined)
+    expect(result.fetchType).toEqual('ALL')
+  })
+
   test('delete with multiple where without returning', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',

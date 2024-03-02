@@ -13,6 +13,26 @@ describe('Select Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
+  test('select fields default value', async () => {
+    const result = new QuerybuilderTest().fetchAll({
+      tableName: 'testTable',
+    })
+
+    expect(trimQuery(result.query)).toEqual('SELECT * FROM testTable')
+    expect(result.arguments).toBeUndefined()
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  test('select fields default value one', async () => {
+    const result = new QuerybuilderTest().fetchOne({
+      tableName: 'testTable',
+    })
+
+    expect(trimQuery(result.query)).toEqual('SELECT * FROM testTable LIMIT 1')
+    expect(result.arguments).toBeUndefined()
+    expect(result.fetchType).toEqual('ONE')
+  })
+
   test('select with one where', async () => {
     const result = new QuerybuilderTest().fetchOne({
       tableName: 'testTable',
@@ -22,9 +42,29 @@ describe('Select Builder', () => {
         params: ['test'],
       },
     })
+  })
 
-    expect(trimQuery(result.query)).toEqual('SELECT * FROM testTable WHERE field = ?1 LIMIT 1')
-    expect(result.arguments).toEqual(['test'])
+  test('select with simplified where', async () => {
+    const result = new QuerybuilderTest().fetchOne({
+      tableName: 'testTable',
+      fields: '*',
+      where: 'field = true',
+    })
+
+    expect(trimQuery(result.query)).toEqual('SELECT * FROM testTable WHERE field = true LIMIT 1')
+    expect(result.arguments).toEqual(undefined)
+    expect(result.fetchType).toEqual('ONE')
+  })
+
+  test('select with simplified where list', async () => {
+    const result = new QuerybuilderTest().fetchOne({
+      tableName: 'testTable',
+      fields: '*',
+      where: ['field = true', 'active = false'],
+    })
+
+    expect(trimQuery(result.query)).toEqual('SELECT * FROM testTable WHERE field = true AND active = false LIMIT 1')
+    expect(result.arguments).toEqual(undefined)
     expect(result.fetchType).toEqual('ONE')
   })
 

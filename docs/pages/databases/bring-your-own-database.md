@@ -99,7 +99,6 @@ const qb = new PGQB(new Client('postgresql://user:password@hostname:5432/db_name
 const fetched = await qb
   .fetchAll({
     tableName: 'devices',
-    fields: '*',
   })
   .execute()
 ```

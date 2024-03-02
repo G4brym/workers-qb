@@ -53,10 +53,10 @@ export default {
       level: number
     }
 
+    // Generated query: SELECT * FROM employees WHERE active = ?1 LIMIT 1
     const employeeList = await qb
       .fetchAll<Employee>({
         tableName: 'employees',
-        fields: '*',
         where: {
           conditions: 'active = ?1',
           params: [true],
@@ -101,6 +101,7 @@ export default {
     const qb = new PGQB(new Client(env.DB_URL))
     await qb.connect()
 
+    // Generated query: SELECT count(*) as count FROM employees WHERE active = ?1 LIMIT 1
     const fetched = await qb
       .fetchOne({
         tableName: 'employees',

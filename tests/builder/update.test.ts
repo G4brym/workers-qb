@@ -20,6 +20,34 @@ describe('Update Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
+  test('update one field with simplified where', async () => {
+    const result = new QuerybuilderTest().update({
+      tableName: 'testTable',
+      data: {
+        my_field: 'test_data',
+      },
+      where: 'field = true',
+    })
+
+    expect(trimQuery(result.query)).toEqual('UPDATE testTable SET my_field = ?1 WHERE field = true')
+    expect(result.arguments).toEqual(['test_data'])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  test('update one field with simplified where list', async () => {
+    const result = new QuerybuilderTest().update({
+      tableName: 'testTable',
+      data: {
+        my_field: 'test_data',
+      },
+      where: ['field = true', 'active = true'],
+    })
+
+    expect(trimQuery(result.query)).toEqual('UPDATE testTable SET my_field = ?1 WHERE field = true AND active = true')
+    expect(result.arguments).toEqual(['test_data'])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
   test('update with Raw sql values', async () => {
     const result = new QuerybuilderTest().update({
       tableName: 'testTable',

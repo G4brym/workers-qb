@@ -59,7 +59,6 @@ const qb = new D1QB(env.DB)
 const fetched = await qb
   .fetchAll({
     tableName: 'employees',
-    fields: '*',
     join: {
       type: JoinTypes.LEFT,
       table: 'payroll',
@@ -77,7 +76,6 @@ const qb = new D1QB(env.DB)
 const fetched = await qb
   .fetchAll({
     tableName: 'employees',
-    fields: '*',
     join: [
       {
         table: 'payroll',
@@ -100,7 +98,6 @@ const qb = new D1QB(env.DB)
 const result = new QuerybuilderTest()
   .fetchAll({
     tableName: 'testTable',
-    fields: '*',
     where: {
       conditions: 'field = ?1',
       params: ['test'],

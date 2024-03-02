@@ -4,11 +4,14 @@ import { IsEqual, Merge, Primitive, Simplify } from './typefest'
 
 export type DefaultObject = Record<string, Primitive>
 
-export type Where = {
-  conditions: string | Array<string>
-  // TODO: enable named parameters Record<string, string | boolean | number | null>
-  params?: (string | boolean | number | null | Raw)[]
-}
+export type Where =
+  | {
+      conditions: string | Array<string>
+      // TODO: enable named parameters Record<string, string | boolean | number | null>
+      params?: (string | boolean | number | null | Raw)[]
+    }
+  | string
+  | Array<string>
 
 export type Join = {
   type?: string | JoinTypes
@@ -19,7 +22,7 @@ export type Join = {
 
 export type SelectOne = {
   tableName: string
-  fields: string | Array<string>
+  fields?: string | Array<string>
   where?: Where
   join?: Join | Array<Join>
   groupBy?: string | Array<string>
@@ -63,7 +66,7 @@ export type Update = {
 
 export type Delete = {
   tableName: string
-  where: Where
+  where: Where // This field is optional, but is kept required in type to warn users of delete without where
   returning?: string | Array<string>
 }
 
