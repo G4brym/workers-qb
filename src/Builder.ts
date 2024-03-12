@@ -61,8 +61,8 @@ export class QueryBuilder<GenericResultWrapper> {
         return this.execute(q)
       },
       this._select({ ...params, limit: 1 }),
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where.params
-        ? params.where.params
+      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
+        ? params.where?.params
         : undefined,
       FetchTypes.ONE
     )
@@ -74,8 +74,8 @@ export class QueryBuilder<GenericResultWrapper> {
         return this.execute(q)
       },
       this._select(params),
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where.params
-        ? params.where.params
+      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
+        ? params.where?.params
         : undefined,
       FetchTypes.ALL
     )
@@ -99,10 +99,10 @@ export class QueryBuilder<GenericResultWrapper> {
       if (
         typeof params.onConflict?.where === 'object' &&
         !Array.isArray(params.onConflict?.where) &&
-        params.onConflict?.where.params
+        params.onConflict?.where?.params
       ) {
         // 1 - on conflict where parameters
-        args = args.concat(params.onConflict.where.params)
+        args = args.concat(params.onConflict.where?.params)
       }
 
       if (params.onConflict.data) {
@@ -135,8 +135,8 @@ export class QueryBuilder<GenericResultWrapper> {
   update<GenericResult = DefaultObject>(params: Update): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
     let args = this._parse_arguments(params.data)
 
-    if (typeof params.where === 'object' && !Array.isArray(params.where) && params.where.params) {
-      args = (params.where.params as Array<any>).concat(args)
+    if (typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params) {
+      args = (params.where?.params as Array<any>).concat(args)
     }
 
     return new Query(
@@ -155,8 +155,8 @@ export class QueryBuilder<GenericResultWrapper> {
         return this.execute(q)
       },
       this._delete(params),
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where.params
-        ? params.where.params
+      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
+        ? params.where?.params
         : undefined,
       FetchTypes.ALL
     )
@@ -209,7 +209,7 @@ export class QueryBuilder<GenericResultWrapper> {
       if (
         typeof params.onConflict?.where === 'object' &&
         !Array.isArray(params.onConflict?.where) &&
-        params.onConflict?.where.params
+        params.onConflict?.where?.params
       ) {
         index += (params.onConflict.where?.params).length
       }
@@ -246,8 +246,8 @@ export class QueryBuilder<GenericResultWrapper> {
 
   _update(params: Update): string {
     const whereParamsLength: number =
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where.params
-        ? Object.keys(params.where.params as Array<any>).length
+      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
+        ? Object.keys(params.where?.params as Array<any>).length
         : 0
 
     const set: Array<string> = []
@@ -310,7 +310,11 @@ export class QueryBuilder<GenericResultWrapper> {
 
     if (typeof conditions === 'string') return ` WHERE ${conditions.toString()}`
 
-    return ` WHERE ${(conditions as Array<string>).join(' AND ')}`
+    if ((conditions as Array<string>).length > 0) {
+      return ` WHERE ${(conditions as Array<string>).join(' AND ')}`
+    }
+
+    return ''
   }
 
   _join(value?: Join | Array<Join>): string {

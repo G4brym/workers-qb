@@ -56,6 +56,34 @@ describe('Select Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
+  test('select with empty where', async () => {
+    const result = new QuerybuilderTest().fetchOne({
+      tableName: 'testTable',
+      fields: '*',
+      // @ts-ignore
+      where: null,
+    })
+
+    expect(trimQuery(result.query)).toEqual('SELECT * FROM testTable LIMIT 1')
+    expect(result.arguments).toEqual(undefined)
+    expect(result.fetchType).toEqual('ONE')
+  })
+
+  test('select with empty where 2', async () => {
+    const result = new QuerybuilderTest().fetchOne({
+      tableName: 'testTable',
+      fields: '*',
+      where: {
+        conditions: [],
+        params: [],
+      },
+    })
+
+    expect(trimQuery(result.query)).toEqual('SELECT * FROM testTable LIMIT 1')
+    expect(result.arguments).toEqual([])
+    expect(result.fetchType).toEqual('ONE')
+  })
+
   test('select with simplified where list', async () => {
     const result = new QuerybuilderTest().fetchOne({
       tableName: 'testTable',
