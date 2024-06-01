@@ -1,6 +1,7 @@
 import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from './enums'
 import { Raw } from './tools'
 import { IsEqual, Merge, Primitive, Simplify } from './typefest'
+import Any = jasmine.Any
 
 export type DefaultObject = Record<string, Primitive>
 
@@ -37,6 +38,16 @@ export type RawQuery = {
   fetchType?: FetchTypes
 }
 
+export type RawQueryFetchOne = Omit<RawQuery, 'fetchType'> & {
+  fetchType: FetchTypes.ONE
+}
+
+export type RawQueryFetchAll = Omit<RawQuery, 'fetchType'> & {
+  fetchType: FetchTypes.ALL
+}
+
+export type RawQueryWithoutFetching = Omit<RawQuery, 'fetchType'>
+
 export type SelectAll = SelectOne & {
   limit?: number
 }
@@ -56,6 +67,20 @@ export type Insert = {
   onConflict?: string | ConflictTypes | ConflictUpsert
 }
 
+export type InsertOne = Omit<Insert, 'data' | 'returning'> & {
+  data: Record<string, string | boolean | number | null | Raw>
+  returning: string | Array<string>
+}
+
+export type InsertMultiple = Omit<Insert, 'data' | 'returning'> & {
+  data: Array<Record<string, string | boolean | number | null | Raw>>
+  returning: string | Array<string>
+}
+
+export type InsertWithoutReturning = Omit<Insert, 'returning'>
+
+export type test<I extends Insert = Insert> = I
+
 export type Update = {
   tableName: string
   data: Record<string, string | boolean | number | null | Raw>
@@ -64,11 +89,21 @@ export type Update = {
   onConflict?: string | ConflictTypes
 }
 
+export type UpdateReturning = Omit<Update, 'returning'> & {
+  returning: string | Array<string>
+}
+export type UpdateWithoutReturning = Omit<Update, 'returning'>
+
 export type Delete = {
   tableName: string
   where: Where // This field is optional, but is kept required in type to warn users of delete without where
   returning?: string | Array<string>
 }
+
+export type DeleteReturning = Omit<Delete, 'returning'> & {
+  returning: string | Array<string>
+}
+export type DeleteWithoutReturning = Omit<Delete, 'returning'>
 
 export type D1Result = {
   changes?: number
@@ -86,7 +121,6 @@ export type PGResult = {
 
 export type ArrayResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Array<Result> }>
 export type OneResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Result }>
-export type EitherResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Array<Result> | Result }>
 
 // Types bellow are WIP to improve even more type hints for raw and insert queries
 export type GetFetchValue<T> = T extends { fetchType?: infer U } ? U : never
