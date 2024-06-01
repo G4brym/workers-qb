@@ -4,7 +4,7 @@ Just define your table schema as a typescript `type` and reference it when calli
 
 !!! note
 
-    This is available to all methods, even `Delete` or `Update` when calling with returning.
+    This is available to all methods, including `Insert`, `Delete`, `Update` and `Raw` when calling with returning.
 
 ```ts
 const qb = new D1QB(env.DB)

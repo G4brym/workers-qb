@@ -4,7 +4,7 @@
 const qb = new D1QB(env.DB)
 
 const fetched = await qb
-  .fetchOne({
+  .fetchOne<{ count: number }>({
     tableName: 'employees',
     fields: 'count(*) as count',
     where: {
@@ -23,8 +23,13 @@ console.log(`There are ${fetched.results.count} employees in the HR department`)
 import { OrderTypes } from 'workers-qb'
 const qb = new D1QB(env.DB)
 
+type EmployeeRoles = {
+  role: string
+  count: number
+}
+
 const fetched = await qb
-  .fetchAll({
+  .fetchAll<EmployeeRoles>({
     tableName: 'employees',
     fields: ['role', 'count(*) as count'],
     where: {
@@ -51,8 +56,16 @@ fetched.results.forEach((employee) => {
 import { Raw } from 'workers-qb'
 const qb = new D1QB(env.DB)
 
+type Employee = {
+  id: number
+  name: string
+  role: string
+  department: string
+  created_at: string
+}
+
 const inserted = await qb
-  .insert({
+  .insert<Employee>({
     tableName: 'employees',
     data: {
       name: 'Joe',
@@ -73,8 +86,16 @@ console.log(`Joe just got the employee id: ${inserted.results.id}`)
 import { Raw } from 'workers-qb'
 const qb = new D1QB(env.DB)
 
+type Employee = {
+  id: number
+  name: string
+  role: string
+  department: string
+  created_at: string
+}
+
 const inserted = await qb
-  .insert({
+  .insert<Employee>({
     tableName: 'employees',
     data: [
       {
@@ -96,6 +117,7 @@ const inserted = await qb
         created_at: new Raw('CURRENT_TIMESTAMP'),
       },
     ],
+    returning: '*',
   })
   .execute()
 ```
@@ -103,8 +125,15 @@ const inserted = await qb
 ## Updating rows
 
 ```ts
+type Employee = {
+  id: number
+  name: string
+  role: string
+  department: string
+}
+
 const updated = await qb
-  .update({
+  .update<Employee>({
     tableName: 'employees',
     data: {
       role: 'CEO',
@@ -114,6 +143,7 @@ const updated = await qb
       conditions: 'id = ?1',
       params: [123],
     },
+    returning: '*',
   })
   .execute()
 
@@ -123,6 +153,10 @@ console.log(`Lines affected in this query: ${updated.changes}`)
 ## Deleting rows
 
 ```ts
+type Employee = {
+  id: number
+}
+
 const deleted = await qb
   .delete({
     tableName: 'employees',
@@ -130,6 +164,7 @@ const deleted = await qb
       conditions: 'id = ?1',
       params: [123],
     },
+    returning: 'id',
   })
   .execute()
 
@@ -158,8 +193,15 @@ const dropped = await qb.dropTable({
 ## Raw Queries
 
 ```ts
+type Employee = {
+  id: number
+  name: string
+  role: string
+  department: string
+}
+
 const result = await qb
-  .raw({
+  .raw<Employee>({
     query: 'select * from employees where department = $1',
     args: ['HQ'],
     fetchType: FetchTypes.ALL,
