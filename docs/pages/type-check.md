@@ -17,7 +17,7 @@ type Employee = {
 
 // Generated query: SELECT * FROM employees WHERE active = ?1 LIMIT 1
 const employeeList = await qb
-  .fetchOne<Employee>({
+  .fetchAll<Employee>({
     tableName: 'employees',
     where: {
       conditions: 'active = ?1',
