@@ -1,26 +1,13 @@
 {
   "compilerOptions": {
-    "allowJs": true,
-    "allowSyntheticDefaultImports": true,
-    "baseUrl": "src",
-    "declaration": true,
+    "target": "esNext",
+    "module": "commonjs",
     "esModuleInterop": true,
-    "inlineSourceMap": false,
-    "lib": ["esnext"],
-    "listEmittedFiles": false,
-    "listFiles": false,
-    "moduleResolution": "node",
-    "noFallthroughCasesInSwitch": true,
-    "pretty": true,
-    "resolveJsonModule": true,
-    "rootDir": "",
-    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
     "strict": true,
-    "traceResolution": false,
-    "module": "esnext",
-    "outDir": "dist",
-    "target": "esnext"
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true
   },
-  "exclude": ["node_modules", "dist"],
-  "include": ["src"]
+  "include": ["src/*.ts", "src/databases/*.ts"]
 }

@@ -5,6 +5,7 @@ For example here is the code that implements support for the node-postgres libra
 
 ```ts
 // filename: src/interfaces.ts
+import { DefaultObject } from 'workers-qb'
 
 // other interfaces...
 
@@ -12,14 +13,14 @@ export interface PGResult {
   command: string
   lastRowId?: string | number
   rowCount: number
-  results?: Array<Record<string, string | boolean | number | null>>
+  results?: Array<DefaultObject>
 }
 
 export interface PGResultOne {
   command: string
   lastRowId?: string | number
   rowCount: number
-  results?: Record<string, string | boolean | number | null>
+  results?: DefaultObject
 }
 ```
 
@@ -49,11 +50,7 @@ export class PGQB extends QueryBuilder<PGResult, PGResultOne> {
     await this.client.end()
   }
 
-  async execute(params: {
-    query: String
-    arguments?: (string | number | boolean | null | Raw)[]
-    fetchType?: FetchTypes
-  }): Promise<any> {
+  async execute(params: { query: String; arguments?: Primitive[]; fetchType?: FetchTypes }): Promise<any> {
     const query = params.query.replaceAll('?', '$')
 
     let result
