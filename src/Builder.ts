@@ -2,6 +2,7 @@ import {
   ArrayResult,
   ConflictUpsert,
   DefaultObject,
+  DefaultReturnObject,
   Delete,
   DeleteReturning,
   DeleteWithoutReturning,
@@ -63,7 +64,9 @@ export class QueryBuilder<GenericResultWrapper> {
     }, `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`)
   }
 
-  fetchOne<GenericResult = DefaultObject>(params: SelectOne): Query<OneResult<GenericResultWrapper, GenericResult>> {
+  fetchOne<GenericResult = DefaultReturnObject>(
+    params: SelectOne
+  ): Query<OneResult<GenericResultWrapper, GenericResult>> {
     return new Query(
       (q: Query) => {
         return this.execute(q)
@@ -76,7 +79,9 @@ export class QueryBuilder<GenericResultWrapper> {
     )
   }
 
-  fetchAll<GenericResult = DefaultObject>(params: SelectAll): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
+  fetchAll<GenericResult = DefaultReturnObject>(
+    params: SelectAll
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
     return new Query(
       (q: Query) => {
         return this.execute(q)
@@ -89,10 +94,14 @@ export class QueryBuilder<GenericResultWrapper> {
     )
   }
 
-  raw<GenericResult = DefaultObject>(params: RawQueryFetchOne): Query<OneResult<GenericResultWrapper, GenericResult>>
-  raw<GenericResult = DefaultObject>(params: RawQueryFetchAll): Query<ArrayResult<GenericResultWrapper, GenericResult>>
-  raw<GenericResult = DefaultObject>(params: RawQueryWithoutFetching): Query<GenericResultWrapper>
-  raw<GenericResult = DefaultObject>(params: RawQuery): unknown {
+  raw<GenericResult = DefaultReturnObject>(
+    params: RawQueryFetchOne
+  ): Query<OneResult<GenericResultWrapper, GenericResult>>
+  raw<GenericResult = DefaultReturnObject>(
+    params: RawQueryFetchAll
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult>>
+  raw<GenericResult = DefaultReturnObject>(params: RawQueryWithoutFetching): Query<GenericResultWrapper>
+  raw<GenericResult = DefaultReturnObject>(params: RawQuery): unknown {
     return new Query(
       (q: Query) => {
         return this.execute(q)
@@ -103,10 +112,12 @@ export class QueryBuilder<GenericResultWrapper> {
     )
   }
 
-  insert<GenericResult = DefaultObject>(params: InsertOne): Query<OneResult<GenericResultWrapper, GenericResult>>
-  insert<GenericResult = DefaultObject>(params: InsertMultiple): Query<ArrayResult<GenericResultWrapper, GenericResult>>
-  insert<GenericResult = DefaultObject>(params: InsertWithoutReturning): Query<GenericResultWrapper>
-  insert<GenericResult = DefaultObject>(params: Insert): unknown {
+  insert<GenericResult = DefaultReturnObject>(params: InsertOne): Query<OneResult<GenericResultWrapper, GenericResult>>
+  insert<GenericResult = DefaultReturnObject>(
+    params: InsertMultiple
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult>>
+  insert<GenericResult = DefaultReturnObject>(params: InsertWithoutReturning): Query<GenericResultWrapper>
+  insert<GenericResult = DefaultReturnObject>(params: Insert): unknown {
     let args: any[] = []
 
     if (typeof params.onConflict === 'object') {
@@ -146,11 +157,11 @@ export class QueryBuilder<GenericResultWrapper> {
     )
   }
 
-  update<GenericResult = DefaultObject>(
+  update<GenericResult = DefaultReturnObject>(
     params: UpdateReturning
   ): Query<ArrayResult<GenericResultWrapper, GenericResult>>
-  update<GenericResult = DefaultObject>(params: UpdateWithoutReturning): Query<GenericResultWrapper>
-  update<GenericResult = DefaultObject>(params: Update): unknown {
+  update<GenericResult = DefaultReturnObject>(params: UpdateWithoutReturning): Query<GenericResultWrapper>
+  update<GenericResult = DefaultReturnObject>(params: Update): unknown {
     let args = this._parse_arguments(params.data)
 
     if (typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params) {
@@ -167,11 +178,11 @@ export class QueryBuilder<GenericResultWrapper> {
     )
   }
 
-  delete<GenericResult = DefaultObject>(
+  delete<GenericResult = DefaultReturnObject>(
     params: DeleteReturning
   ): Query<ArrayResult<GenericResultWrapper, GenericResult>>
-  delete<GenericResult = DefaultObject>(params: DeleteWithoutReturning): Query<GenericResultWrapper>
-  delete<GenericResult = DefaultObject>(params: Delete): unknown {
+  delete<GenericResult = DefaultReturnObject>(params: DeleteWithoutReturning): Query<GenericResultWrapper>
+  delete<GenericResult = DefaultReturnObject>(params: Delete): unknown {
     return new Query(
       (q: Query) => {
         return this.execute(q)
@@ -184,7 +195,7 @@ export class QueryBuilder<GenericResultWrapper> {
     )
   }
 
-  _parse_arguments(row: Record<string, string | boolean | number | null | Raw>): Array<any> {
+  _parse_arguments(row: DefaultObject): Array<any> {
     // Raw parameters are placed directly in the query, and keeping them here would result in more parameters that are
     // expected in the query and could result in weird results or outright errors when using PostgreSQL
     return Object.values(row).filter((value) => {
@@ -216,11 +227,18 @@ export class QueryBuilder<GenericResultWrapper> {
   _insert(params: Insert): string {
     const rows = []
 
+    let data: Array<DefaultObject>
     if (!Array.isArray(params.data)) {
-      params.data = [params.data]
+      data = [params.data]
+    } else {
+      data = params.data
     }
 
-    const columns = Object.keys(params.data[0]).join(', ')
+    if (!data || !data[0] || data.length === 0) {
+      throw new Error('Insert data is undefined')
+    }
+
+    const columns = Object.keys(data[0]).join(', ')
     let index = 1
 
     let orConflict = '',
@@ -243,7 +261,7 @@ export class QueryBuilder<GenericResultWrapper> {
       orConflict = this._onConflict(params.onConflict)
     }
 
-    for (const row of params.data) {
+    for (const row of data) {
       const values: Array<string> = []
       Object.values(row).forEach((value) => {
         if (value instanceof Raw) {

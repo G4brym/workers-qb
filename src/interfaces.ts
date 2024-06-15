@@ -1,15 +1,17 @@
 import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from './enums'
 import { Raw } from './tools'
-import { IsEqual, Merge, Primitive, Simplify } from './typefest'
-import Any = jasmine.Any
+import { Merge } from './typefest'
+
+export type Primitive = null | string | number | boolean | bigint | Raw
 
 export type DefaultObject = Record<string, Primitive>
+export type DefaultReturnObject = Record<string, null | string | number | boolean | bigint>
 
 export type Where =
   | {
       conditions: string | Array<string>
-      // TODO: enable named parameters Record<string, string | boolean | number | null>
-      params?: (string | boolean | number | null | Raw)[]
+      // TODO: enable named parameters with DefaultObject
+      params?: Primitive[]
     }
   | string
   | Array<string>
@@ -34,7 +36,7 @@ export type SelectOne = {
 
 export type RawQuery = {
   query: string
-  args?: (string | number | boolean | null | Raw)[]
+  args?: Primitive[]
   fetchType?: FetchTypes
 }
 
@@ -54,26 +56,24 @@ export type SelectAll = SelectOne & {
 
 export type ConflictUpsert = {
   column: string | Array<string>
-  data: Record<string, string | boolean | number | null | Raw>
+  data: DefaultObject
   where?: Where
 }
 
 export type Insert = {
   tableName: string
-  data:
-    | Record<string, string | boolean | number | null | Raw>
-    | Array<Record<string, string | boolean | number | null | Raw>>
+  data: DefaultObject | Array<DefaultObject>
   returning?: string | Array<string>
   onConflict?: string | ConflictTypes | ConflictUpsert
 }
 
 export type InsertOne = Omit<Insert, 'data' | 'returning'> & {
-  data: Record<string, string | boolean | number | null | Raw>
+  data: DefaultObject
   returning: string | Array<string>
 }
 
 export type InsertMultiple = Omit<Insert, 'data' | 'returning'> & {
-  data: Array<Record<string, string | boolean | number | null | Raw>>
+  data: Array<DefaultObject>
   returning: string | Array<string>
 }
 
@@ -83,7 +83,7 @@ export type test<I extends Insert = Insert> = I
 
 export type Update = {
   tableName: string
-  data: Record<string, string | boolean | number | null | Raw>
+  data: DefaultObject
   where?: Where
   returning?: string | Array<string>
   onConflict?: string | ConflictTypes
@@ -121,17 +121,3 @@ export type PGResult = {
 
 export type ArrayResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Array<Result> }>
 export type OneResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Result }>
-
-// Types bellow are WIP to improve even more type hints for raw and insert queries
-export type GetFetchValue<T> = T extends { fetchType?: infer U } ? U : never
-export type SwitchFetch<P, A, B> = IsEqual<P, FetchTypes.ALL> extends true
-  ? ArrayResult<A, B>
-  : IsEqual<P, FetchTypes.ONE> extends true
-  ? OneResult<A, B>
-  : A
-
-export type FindResult<P, A, B> = Simplify<SwitchFetch<GetFetchValue<P>, A, B>>
-
-// raw<GenericResult=DefaultObject, P extends RawQuery = RawQuery>(params: P): Query<FindResult<P, GenericResultWrapper, GenericResult>> {
-//
-// }

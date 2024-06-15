@@ -1,4 +1,5 @@
 import { FetchTypes } from './enums'
+import { Primitive } from './interfaces'
 
 export class Raw {
   public isRaw = true
@@ -11,13 +12,13 @@ export class Raw {
 export class Query<Result = any> {
   executeMethod: (query: Query<Result>) => Promise<Result>
   public query: string
-  public arguments?: (string | number | boolean | null | Raw)[]
+  public arguments?: Primitive[]
   public fetchType?: FetchTypes
 
   constructor(
     executeMethod: (query: Query<Result>) => Promise<Result>,
     query: string,
-    args?: (string | number | boolean | null | Raw)[],
+    args?: Primitive[],
     fetchType?: FetchTypes
   ) {
     this.executeMethod = executeMethod

@@ -75,14 +75,14 @@ export class D1QB extends QueryBuilder<D1Result> {
         },
         i: number
       ) => {
-        if (queryArray[i]) {
+        if (queryArray && queryArray[i] !== undefined && queryArray[i]?.fetchType) {
           return {
             changes: resp.meta?.changes,
             duration: resp.meta?.duration,
             last_row_id: resp.meta?.last_row_id,
             served_by: resp.meta?.served_by,
             success: resp.success,
-            results: queryArray[i].fetchType === FetchTypes.ONE ? resp.results?.[0] : resp.results,
+            results: queryArray[i]?.fetchType === FetchTypes.ONE ? resp.results?.[0] : resp.results,
           }
         } else {
           return {
