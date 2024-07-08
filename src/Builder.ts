@@ -25,6 +25,7 @@ import {
 } from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Query, Raw } from './tools'
+import { Transaction } from './transaction'
 
 export class QueryBuilder<GenericResultWrapper> {
   _debugger = false
@@ -39,6 +40,14 @@ export class QueryBuilder<GenericResultWrapper> {
 
   async batchExecute(queryArray: Query[]): Promise<any[]> {
     throw new Error('Batch execute method not implemented')
+  }
+
+  async startTransaction(): Promise<Transaction<QueryBuilder<GenericResultWrapper>>> {
+    const query = new Query((q) => this.execute(q), 'BEGIN TRANSACTION')
+
+    await query.execute()
+
+    return new Transaction(new QueryBuilder<GenericResultWrapper>())
   }
 
   createTable<GenericResult = undefined>(params: {

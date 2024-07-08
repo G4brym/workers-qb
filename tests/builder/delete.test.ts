@@ -80,4 +80,20 @@ describe('Delete Builder', () => {
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
   })
+
+  test('delete while in transaction', async () => {
+    const trx = await new QuerybuilderTest().startTransaction()
+
+    const result = trx.delete({
+      tableName: 'testTable',
+      where: {
+        conditions: 'field = ?1',
+        params: ['test'],
+      },
+    })
+
+    expect(trimQuery(result.query)).toEqual('DELETE FROM testTable WHERE field = ?1')
+    expect(result.arguments).toEqual(['test'])
+    expect(result.fetchType).toEqual('ALL')
+  })
 })

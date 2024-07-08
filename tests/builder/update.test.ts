@@ -209,4 +209,23 @@ describe('Update Builder', () => {
     expect(result.arguments).toEqual(['test', 345, 'test_update', 123])
     expect(result.fetchType).toEqual('ALL')
   })
+
+  test('update while in transaction', async () => {
+    const trx = await new QuerybuilderTest().startTransaction()
+
+    const result = trx.update({
+      tableName: 'testTable',
+      data: {
+        my_field: 'test_data',
+      },
+      where: {
+        conditions: 'field = ?1',
+        params: ['test_where'],
+      },
+    })
+
+    expect(trimQuery(result.query)).toEqual('UPDATE testTable SET my_field = ?2 WHERE field = ?1')
+    expect(result.arguments).toEqual(['test_where', 'test_data'])
+    expect(result.fetchType).toEqual('ALL')
+  })
 })

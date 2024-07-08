@@ -343,4 +343,19 @@ describe('Insert Builder', () => {
     expect(result.arguments).toEqual(['Alice', '704-555-1212', '2018-05-08'])
     expect(result.fetchType).toEqual('ONE')
   })
+
+  test('insert while in transaction', async () => {
+    const trx = await new QuerybuilderTest().startTransaction()
+
+    const result = trx.insert({
+      tableName: 'testTable',
+      data: {
+        my_field: 'test',
+      },
+    })
+
+    expect(trimQuery(result.query)).toEqual('INSERT INTO testTable (my_field) VALUES (?1)')
+    expect(result.arguments).toEqual(['test'])
+    expect(result.fetchType).toEqual('ONE')
+  })
 })
