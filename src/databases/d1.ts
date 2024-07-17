@@ -36,6 +36,7 @@ export class D1QB extends QueryBuilder<D1Result> {
         duration: resp.meta?.duration,
         last_row_id: resp.meta?.last_row_id,
         served_by: resp.meta?.served_by,
+        meta: resp.meta,
         success: resp.success,
         results: query.fetchType === FetchTypes.ONE ? resp.results[0] : resp.results,
       }
@@ -81,6 +82,7 @@ export class D1QB extends QueryBuilder<D1Result> {
             duration: resp.meta?.duration,
             last_row_id: resp.meta?.last_row_id,
             served_by: resp.meta?.served_by,
+            meta: resp.meta,
             success: resp.success,
             results: queryArray[i]?.fetchType === FetchTypes.ONE ? resp.results?.[0] : resp.results,
           }
@@ -90,6 +92,7 @@ export class D1QB extends QueryBuilder<D1Result> {
             duration: resp.meta?.duration,
             last_row_id: resp.meta?.last_row_id,
             served_by: resp.meta?.served_by,
+            meta: resp.meta,
             success: resp.success,
           }
         }
