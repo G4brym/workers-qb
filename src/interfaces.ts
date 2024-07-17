@@ -105,11 +105,25 @@ export type DeleteReturning = Omit<Delete, 'returning'> & {
 }
 export type DeleteWithoutReturning = Omit<Delete, 'returning'>
 
+export type D1Meta = {
+  changed_db: boolean
+  changes: number
+  duration: number
+  last_row_id: string | number
+  rows_read: number
+  rows_written: number
+  served_by: string
+  size_after: number
+}
+
 export type D1Result = {
+  // These 4 fields are deprecated, and only kept here for retro compatibility, users should use the meta field bellow
   changes?: number
   duration: number
   last_row_id?: string | number
   served_by: string
+
+  meta?: D1Meta
   success: boolean
 }
 
