@@ -11,7 +11,7 @@ export type Where =
   | {
       conditions: string | Array<string>
       // TODO: enable named parameters with DefaultObject
-      params?: Primitive[]
+      params?: Primitive | Primitive[]
     }
   | string
   | Array<string>
@@ -29,7 +29,7 @@ export type SelectOne = {
   where?: Where
   join?: Join | Array<Join>
   groupBy?: string | Array<string>
-  having?: string
+  having?: string | Array<string>
   orderBy?: string | Array<string> | Record<string, string | OrderTypes>
   offset?: number
 }

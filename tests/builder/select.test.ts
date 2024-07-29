@@ -320,6 +320,25 @@ describe('Select Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
+  test('select with multiple where and one group by and multiple having', async () => {
+    const result = new QuerybuilderTest().fetchAll({
+      tableName: 'testTable',
+      fields: '*',
+      where: {
+        conditions: ['field = ?1', 'test = ?2'],
+        params: ['test', 123],
+      },
+      groupBy: 'type',
+      having: ['COUNT(trackid) > 15', 'COUNT(trackid) < 30'],
+    })
+
+    expect(trimQuery(result.query)).toEqual(
+      'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type HAVING COUNT(trackid) > 15 AND COUNT(trackid) < 30'
+    )
+    expect(result.arguments).toEqual(['test', 123])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
   test('select with multiple where and one group by and one order by', async () => {
     const result = new QuerybuilderTest().fetchAll({
       tableName: 'testTable',

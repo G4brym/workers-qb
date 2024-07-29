@@ -1,4 +1,4 @@
-export * from './Builder'
+export * from './builder'
 export * from './databases/d1'
 export * from './databases/pg'
 export * from './enums'
