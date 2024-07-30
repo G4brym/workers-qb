@@ -64,6 +64,9 @@ export default {
       })
       .execute()
 
+    // Or in a modular approach
+    const employeeList = await qb.select<Employee>('employees').where('active = ?', true).execute()
+
     // You get IDE type hints on each employee data, like:
     // employeeList.results[0].name
 

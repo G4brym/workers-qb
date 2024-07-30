@@ -66,7 +66,7 @@ export class QueryBuilder<GenericResultWrapper> {
   }
 
   select<GenericResult = DefaultReturnObject>(tableName: string): SelectBuilder<GenericResultWrapper, GenericResult> {
-    return new SelectBuilder(
+    return new SelectBuilder<GenericResultWrapper, GenericResult>(
       {
         tableName: tableName,
       },
@@ -423,16 +423,29 @@ export class QueryBuilder<GenericResultWrapper> {
     if (!value) return ''
     if (typeof value === 'string') return ` ORDER BY ${value}`
 
+    const order: Array<Record<string, string> | string> = []
     if (Array.isArray(value)) {
-      return ` ORDER BY ${value.join(', ')}`
+      for (const val of value) {
+        // @ts-ignore
+        order.push(val)
+      }
+    } else {
+      order.push(value)
     }
 
-    const order: Array<string> = []
-    Object.entries(value).forEach(([key, item]) => {
-      order.push(`${key} ${item}`)
+    const result = order.map((obj) => {
+      if (typeof obj === 'object') {
+        const objs: Array<string> = []
+        Object.entries(obj).forEach(([key, item]) => {
+          objs.push(`${key} ${item}`)
+        })
+        return objs.join(', ')
+      } else {
+        return obj
+      }
     })
 
-    return ` ORDER BY ${order.join(', ')}`
+    return ` ORDER BY ${result.join(', ')}`
   }
 
   _limit(value?: number): string {
