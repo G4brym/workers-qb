@@ -1,4 +1,4 @@
-import { QueryBuilder } from '../Builder'
+import { QueryBuilder } from '../builder'
 import { FetchTypes } from '../enums'
 import { Query } from '../tools'
 import { PGResult } from '../interfaces'

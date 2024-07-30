@@ -1,4 +1,4 @@
-import { QueryBuilder } from '../src/Builder'
+import { QueryBuilder } from '../src/builder'
 import { Query } from '../src/tools'
 import { D1Result } from '../src/interfaces'
 

@@ -25,6 +25,7 @@ import {
 } from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Query, Raw } from './tools'
+import { SelectBuilder } from './modularBuilder'
 
 export class QueryBuilder<GenericResultWrapper> {
   _debugger = false
@@ -64,6 +65,17 @@ export class QueryBuilder<GenericResultWrapper> {
     }, `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`)
   }
 
+  select<GenericResult = DefaultReturnObject>(tableName: string): SelectBuilder<GenericResultWrapper, GenericResult> {
+    return new SelectBuilder<GenericResultWrapper, GenericResult>(
+      {
+        tableName: tableName,
+      },
+      (params: SelectAll) => {
+        return this.fetchAll<GenericResult>(params)
+      }
+    )
+  }
+
   fetchOne<GenericResult = DefaultReturnObject>(
     params: SelectOne
   ): Query<OneResult<GenericResultWrapper, GenericResult>> {
@@ -73,7 +85,9 @@ export class QueryBuilder<GenericResultWrapper> {
       },
       this._select({ ...params, limit: 1 }),
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
-        ? params.where?.params
+        ? Array.isArray(params.where?.params)
+          ? params.where?.params
+          : [params.where?.params]
         : undefined,
       FetchTypes.ONE
     )
@@ -88,7 +102,9 @@ export class QueryBuilder<GenericResultWrapper> {
       },
       this._select(params),
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
-        ? params.where?.params
+        ? Array.isArray(params.where?.params)
+          ? params.where?.params
+          : [params.where?.params]
         : undefined,
       FetchTypes.ALL
     )
@@ -165,7 +181,11 @@ export class QueryBuilder<GenericResultWrapper> {
     let args = this._parse_arguments(params.data)
 
     if (typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params) {
-      args = (params.where?.params as Array<any>).concat(args)
+      if (Array.isArray(params.where?.params)) {
+        args = params.where?.params.concat(args)
+      } else {
+        args = [params.where?.params].concat(args)
+      }
     }
 
     return new Query(
@@ -189,7 +209,9 @@ export class QueryBuilder<GenericResultWrapper> {
       },
       this._delete(params),
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
-        ? params.where?.params
+        ? Array.isArray(params.where?.params)
+          ? params.where?.params
+          : [params.where?.params]
         : undefined,
       FetchTypes.ALL
     )
@@ -251,7 +273,11 @@ export class QueryBuilder<GenericResultWrapper> {
         !Array.isArray(params.onConflict?.where) &&
         params.onConflict?.where?.params
       ) {
-        index += (params.onConflict.where?.params).length
+        if (Array.isArray(params.onConflict.where?.params)) {
+          index += (params.onConflict.where?.params).length
+        } else {
+          index += 1
+        }
       }
 
       if (params.onConflict.data) {
@@ -287,7 +313,9 @@ export class QueryBuilder<GenericResultWrapper> {
   _update(params: Update): string {
     const whereParamsLength: number =
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
-        ? Object.keys(params.where?.params as Array<any>).length
+        ? Array.isArray(params.where?.params)
+          ? Object.keys(params.where?.params).length
+          : 1
         : 0
 
     const set: Array<string> = []
@@ -384,26 +412,40 @@ export class QueryBuilder<GenericResultWrapper> {
     return ` GROUP BY ${value.join(', ')}`
   }
 
-  _having(value?: string): string {
+  _having(value?: string | Array<string>): string {
     if (!value) return ''
+    if (typeof value === 'string') return ` HAVING ${value}`
 
-    return ` HAVING ${value}`
+    return ` HAVING ${value.join(' AND ')}`
   }
 
   _orderBy(value?: string | Array<string> | Record<string, string | OrderTypes>): string {
     if (!value) return ''
     if (typeof value === 'string') return ` ORDER BY ${value}`
 
+    const order: Array<Record<string, string> | string> = []
     if (Array.isArray(value)) {
-      return ` ORDER BY ${value.join(', ')}`
+      for (const val of value) {
+        // @ts-ignore
+        order.push(val)
+      }
+    } else {
+      order.push(value)
     }
 
-    const order: Array<string> = []
-    Object.entries(value).forEach(([key, item]) => {
-      order.push(`${key} ${item}`)
+    const result = order.map((obj) => {
+      if (typeof obj === 'object') {
+        const objs: Array<string> = []
+        Object.entries(obj).forEach(([key, item]) => {
+          objs.push(`${key} ${item}`)
+        })
+        return objs.join(', ')
+      } else {
+        return obj
+      }
     })
 
-    return ` ORDER BY ${order.join(', ')}`
+    return ` ORDER BY ${result.join(', ')}`
   }
 
   _limit(value?: number): string {
