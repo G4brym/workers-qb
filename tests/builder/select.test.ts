@@ -190,7 +190,7 @@ describe('Select Builder', () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
-        fields: '*',
+        fields: ['id', 'name'],
         where: {
           conditions: 'field = ?1',
           params: ['test'],
@@ -203,13 +203,13 @@ describe('Select Builder', () => {
       }),
       new QuerybuilderTest()
         .select('testTable')
-        .fields('*')
+        .fields(['id', 'name'])
         .where('field = ?1', 'test')
         .join({ type: JoinTypes.LEFT, table: 'employees', on: 'testTable.employee_id = employees.id' })
         .getQuery(),
     ]) {
       expect(trimQuery(result.query)).toEqual(
-        'SELECT * FROM testTable LEFT JOIN employees ON testTable.employee_id = employees.id WHERE field = ?1'
+        'SELECT id, name FROM testTable LEFT JOIN employees ON testTable.employee_id = employees.id WHERE field = ?1'
       )
       expect(result.arguments).toEqual(['test'])
       expect(result.fetchType).toEqual('ALL')

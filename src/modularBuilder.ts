@@ -101,6 +101,8 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     let val = []
     if (!Array.isArray(value)) {
       val.push(value)
+    } else {
+      val = value
     }
 
     if (option && Array.isArray(option)) {
