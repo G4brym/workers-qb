@@ -16,7 +16,8 @@
     "test": "jest --config jest.config.cjs --no-cache --runInBand",
     "test:cov": "jest --config jest.config.cjs --coverage --no-cache --runInBand",
     "prettify": "prettier --check . || (prettier -w .; exit 1)",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "prepublish": "tsup src/index.ts --format cjs,esm --dts"
   },
   "publishConfig": {
     "access": "public"
