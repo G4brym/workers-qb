@@ -1,5 +1,5 @@
 import { FetchTypes } from './enums'
-import { Primitive } from './interfaces'
+import { CountResult, Primitive } from './interfaces'
 
 export class Raw {
   public isRaw = true
@@ -10,7 +10,7 @@ export class Raw {
 }
 
 export class Query<Result = any> {
-  executeMethod: (query: Query<Result>) => Promise<Result>
+  public executeMethod: (query: Query<Result>) => Promise<Result>
   public query: string
   public arguments?: Primitive[]
   public fetchType?: FetchTypes
@@ -29,5 +29,26 @@ export class Query<Result = any> {
 
   async execute(): Promise<Result> {
     return this.executeMethod(this)
+  }
+}
+
+export class QueryWithExtra<GenericResultWrapper, Result = any> extends Query<Result> {
+  private countQuery: string
+
+  constructor(
+    executeMethod: (query: Query<Result>) => Promise<Result>,
+    query: string,
+    countQuery: string,
+    args?: Primitive[],
+    fetchType?: FetchTypes
+  ) {
+    super(executeMethod, query, args, fetchType)
+    this.countQuery = countQuery
+  }
+
+  async count(): Promise<CountResult<GenericResultWrapper>> {
+    return this.executeMethod(
+      new Query(this.executeMethod, this.countQuery, this.arguments, FetchTypes.ONE)
+    ) as Promise<CountResult<GenericResultWrapper>>
   }
 }

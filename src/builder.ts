@@ -24,7 +24,7 @@ import {
   Where,
 } from './interfaces'
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
-import { Query, Raw } from './tools'
+import { Query, QueryWithExtra, Raw } from './tools'
 import { SelectBuilder } from './modularBuilder'
 
 export class QueryBuilder<GenericResultWrapper> {
@@ -78,12 +78,17 @@ export class QueryBuilder<GenericResultWrapper> {
 
   fetchOne<GenericResult = DefaultReturnObject>(
     params: SelectOne
-  ): Query<OneResult<GenericResultWrapper, GenericResult>> {
-    return new Query(
+  ): QueryWithExtra<GenericResultWrapper, OneResult<GenericResultWrapper, GenericResult>> {
+    return new QueryWithExtra(
       (q: Query) => {
         return this.execute(q)
       },
       this._select({ ...params, limit: 1 }),
+      this._select({
+        ...params,
+        fields: 'count(*) as total',
+        limit: 1,
+      }),
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
         ? Array.isArray(params.where?.params)
           ? params.where?.params
@@ -95,12 +100,17 @@ export class QueryBuilder<GenericResultWrapper> {
 
   fetchAll<GenericResult = DefaultReturnObject>(
     params: SelectAll
-  ): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
-    return new Query(
+  ): QueryWithExtra<GenericResultWrapper, ArrayResult<GenericResultWrapper, GenericResult>> {
+    return new QueryWithExtra(
       (q: Query) => {
         return this.execute(q)
       },
       this._select(params),
+      this._select({
+        ...params,
+        fields: 'count(*) as total',
+        limit: 1,
+      }),
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
         ? Array.isArray(params.where?.params)
           ? params.where?.params
