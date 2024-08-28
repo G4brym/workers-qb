@@ -104,6 +104,25 @@ describe('Select Builder', () => {
     }
   })
 
+  test('count with empty where 2', async () => {
+    for (const result of [
+      await new QuerybuilderTest()
+        .fetchOne({
+          tableName: 'testTable',
+          fields: '*',
+          where: {
+            conditions: [],
+            params: [],
+          },
+        })
+        .count(),
+    ]) {
+      expect(trimQuery((result.results as any).query)).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
+      expect((result.results as any).arguments).toEqual([])
+      expect((result.results as any).fetchType).toEqual('ONE')
+    }
+  })
+
   test('select with simplified where list', async () => {
     for (const result of [
       new QuerybuilderTest().fetchOne({
@@ -149,40 +168,83 @@ describe('Select Builder', () => {
 
   test('select with multiple joins', async () => {
     for (const result of [
-      new QuerybuilderTest().fetchAll({
-        tableName: 'testTable',
-        fields: '*',
-        where: {
-          conditions: 'field = ?1',
-          params: ['test'],
-        },
-        join: [
-          {
-            table: 'employees',
-            on: 'testTable.employee_id = employees.id',
+      await new QuerybuilderTest()
+        .fetchAll({
+          tableName: 'testTable',
+          fields: '*',
+          where: {
+            conditions: 'field = ?1',
+            params: ['test'],
           },
-          {
-            table: 'offices',
-            on: 'testTable.office_id = offices.id',
-          },
-        ],
-      }),
-      new QuerybuilderTest()
+          join: [
+            {
+              table: 'employees',
+              on: 'testTable.employee_id = employees.id',
+            },
+            {
+              table: 'offices',
+              on: 'testTable.office_id = offices.id',
+            },
+          ],
+        })
+        .execute(),
+      await new QuerybuilderTest()
         .select('testTable')
         .fields('*')
         .where('field = ?1', 'test')
         .join({ table: 'employees', on: 'testTable.employee_id = employees.id' })
         .join({ table: 'offices', on: 'testTable.office_id = offices.id' })
-        .getQuery(),
+        .execute(),
     ]) {
-      expect(trimQuery(result.query)).toEqual(
+      expect(trimQuery((result.results as any).query)).toEqual(
         'SELECT * FROM testTable' +
           ' JOIN employees ON testTable.employee_id = employees.id' +
           ' JOIN offices ON testTable.office_id = offices.id' +
           ' WHERE field = ?1'
       )
-      expect(result.arguments).toEqual(['test'])
-      expect(result.fetchType).toEqual('ALL')
+      expect((result.results as any).arguments).toEqual(['test'])
+      expect((result.results as any).fetchType).toEqual('ALL')
+    }
+  })
+
+  test('count with multiple joins', async () => {
+    for (const result of [
+      await new QuerybuilderTest()
+        .fetchAll({
+          tableName: 'testTable',
+          fields: '*',
+          where: {
+            conditions: 'field = ?1',
+            params: ['test'],
+          },
+          join: [
+            {
+              table: 'employees',
+              on: 'testTable.employee_id = employees.id',
+            },
+            {
+              table: 'offices',
+              on: 'testTable.office_id = offices.id',
+            },
+          ],
+        })
+        .count(),
+      await new QuerybuilderTest()
+        .select('testTable')
+        .fields('*')
+        .where('field = ?1', 'test')
+        .join({ table: 'employees', on: 'testTable.employee_id = employees.id' })
+        .join({ table: 'offices', on: 'testTable.office_id = offices.id' })
+        .count(),
+    ]) {
+      expect(trimQuery((result.results as any).query)).toEqual(
+        'SELECT count(*) as total FROM testTable' +
+          ' JOIN employees ON testTable.employee_id = employees.id' +
+          ' JOIN offices ON testTable.office_id = offices.id' +
+          ' WHERE field = ?1 LIMIT 1'
+      )
+      expect((result.results as any).arguments).toEqual(['test'])
+      expect((result.results as any).fetchType).toEqual('ONE')
     }
   })
 
@@ -257,6 +319,52 @@ describe('Select Builder', () => {
       )
       expect(result.arguments).toEqual(['test'])
       expect(result.fetchType).toEqual('ALL')
+    }
+  })
+
+  test('count with subquery join', async () => {
+    for (const result of [
+      await new QuerybuilderTest()
+        .fetchAll({
+          tableName: 'testTable',
+          fields: '*',
+          where: {
+            conditions: 'field = ?1',
+            params: ['test'],
+          },
+          join: {
+            table: {
+              tableName: 'otherTable',
+              fields: ['test_table_id', 'GROUP_CONCAT(attribute) AS attributes'],
+              groupBy: 'test_table_id',
+            },
+            on: 'testTable.id = otherTableGrouped.test_table_id',
+            alias: 'otherTableGrouped',
+          },
+        })
+        .count(),
+      await new QuerybuilderTest()
+        .select('testTable')
+        .fields('*')
+        .where('field = ?1', 'test')
+        .join({
+          table: {
+            tableName: 'otherTable',
+            fields: ['test_table_id', 'GROUP_CONCAT(attribute) AS attributes'],
+            groupBy: 'test_table_id',
+          },
+          on: 'testTable.id = otherTableGrouped.test_table_id',
+          alias: 'otherTableGrouped',
+        })
+        .count(),
+    ]) {
+      expect(trimQuery((result.results as any).query)).toEqual(
+        'SELECT count(*) as total FROM testTable JOIN (SELECT test_table_id, GROUP_CONCAT(attribute) ' +
+          'AS attributes FROM otherTable GROUP BY test_table_id) AS otherTableGrouped ON testTable.id = otherTableGrouped.' +
+          'test_table_id WHERE field = ?1 LIMIT 1'
+      )
+      expect((result.results as any).arguments).toEqual(['test'])
+      expect((result.results as any).fetchType).toEqual('ONE')
     }
   })
 

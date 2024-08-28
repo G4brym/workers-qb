@@ -2,12 +2,15 @@ import { QueryBuilder } from '../src/builder'
 import { Query } from '../src/tools'
 import { D1Result } from '../src/interfaces'
 
-export class QuerybuilderTest extends QueryBuilder<D1Result> {
-  async execute(query: Query) {
+export class QuerybuilderTest extends QueryBuilder<{}> {
+  async execute(query: Query): Promise<Query<any>> {
     return {
-      duration: 0,
-      success: true,
-      served_by: 'test',
+      // @ts-ignore
+      results: {
+        query: query.query,
+        arguments: query.arguments,
+        fetchType: query.fetchType,
+      },
     }
   }
 }

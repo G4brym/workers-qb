@@ -135,3 +135,5 @@ export type PGResult = {
 
 export type ArrayResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Array<Result> }>
 export type OneResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Result }>
+
+export type CountResult<GenericResultWrapper> = OneResult<GenericResultWrapper, { total: number }>

@@ -1,12 +1,12 @@
-import { ArrayResult, DefaultReturnObject, Primitive, SelectAll } from './interfaces'
-import { Query } from './tools'
+import { ArrayResult, CountResult, DefaultReturnObject, Primitive, SelectAll } from './interfaces'
+import { Query, QueryWithExtra } from './tools'
 
 export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnObject> {
   _debugger = false
   private _options: Partial<SelectAll> = {}
-  private _queryBuilder: (params: SelectAll) => Query
+  private _queryBuilder: (params: SelectAll) => QueryWithExtra<GenericResultWrapper>
 
-  constructor(options: Partial<SelectAll>, queryBuilder: (params: SelectAll) => Query) {
+  constructor(options: Partial<SelectAll>, queryBuilder: (params: SelectAll) => QueryWithExtra<GenericResultWrapper>) {
     this._options = options
     this._queryBuilder = queryBuilder
   }
@@ -124,5 +124,9 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
 
   async execute(): Promise<ArrayResult<GenericResultWrapper, GenericResult>> {
     return this._queryBuilder(this._options as SelectAll).execute()
+  }
+
+  async count(): Promise<CountResult<GenericResultWrapper>> {
+    return this._queryBuilder(this._options as SelectAll).count()
   }
 }
