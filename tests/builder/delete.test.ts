@@ -1,4 +1,4 @@
-import { QuerybuilderTest, trimQuery } from '../utils'
+import { QuerybuilderTest } from '../utils'
 
 describe('Delete Builder', () => {
   test('delete with one where without returning', async () => {
@@ -10,7 +10,7 @@ describe('Delete Builder', () => {
       },
     })
 
-    expect(trimQuery(result.query)).toEqual('DELETE FROM testTable WHERE field = ?1')
+    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1')
     expect(result.arguments).toEqual(['test'])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -21,7 +21,7 @@ describe('Delete Builder', () => {
       where: 'field = false',
     })
 
-    expect(trimQuery(result.query)).toEqual('DELETE FROM testTable WHERE field = false')
+    expect(result.query).toEqual('DELETE FROM testTable WHERE field = false')
     expect(result.arguments).toEqual(undefined)
     expect(result.fetchType).toEqual('ALL')
   })
@@ -32,7 +32,7 @@ describe('Delete Builder', () => {
       where: ['field = false', 'active = false'],
     })
 
-    expect(trimQuery(result.query)).toEqual('DELETE FROM testTable WHERE field = false AND active = false')
+    expect(result.query).toEqual('DELETE FROM testTable WHERE field = false AND active = false')
     expect(result.arguments).toEqual(undefined)
     expect(result.fetchType).toEqual('ALL')
   })
@@ -46,7 +46,7 @@ describe('Delete Builder', () => {
       },
     })
 
-    expect(trimQuery(result.query)).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2')
+    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2')
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -61,7 +61,7 @@ describe('Delete Builder', () => {
       returning: 'id',
     })
 
-    expect(trimQuery(result.query)).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id')
+    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id')
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -76,7 +76,7 @@ describe('Delete Builder', () => {
       returning: ['id', 'field'],
     })
 
-    expect(trimQuery(result.query)).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id, field')
+    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id, field')
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
   })

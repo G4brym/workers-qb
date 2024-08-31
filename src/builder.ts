@@ -12,6 +12,8 @@ import {
   InsertWithoutReturning,
   Join,
   OneResult,
+  QueryBuilderOptions,
+  QueryLoggerMeta,
   RawQuery,
   RawQueryFetchAll,
   RawQueryFetchOne,
@@ -28,10 +30,44 @@ import { Query, QueryWithExtra, Raw } from './tools'
 import { SelectBuilder } from './modularBuilder'
 
 export class QueryBuilder<GenericResultWrapper> {
-  _debugger = false
+  protected options: QueryBuilderOptions
+
+  constructor(options?: QueryBuilderOptions) {
+    this.options = options || {}
+  }
 
   setDebugger(state: boolean): void {
-    this._debugger = state
+    if (state === true) {
+      if (this.options.logger) {
+        // a logger already exists, so it shouldn't be overwritten
+        return
+      }
+
+      this.options.logger = (query: RawQuery, meta: QueryLoggerMeta) => {
+        console.log(`[workers-qb][${meta.duration}ms] ${JSON.stringify(query)}`)
+      }
+    } else {
+      this.options.logger = undefined
+    }
+  }
+
+  async loggerWrapper(query: Query | Query[], innerFunction: () => any) {
+    const start = Date.now()
+    try {
+      return await innerFunction()
+    } catch (e) {
+      throw e
+    } finally {
+      if (this.options.logger) {
+        if (Array.isArray(query)) {
+          for (const q of query) {
+            await this.options.logger(q.toObject(), { duration: Date.now() - start })
+          }
+        } else {
+          await this.options.logger(query.toObject(), { duration: Date.now() - start })
+        }
+      }
+    }
   }
 
   async execute(query: Query): Promise<any> {
