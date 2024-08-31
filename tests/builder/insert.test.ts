@@ -1,4 +1,4 @@
-import { QuerybuilderTest, trimQuery } from '../utils'
+import { QuerybuilderTest } from '../utils'
 import { ConflictTypes } from '../../src/enums'
 import { Raw } from '../../src/tools'
 
@@ -11,7 +11,7 @@ describe('Insert Builder', () => {
       },
     })
 
-    expect(trimQuery(result.query)).toEqual('INSERT INTO testTable (my_field) VALUES (?1)')
+    expect(result.query).toEqual('INSERT INTO testTable (my_field) VALUES (?1)')
     expect(result.arguments).toEqual(['test'])
     expect(result.fetchType).toEqual('ONE')
   })
@@ -25,9 +25,7 @@ describe('Insert Builder', () => {
       },
     })
 
-    expect(trimQuery(result.query)).toEqual(
-      'INSERT INTO testTable (my_field, created_at) VALUES (?1, CURRENT_TIMESTAMP)'
-    )
+    expect(result.query).toEqual('INSERT INTO testTable (my_field, created_at) VALUES (?1, CURRENT_TIMESTAMP)')
     expect(result.arguments).toEqual(['test'])
     expect(result.fetchType).toEqual('ONE')
   })
@@ -41,7 +39,7 @@ describe('Insert Builder', () => {
       },
     })
 
-    expect(trimQuery(result.query)).toEqual('INSERT INTO testTable (my_field, another) VALUES (?1, ?2)')
+    expect(result.query).toEqual('INSERT INTO testTable (my_field, another) VALUES (?1, ?2)')
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ONE')
   })
@@ -56,7 +54,7 @@ describe('Insert Builder', () => {
       returning: 'id',
     })
 
-    expect(trimQuery(result.query)).toEqual('INSERT INTO testTable (my_field, another) VALUES (?1, ?2) RETURNING id')
+    expect(result.query).toEqual('INSERT INTO testTable (my_field, another) VALUES (?1, ?2) RETURNING id')
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ONE')
   })
@@ -71,9 +69,7 @@ describe('Insert Builder', () => {
       returning: ['id', 'my_field'],
     })
 
-    expect(trimQuery(result.query)).toEqual(
-      'INSERT INTO testTable (my_field, another) VALUES (?1, ?2) RETURNING id, my_field'
-    )
+    expect(result.query).toEqual('INSERT INTO testTable (my_field, another) VALUES (?1, ?2) RETURNING id, my_field')
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ONE')
   })
@@ -89,7 +85,7 @@ describe('Insert Builder', () => {
       onConflict: ConflictTypes.IGNORE,
     })
 
-    expect(trimQuery(result.query)).toEqual(
+    expect(result.query).toEqual(
       'INSERT OR IGNORE INTO testTable (my_field, another) VALUES (?1, ?2) RETURNING id, my_field'
     )
     expect(result.arguments).toEqual(['test', 123])
@@ -107,7 +103,7 @@ describe('Insert Builder', () => {
       onConflict: 'REPLACE',
     })
 
-    expect(trimQuery(result.query)).toEqual(
+    expect(result.query).toEqual(
       'INSERT OR REPLACE INTO testTable (my_field, another) VALUES (?1, ?2) RETURNING id, my_field'
     )
     expect(result.arguments).toEqual(['test', 123])
@@ -135,7 +131,7 @@ describe('Insert Builder', () => {
       onConflict: 'REPLACE',
     })
 
-    expect(trimQuery(result.query)).toEqual(
+    expect(result.query).toEqual(
       'INSERT OR REPLACE INTO testTable (my_field, another) VALUES (?1, ?2), (?3, ?4), (?5, ?6) RETURNING id, my_field'
     )
     expect(result.arguments).toEqual(['test1', 123, 'test2', 456, 'test3', 789])
@@ -159,7 +155,7 @@ describe('Insert Builder', () => {
       },
     })
 
-    expect(trimQuery(result.query)).toEqual(
+    expect(result.query).toEqual(
       'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?3, ?4, ?5) ON CONFLICT (name) DO ' +
         'UPDATE SET phonenumber = ?1, validDate = ?2'
     )
@@ -194,7 +190,7 @@ describe('Insert Builder', () => {
       },
     })
 
-    expect(trimQuery(result.query)).toEqual(
+    expect(result.query).toEqual(
       'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?4, ?5, ?6) ON CONFLICT (name) DO ' +
         'UPDATE SET phonenumber = ?2, validDate = ?3 WHERE excluded.validDate > ?1'
     )
@@ -229,7 +225,7 @@ describe('Insert Builder', () => {
       },
     })
 
-    expect(trimQuery(result.query)).toEqual(
+    expect(result.query).toEqual(
       'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?3, ?4, ?5) ON CONFLICT (name) DO ' +
         'UPDATE SET phonenumber = ?1, validDate = ?2 WHERE excluded.validDate > phonebook2.validDate'
     )
@@ -264,7 +260,7 @@ describe('Insert Builder', () => {
       },
     })
 
-    expect(trimQuery(result.query)).toEqual(
+    expect(result.query).toEqual(
       'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?2, ?3, ?4) ON CONFLICT (name) DO ' +
         'UPDATE SET phonenumber = excluded.phonenumber, validDate = excluded.validDate WHERE excluded.validDate > ?1'
     )
@@ -309,7 +305,7 @@ describe('Insert Builder', () => {
       },
     })
 
-    expect(trimQuery(result.query)).toEqual(
+    expect(result.query).toEqual(
       'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?1, ?2, ?3) ON CONFLICT (name) DO ' +
         'UPDATE SET phonenumber = excluded.phonenumber, validDate = excluded.validDate WHERE excluded.validDate > Date(now()) AND active = true'
     )
@@ -336,7 +332,7 @@ describe('Insert Builder', () => {
       },
     })
 
-    expect(trimQuery(result.query)).toEqual(
+    expect(result.query).toEqual(
       'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?1, ?2, ?3) ON CONFLICT (name, phonenumber) DO ' +
         'UPDATE SET validDate = excluded.validDate WHERE excluded.validDate > phonebook2.validDate'
     )

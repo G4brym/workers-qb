@@ -4,6 +4,14 @@ import { Merge } from './typefest'
 
 export type Primitive = null | string | number | boolean | bigint | Raw
 
+export type QueryLoggerMeta = {
+  duration?: number
+}
+
+export type QueryBuilderOptions = {
+  logger?: (query: RawQuery, meta: QueryLoggerMeta) => void | Promise<void>
+}
+
 export type DefaultObject = Record<string, Primitive>
 export type DefaultReturnObject = Record<string, null | string | number | boolean | bigint>
 
