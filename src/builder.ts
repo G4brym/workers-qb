@@ -108,6 +108,9 @@ export class QueryBuilder<GenericResultWrapper> {
       },
       (params: SelectAll) => {
         return this.fetchAll<GenericResult>(params)
+      },
+      (params: SelectOne) => {
+        return this.fetchOne<GenericResult>(params)
       }
     )
   }
