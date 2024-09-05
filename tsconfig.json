@@ -9,5 +9,5 @@
     "noUncheckedIndexedAccess": true,
     "noEmit": true
   },
-  "include": ["src/*.ts", "src/databases/*.ts"]
+  "include": ["src/*.ts", "src/databases/*.ts", "tests/*.ts", "tests/builder/*.ts"]
 }

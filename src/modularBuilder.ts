@@ -1,14 +1,20 @@
-import { ArrayResult, CountResult, DefaultReturnObject, Primitive, SelectAll } from './interfaces'
+import { ArrayResult, CountResult, DefaultReturnObject, OneResult, Primitive, SelectAll, SelectOne } from './interfaces'
 import { Query, QueryWithExtra } from './tools'
 
 export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnObject> {
   _debugger = false
   private _options: Partial<SelectAll> = {}
-  private _queryBuilder: (params: SelectAll) => QueryWithExtra<GenericResultWrapper>
+  private _fetchAll: (params: SelectAll) => QueryWithExtra<GenericResultWrapper>
+  private _fetchOne: (params: SelectOne) => QueryWithExtra<GenericResultWrapper>
 
-  constructor(options: Partial<SelectAll>, queryBuilder: (params: SelectAll) => QueryWithExtra<GenericResultWrapper>) {
+  constructor(
+    options: Partial<SelectAll>,
+    fetchAll: (params: SelectAll) => QueryWithExtra<GenericResultWrapper>,
+    fetchOne: (params: SelectOne) => QueryWithExtra<GenericResultWrapper>
+  ) {
     this._options = options
-    this._queryBuilder = queryBuilder
+    this._fetchAll = fetchAll
+    this._fetchOne = fetchOne
   }
 
   setDebugger(state: boolean): void {
@@ -21,7 +27,8 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
         ...this._options,
         tableName: tableName,
       },
-      this._queryBuilder
+      this._fetchAll,
+      this._fetchOne
     )
   }
 
@@ -57,7 +64,8 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
           params: params,
         },
       },
-      this._queryBuilder
+      this._fetchAll,
+      this._fetchOne
     )
   }
 
@@ -83,7 +91,8 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
         ...this._options,
         offset: offset,
       },
-      this._queryBuilder
+      this._fetchAll,
+      this._fetchOne
     )
   }
 
@@ -93,7 +102,8 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
         ...this._options,
         limit: limit,
       },
-      this._queryBuilder
+      this._fetchAll,
+      this._fetchOne
     )
   }
 
@@ -114,19 +124,32 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
         ...this._options,
         [fieldName]: val as Array<string>,
       },
-      this._queryBuilder
+      this._fetchAll,
+      this._fetchOne
     )
   }
 
-  getQuery(): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
-    return this._queryBuilder(this._options as SelectAll)
+  getQueryAll(): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
+    return this._fetchAll(this._options as SelectAll)
+  }
+
+  getQueryOne(): Query<OneResult<GenericResultWrapper, GenericResult>> {
+    return this._fetchOne(this._options as SelectAll)
   }
 
   async execute(): Promise<ArrayResult<GenericResultWrapper, GenericResult>> {
-    return this._queryBuilder(this._options as SelectAll).execute()
+    return this._fetchAll(this._options as SelectAll).execute()
+  }
+
+  async all(): Promise<ArrayResult<GenericResultWrapper, GenericResult>> {
+    return this._fetchAll(this._options as SelectAll).execute()
+  }
+
+  async one(): Promise<OneResult<GenericResultWrapper, GenericResult>> {
+    return this._fetchOne(this._options as SelectOne).execute()
   }
 
   async count(): Promise<CountResult<GenericResultWrapper>> {
-    return this._queryBuilder(this._options as SelectAll).count()
+    return this._fetchOne(this._options as SelectOne).count()
   }
 }

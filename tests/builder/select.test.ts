@@ -8,7 +8,7 @@ describe('Select Builder', () => {
         tableName: 'testTable',
         fields: '*',
       }),
-      new QuerybuilderTest().select('testTable').fields('*').getQuery(),
+      new QuerybuilderTest().select('testTable').fields('*').getQueryAll(),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable')
       expect(result.arguments).toBeUndefined()
@@ -21,7 +21,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
       }),
-      new QuerybuilderTest().select('testTable').getQuery(),
+      new QuerybuilderTest().select('testTable').getQueryAll(),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable')
       expect(result.arguments).toBeUndefined()
@@ -34,6 +34,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
       }),
+      new QuerybuilderTest().select('testTable').getQueryOne(),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable LIMIT 1')
       expect(result.arguments).toBeUndefined()
@@ -47,12 +48,13 @@ describe('Select Builder', () => {
         tableName: 'testTable',
         fields: '*',
         where: {
-          conditions: 'field = ?1',
+          conditions: 'field = ?',
           params: ['test'],
         },
       }),
+      new QuerybuilderTest().select('testTable').where('field = ?', 'test').getQueryOne(),
     ]) {
-      expect(result.query).toEqual('SELECT * FROM testTable WHERE field = ?1 LIMIT 1')
+      expect(result.query).toEqual('SELECT * FROM testTable WHERE field = ? LIMIT 1')
       expect(result.arguments).toEqual(['test'])
       expect(result.fetchType).toEqual('ONE')
     }
@@ -156,7 +158,7 @@ describe('Select Builder', () => {
         .fields('*')
         .where('field = ?1', 'test')
         .join({ table: 'employees', on: 'testTable.employee_id = employees.id' })
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
         'SELECT * FROM testTable JOIN employees ON testTable.employee_id = employees.id ' + 'WHERE field = ?1'
@@ -268,7 +270,7 @@ describe('Select Builder', () => {
         .fields(['id', 'name'])
         .where('field = ?1', 'test')
         .join({ type: JoinTypes.LEFT, table: 'employees', on: 'testTable.employee_id = employees.id' })
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
         'SELECT id, name FROM testTable LEFT JOIN employees ON testTable.employee_id = employees.id WHERE field = ?1'
@@ -310,7 +312,7 @@ describe('Select Builder', () => {
           on: 'testTable.id = otherTableGrouped.test_table_id',
           alias: 'otherTableGrouped',
         })
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
         'SELECT * FROM testTable JOIN (SELECT test_table_id, GROUP_CONCAT(attribute) ' +
@@ -426,7 +428,7 @@ describe('Select Builder', () => {
           on: 'testTable.id = otherTableGrouped.test_table_id',
           alias: 'otherTableGrouped',
         })
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
         'SELECT * FROM testTable JOIN (SELECT test_table_id, GROUP_CONCAT(attribute) ' +
@@ -471,7 +473,7 @@ describe('Select Builder', () => {
         .fields('*')
         .where('field = ?', 'test')
         .where('test = ?', 123)
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable WHERE field = ? AND test = ?')
       expect(result.arguments).toEqual(['test', 123])
@@ -496,7 +498,7 @@ describe('Select Builder', () => {
         .where('field = ?1', 'test')
         .where('test = ?2', 123)
         .groupBy('type')
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type')
       expect(result.arguments).toEqual(['test', 123])
@@ -522,7 +524,7 @@ describe('Select Builder', () => {
         .where('test = ?2', 123)
         .groupBy('type')
         .groupBy('day')
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type, day')
       expect(result.arguments).toEqual(['test', 123])
@@ -549,7 +551,7 @@ describe('Select Builder', () => {
         .where('test = ?2', 123)
         .groupBy('type')
         .having('COUNT(trackid) > 15')
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
         'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type HAVING COUNT(trackid) > 15'
@@ -579,7 +581,7 @@ describe('Select Builder', () => {
         .groupBy('type')
         .having('COUNT(trackid) > 15')
         .having('COUNT(trackid) < 30')
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
         'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type HAVING COUNT(trackid) > 15 AND COUNT(trackid) < 30'
@@ -608,7 +610,7 @@ describe('Select Builder', () => {
         .where('test = ?2', 123)
         .groupBy('type')
         .orderBy('id')
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type ORDER BY id')
       expect(result.arguments).toEqual(['test', 123])
@@ -636,7 +638,7 @@ describe('Select Builder', () => {
         .groupBy('type')
         .orderBy('id')
         .orderBy('timestamp')
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
         'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type ORDER BY id, timestamp'
@@ -669,7 +671,7 @@ describe('Select Builder', () => {
         .groupBy('type')
         .orderBy({ id: 'ASC' })
         .orderBy({ timestamp: OrderTypes.DESC })
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
         'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type ORDER BY id ASC, timestamp DESC'
@@ -700,7 +702,7 @@ describe('Select Builder', () => {
         .groupBy('type')
         .limit(10)
         .offset(15)
-        .getQuery(),
+        .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
         'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type LIMIT 10 OFFSET 15'
