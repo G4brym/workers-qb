@@ -125,6 +125,41 @@ describe('Select Builder', () => {
     }
   })
 
+  test('count from fetchOne with offset defined', async () => {
+    for (const result of [
+      await new QuerybuilderTest()
+        .fetchOne({
+          tableName: 'testTable',
+          fields: '*',
+          where: {
+            conditions: [],
+            params: [],
+          },
+          offset: 3,
+        })
+        .count(),
+    ]) {
+      expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
+      expect((result.results as any).arguments).toEqual([])
+      expect((result.results as any).fetchType).toEqual('ONE')
+    }
+  })
+
+  test('count from fetchAll with offset defined', async () => {
+    for (const result of [
+      await new QuerybuilderTest()
+        .fetchAll({
+          tableName: 'testTable',
+          offset: 4,
+        })
+        .count(),
+    ]) {
+      expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
+      expect((result.results as any).arguments).toEqual(undefined)
+      expect((result.results as any).fetchType).toEqual('ONE')
+    }
+  })
+
   test('select with simplified where list', async () => {
     for (const result of [
       new QuerybuilderTest().fetchOne({

@@ -126,6 +126,7 @@ export class QueryBuilder<GenericResultWrapper> {
       this._select({
         ...params,
         fields: 'count(*) as total',
+        offset: undefined,
         limit: 1,
       }),
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
@@ -148,6 +149,7 @@ export class QueryBuilder<GenericResultWrapper> {
       this._select({
         ...params,
         fields: 'count(*) as total',
+        offset: undefined,
         limit: 1,
       }),
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
