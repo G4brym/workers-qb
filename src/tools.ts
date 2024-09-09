@@ -1,5 +1,5 @@
 import { FetchTypes } from './enums'
-import { CountResult, Primitive, RawQuery } from './interfaces'
+import { CountResult, MaybeAsync, Primitive, QueryLoggerMeta, RawQuery } from './interfaces'
 
 export class Raw {
   public isRaw = true
@@ -9,14 +9,14 @@ export class Raw {
   }
 }
 
-export class Query<Result = any> {
-  public executeMethod: (query: Query<Result>) => Promise<Result>
+export class Query<Result = any, IsAsync extends boolean = true> {
+  public executeMethod: (query: Query<Result, IsAsync>) => MaybeAsync<IsAsync, Result>
   public query: string
   public arguments?: Primitive[]
   public fetchType?: FetchTypes
 
   constructor(
-    executeMethod: (query: Query<Result>) => Promise<Result>,
+    executeMethod: (query: Query<Result, IsAsync>) => MaybeAsync<IsAsync, Result>,
     query: string,
     args?: Primitive[],
     fetchType?: FetchTypes
@@ -27,7 +27,7 @@ export class Query<Result = any> {
     this.fetchType = fetchType
   }
 
-  async execute(): Promise<Result> {
+  execute(): MaybeAsync<IsAsync, Result> {
     return this.executeMethod(this)
   }
 
@@ -40,11 +40,14 @@ export class Query<Result = any> {
   }
 }
 
-export class QueryWithExtra<GenericResultWrapper, Result = any> extends Query<Result> {
+export class QueryWithExtra<GenericResultWrapper, Result = any, IsAsync extends boolean = true> extends Query<
+  Result,
+  IsAsync
+> {
   private countQuery: string
 
   constructor(
-    executeMethod: (query: Query<Result>) => Promise<Result>,
+    executeMethod: (query: Query<Result, IsAsync>) => MaybeAsync<IsAsync, Result>,
     query: string,
     countQuery: string,
     args?: Primitive[],
@@ -54,13 +57,17 @@ export class QueryWithExtra<GenericResultWrapper, Result = any> extends Query<Re
     this.countQuery = countQuery
   }
 
-  async count(): Promise<CountResult<GenericResultWrapper>> {
+  count(): MaybeAsync<IsAsync, CountResult<GenericResultWrapper>> {
     return this.executeMethod(
       new Query(this.executeMethod, this.countQuery, this.arguments, FetchTypes.ONE)
-    ) as Promise<CountResult<GenericResultWrapper>>
+    ) as MaybeAsync<IsAsync, CountResult<GenericResultWrapper>>
   }
 }
 
 export function trimQuery(query: string): string {
   return query.replace(/\s\s+/g, ' ')
+}
+
+export function defaultLogger<IsAsync extends boolean>(query: RawQuery, meta: QueryLoggerMeta): any {
+  console.log(`[workers-qb][${meta.duration}ms] ${JSON.stringify(query)}`)
 }

@@ -2,17 +2,19 @@ import { QueryBuilder } from '../builder'
 import { Query } from '../tools'
 import { FetchTypes } from '../enums'
 import { QueryBuilderOptions } from '../interfaces'
+import { syncLoggerWrapper } from '../logger'
 
-export class DOQB extends QueryBuilder<{}> {
+export class DOQB extends QueryBuilder<{}, false> {
   public db: any
+  loggerWrapper = syncLoggerWrapper
 
-  constructor(db: any, options?: QueryBuilderOptions) {
+  constructor(db: any, options?: QueryBuilderOptions<false>) {
     super(options)
     this.db = db
   }
 
-  async execute(query: Query) {
-    return await this.loggerWrapper(query, async () => {
+  execute(query: Query<any, false>) {
+    return this.loggerWrapper(query, this.options.logger, () => {
       if (query.arguments) {
         let stmt = this.db.prepare(query.query)
         // @ts-expect-error Their types appear to be wrong here

@@ -12,7 +12,7 @@ export class D1QB extends QueryBuilder<D1Result> {
   }
 
   async execute(query: Query) {
-    return await this.loggerWrapper(query, async () => {
+    return await this.loggerWrapper(query, this.options.logger, async () => {
       let stmt = this.db.prepare(query.query)
 
       if (query.arguments) {
@@ -38,7 +38,7 @@ export class D1QB extends QueryBuilder<D1Result> {
   }
 
   async batchExecute(queryArray: Query[]) {
-    return await this.loggerWrapper(queryArray, async () => {
+    return await this.loggerWrapper(queryArray, this.options.logger, async () => {
       const statements = queryArray.map((query) => {
         let stmt = this.db.prepare(query.query)
         if (query.arguments) {

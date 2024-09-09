@@ -4,7 +4,7 @@ import { D1Result } from '../src/interfaces'
 
 export class QuerybuilderTest extends QueryBuilder<{}> {
   async execute(query: Query): Promise<Query<any>> {
-    return this.loggerWrapper(query, async () => {
+    return this.loggerWrapper(query, this.options.logger, async () => {
       return {
         // @ts-ignore
         results: {
@@ -19,7 +19,7 @@ export class QuerybuilderTest extends QueryBuilder<{}> {
 
 export class QuerybuilderExceptionTest extends QueryBuilder<{}> {
   async execute(query: Query): Promise<Query<any>> {
-    return this.loggerWrapper(query, async () => {
+    return this.loggerWrapper(query, this.options.logger, async () => {
       await new Promise((r) => setTimeout(r, 50))
       throw new Error('Fake db error')
     })

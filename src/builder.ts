@@ -11,6 +11,7 @@ import {
   InsertOne,
   InsertWithoutReturning,
   Join,
+  MaybeAsync,
   OneResult,
   QueryBuilderOptions,
   QueryLoggerMeta,
@@ -28,11 +29,13 @@ import {
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Query, QueryWithExtra, Raw } from './tools'
 import { SelectBuilder } from './modularBuilder'
+import { asyncLoggerWrapper, defaultLogger } from './logger'
 
-export class QueryBuilder<GenericResultWrapper> {
-  protected options: QueryBuilderOptions
+export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> {
+  protected options: QueryBuilderOptions<IsAsync>
+  loggerWrapper = asyncLoggerWrapper
 
-  constructor(options?: QueryBuilderOptions) {
+  constructor(options?: QueryBuilderOptions<IsAsync>) {
     this.options = options || {}
   }
 
@@ -43,38 +46,17 @@ export class QueryBuilder<GenericResultWrapper> {
         return
       }
 
-      this.options.logger = (query: RawQuery, meta: QueryLoggerMeta) => {
-        console.log(`[workers-qb][${meta.duration}ms] ${JSON.stringify(query)}`)
-      }
+      this.options.logger = defaultLogger
     } else {
       this.options.logger = undefined
     }
   }
 
-  async loggerWrapper(query: Query | Query[], innerFunction: () => any) {
-    const start = Date.now()
-    try {
-      return await innerFunction()
-    } catch (e) {
-      throw e
-    } finally {
-      if (this.options.logger) {
-        if (Array.isArray(query)) {
-          for (const q of query) {
-            await this.options.logger(q.toObject(), { duration: Date.now() - start })
-          }
-        } else {
-          await this.options.logger(query.toObject(), { duration: Date.now() - start })
-        }
-      }
-    }
-  }
-
-  async execute(query: Query): Promise<any> {
+  execute(query: Query<any, IsAsync>): MaybeAsync<IsAsync, any> {
     throw new Error('Execute method not implemented')
   }
 
-  async batchExecute(queryArray: Query[]): Promise<any[]> {
+  batchExecute(queryArray: Query<any, IsAsync>[]): MaybeAsync<IsAsync, any[]> {
     throw new Error('Batch execute method not implemented')
   }
 
@@ -82,9 +64,9 @@ export class QueryBuilder<GenericResultWrapper> {
     tableName: string
     schema: string
     ifNotExists?: boolean
-  }): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
+  }): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync> {
     return new Query(
-      (q: Query) => {
+      (q) => {
         return this.execute(q)
       },
       `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName}
@@ -95,14 +77,16 @@ export class QueryBuilder<GenericResultWrapper> {
   dropTable<GenericResult = undefined>(params: {
     tableName: string
     ifExists?: boolean
-  }): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
-    return new Query((q: Query) => {
+  }): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync> {
+    return new Query((q) => {
       return this.execute(q)
     }, `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`)
   }
 
-  select<GenericResult = DefaultReturnObject>(tableName: string): SelectBuilder<GenericResultWrapper, GenericResult> {
-    return new SelectBuilder<GenericResultWrapper, GenericResult>(
+  select<GenericResult = DefaultReturnObject>(
+    tableName: string
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
       {
         tableName: tableName,
       },
@@ -117,9 +101,9 @@ export class QueryBuilder<GenericResultWrapper> {
 
   fetchOne<GenericResult = DefaultReturnObject>(
     params: SelectOne
-  ): QueryWithExtra<GenericResultWrapper, OneResult<GenericResultWrapper, GenericResult>> {
+  ): QueryWithExtra<GenericResultWrapper, OneResult<GenericResultWrapper, GenericResult>, IsAsync> {
     return new QueryWithExtra(
-      (q: Query) => {
+      (q) => {
         return this.execute(q)
       },
       this._select({ ...params, limit: 1 }),
@@ -140,9 +124,9 @@ export class QueryBuilder<GenericResultWrapper> {
 
   fetchAll<GenericResult = DefaultReturnObject>(
     params: SelectAll
-  ): QueryWithExtra<GenericResultWrapper, ArrayResult<GenericResultWrapper, GenericResult>> {
+  ): QueryWithExtra<GenericResultWrapper, ArrayResult<GenericResultWrapper, GenericResult>, IsAsync> {
     return new QueryWithExtra(
-      (q: Query) => {
+      (q) => {
         return this.execute(q)
       },
       this._select(params),
@@ -163,14 +147,14 @@ export class QueryBuilder<GenericResultWrapper> {
 
   raw<GenericResult = DefaultReturnObject>(
     params: RawQueryFetchOne
-  ): Query<OneResult<GenericResultWrapper, GenericResult>>
+  ): Query<OneResult<GenericResultWrapper, GenericResult>, IsAsync>
   raw<GenericResult = DefaultReturnObject>(
     params: RawQueryFetchAll
-  ): Query<ArrayResult<GenericResultWrapper, GenericResult>>
-  raw<GenericResult = DefaultReturnObject>(params: RawQueryWithoutFetching): Query<GenericResultWrapper>
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync>
+  raw<GenericResult = DefaultReturnObject>(params: RawQueryWithoutFetching): Query<GenericResultWrapper, IsAsync>
   raw<GenericResult = DefaultReturnObject>(params: RawQuery): unknown {
-    return new Query(
-      (q: Query) => {
+    return new Query<any, IsAsync>(
+      (q) => {
         return this.execute(q)
       },
       params.query,
@@ -179,11 +163,13 @@ export class QueryBuilder<GenericResultWrapper> {
     )
   }
 
-  insert<GenericResult = DefaultReturnObject>(params: InsertOne): Query<OneResult<GenericResultWrapper, GenericResult>>
+  insert<GenericResult = DefaultReturnObject>(
+    params: InsertOne
+  ): Query<OneResult<GenericResultWrapper, GenericResult>, IsAsync>
   insert<GenericResult = DefaultReturnObject>(
     params: InsertMultiple
-  ): Query<ArrayResult<GenericResultWrapper, GenericResult>>
-  insert<GenericResult = DefaultReturnObject>(params: InsertWithoutReturning): Query<GenericResultWrapper>
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync>
+  insert<GenericResult = DefaultReturnObject>(params: InsertWithoutReturning): Query<GenericResultWrapper, IsAsync>
   insert<GenericResult = DefaultReturnObject>(params: Insert): unknown {
     let args: any[] = []
 
@@ -214,8 +200,8 @@ export class QueryBuilder<GenericResultWrapper> {
 
     const fetchType = Array.isArray(params.data) ? FetchTypes.ALL : FetchTypes.ONE
 
-    return new Query(
-      (q: Query) => {
+    return new Query<any, IsAsync>(
+      (q) => {
         return this.execute(q)
       },
       this._insert(params),
@@ -226,8 +212,8 @@ export class QueryBuilder<GenericResultWrapper> {
 
   update<GenericResult = DefaultReturnObject>(
     params: UpdateReturning
-  ): Query<ArrayResult<GenericResultWrapper, GenericResult>>
-  update<GenericResult = DefaultReturnObject>(params: UpdateWithoutReturning): Query<GenericResultWrapper>
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync>
+  update<GenericResult = DefaultReturnObject>(params: UpdateWithoutReturning): Query<GenericResultWrapper, IsAsync>
   update<GenericResult = DefaultReturnObject>(params: Update): unknown {
     let args = this._parse_arguments(params.data)
 
@@ -239,8 +225,8 @@ export class QueryBuilder<GenericResultWrapper> {
       }
     }
 
-    return new Query(
-      (q: Query) => {
+    return new Query<any, IsAsync>(
+      (q) => {
         return this.execute(q)
       },
       this._update(params),
@@ -251,11 +237,11 @@ export class QueryBuilder<GenericResultWrapper> {
 
   delete<GenericResult = DefaultReturnObject>(
     params: DeleteReturning
-  ): Query<ArrayResult<GenericResultWrapper, GenericResult>>
-  delete<GenericResult = DefaultReturnObject>(params: DeleteWithoutReturning): Query<GenericResultWrapper>
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync>
+  delete<GenericResult = DefaultReturnObject>(params: DeleteWithoutReturning): Query<GenericResultWrapper, IsAsync>
   delete<GenericResult = DefaultReturnObject>(params: Delete): unknown {
-    return new Query(
-      (q: Query) => {
+    return new Query<any, IsAsync>(
+      (q) => {
         return this.execute(q)
       },
       this._delete(params),
