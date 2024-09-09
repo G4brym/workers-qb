@@ -74,6 +74,10 @@ export class QueryBuilder<GenericResultWrapper> {
     throw new Error('Execute method not implemented')
   }
 
+  executeSync(query: Query): any {
+    throw new Error('"executeSync" method not implemented')
+  }
+
   async batchExecute(queryArray: Query[]): Promise<any[]> {
     throw new Error('Batch execute method not implemented')
   }
@@ -88,7 +92,12 @@ export class QueryBuilder<GenericResultWrapper> {
         return this.execute(q)
       },
       `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName}
-      ( ${params.schema})`
+      ( ${params.schema})`,
+      undefined,
+      undefined,
+      (q: Query) => {
+        return this.executeSync(q)
+      }
     )
   }
 
@@ -96,9 +105,17 @@ export class QueryBuilder<GenericResultWrapper> {
     tableName: string
     ifExists?: boolean
   }): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
-    return new Query((q: Query) => {
-      return this.execute(q)
-    }, `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`)
+    return new Query(
+      (q: Query) => {
+        return this.execute(q)
+      },
+      `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`,
+      undefined,
+      undefined,
+      (q: Query) => {
+        return this.executeSync(q)
+      }
+    )
   }
 
   select<GenericResult = DefaultReturnObject>(tableName: string): SelectBuilder<GenericResultWrapper, GenericResult> {
@@ -134,7 +151,10 @@ export class QueryBuilder<GenericResultWrapper> {
           ? params.where?.params
           : [params.where?.params]
         : undefined,
-      FetchTypes.ONE
+      FetchTypes.ONE,
+      (q: Query) => {
+        return this.executeSync(q)
+      }
     )
   }
 
@@ -157,7 +177,10 @@ export class QueryBuilder<GenericResultWrapper> {
           ? params.where?.params
           : [params.where?.params]
         : undefined,
-      FetchTypes.ALL
+      FetchTypes.ALL,
+      (q: Query) => {
+        return this.executeSync(q)
+      }
     )
   }
 
@@ -175,7 +198,10 @@ export class QueryBuilder<GenericResultWrapper> {
       },
       params.query,
       params.args,
-      params.fetchType
+      params.fetchType,
+      (q: Query) => {
+        return this.executeSync(q)
+      }
     )
   }
 
@@ -220,7 +246,10 @@ export class QueryBuilder<GenericResultWrapper> {
       },
       this._insert(params),
       args,
-      fetchType
+      fetchType,
+      (q: Query) => {
+        return this.executeSync(q)
+      }
     )
   }
 
@@ -245,7 +274,10 @@ export class QueryBuilder<GenericResultWrapper> {
       },
       this._update(params),
       args,
-      FetchTypes.ALL
+      FetchTypes.ALL,
+      (q: Query) => {
+        return this.executeSync(q)
+      }
     )
   }
 
@@ -264,7 +296,10 @@ export class QueryBuilder<GenericResultWrapper> {
           ? params.where?.params
           : [params.where?.params]
         : undefined,
-      FetchTypes.ALL
+      FetchTypes.ALL,
+      (q: Query) => {
+        return this.executeSync(q)
+      }
     )
   }
 

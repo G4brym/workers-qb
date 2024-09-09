@@ -11,6 +11,7 @@ export class Raw {
 
 export class Query<Result = any> {
   public executeMethod: (query: Query<Result>) => Promise<Result>
+  public executeMethodSync: ((query: Query<Result>) => Result) | undefined
   public query: string
   public arguments?: Primitive[]
   public fetchType?: FetchTypes
@@ -19,16 +20,25 @@ export class Query<Result = any> {
     executeMethod: (query: Query<Result>) => Promise<Result>,
     query: string,
     args?: Primitive[],
-    fetchType?: FetchTypes
+    fetchType?: FetchTypes,
+    executeMethodSync?: (query: Query<Result>) => Result
   ) {
     this.executeMethod = executeMethod
     this.query = trimQuery(query)
     this.arguments = args
     this.fetchType = fetchType
+    this.executeMethodSync = executeMethodSync
   }
 
   async execute(): Promise<Result> {
     return this.executeMethod(this)
+  }
+
+  executeSync(): Result {
+    if (this.executeMethodSync !== undefined) {
+      return this.executeMethodSync(this)
+    }
+    throw new Error('Query was not provided with "executeSync" method')
   }
 
   toObject(): RawQuery {
@@ -48,9 +58,10 @@ export class QueryWithExtra<GenericResultWrapper, Result = any> extends Query<Re
     query: string,
     countQuery: string,
     args?: Primitive[],
-    fetchType?: FetchTypes
+    fetchType?: FetchTypes,
+    executeMethodSync?: (query: Query<Result>) => Result
   ) {
-    super(executeMethod, query, args, fetchType)
+    super(executeMethod, query, args, fetchType, executeMethodSync)
     this.countQuery = countQuery
   }
 
@@ -58,6 +69,23 @@ export class QueryWithExtra<GenericResultWrapper, Result = any> extends Query<Re
     return this.executeMethod(
       new Query(this.executeMethod, this.countQuery, this.arguments, FetchTypes.ONE)
     ) as Promise<CountResult<GenericResultWrapper>>
+  }
+
+  countSync(): CountResult<GenericResultWrapper> {
+    if (this.executeMethodSync === undefined) {
+      throw new Error('"executeMethodSync" was not defined')
+    }
+    return this.executeMethodSync(
+      new Query(
+        async () => {
+          throw new Error('async was not supposed to be called in sync context')
+        },
+        this.countQuery,
+        this.arguments,
+        FetchTypes.ONE,
+        this.executeMethodSync
+      )
+    ) as CountResult<GenericResultWrapper>
   }
 }
 

@@ -15,6 +15,21 @@ export class DOSRS extends DurableObject {
       })
       .execute()
 
+    // you can also use `transaction`, which is useful for multiple queries:
+    this.ctx.storage.transactionSync(() => {
+      // `executeSync` blocks synchronously until the query has been executed
+      // this is avaliable on DODB (and might not be on other providers)
+      const fetched = qb
+        .fetchAll({
+          tableName: 'employees',
+        })
+        .executeSync()
+
+      const result = fetched.map((val) => qb.select('payments').where('name = ?', val.name).executeSync())
+
+      return result
+    })
+
     return fetched.results
   }
 }
