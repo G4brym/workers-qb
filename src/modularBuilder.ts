@@ -150,7 +150,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     return this._fetchOne(this._options as SelectAll)
   }
 
-  async execute(): Promise<ArrayResult<GenericResultWrapper, GenericResult>> {
+  execute(): MaybeAsync<IsAsync, ArrayResult<GenericResultWrapper, GenericResult>> {
     return this._fetchAll(this._options as SelectAll).execute()
   }
 
