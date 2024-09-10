@@ -20,7 +20,7 @@ export class PGQB extends QueryBuilder<PGResult> {
   }
 
   async execute(query: Query) {
-    return await this.loggerWrapper(query, async () => {
+    return await this.loggerWrapper(query, this.options.logger, async () => {
       const queryString = query.query.replaceAll('?', '$')
 
       let result

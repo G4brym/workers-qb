@@ -8,8 +8,8 @@ export type QueryLoggerMeta = {
   duration?: number
 }
 
-export type QueryBuilderOptions = {
-  logger?: (query: RawQuery, meta: QueryLoggerMeta) => void | Promise<void>
+export type QueryBuilderOptions<IsAsync extends boolean = true> = {
+  logger?: (query: RawQuery, meta: QueryLoggerMeta) => MaybeAsync<IsAsync, void>
 }
 
 export type DefaultObject = Record<string, Primitive>
@@ -145,3 +145,7 @@ export type ArrayResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?
 export type OneResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Result }>
 
 export type CountResult<GenericResultWrapper> = OneResult<GenericResultWrapper, { total: number }>
+
+export type AsyncType<T> = Promise<T>
+export type SyncType<T> = T
+export type MaybeAsync<IsAsync extends boolean, T> = IsAsync extends true ? AsyncType<T> : SyncType<T>

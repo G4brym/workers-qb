@@ -1,16 +1,25 @@
-import { ArrayResult, CountResult, DefaultReturnObject, OneResult, Primitive, SelectAll, SelectOne } from './interfaces'
+import {
+  ArrayResult,
+  CountResult,
+  DefaultReturnObject,
+  MaybeAsync,
+  OneResult,
+  Primitive,
+  SelectAll,
+  SelectOne,
+} from './interfaces'
 import { Query, QueryWithExtra } from './tools'
 
-export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnObject> {
+export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnObject, IsAsync extends boolean = true> {
   _debugger = false
   private _options: Partial<SelectAll> = {}
-  private _fetchAll: (params: SelectAll) => QueryWithExtra<GenericResultWrapper>
-  private _fetchOne: (params: SelectOne) => QueryWithExtra<GenericResultWrapper>
+  private _fetchAll: (params: SelectAll) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
+  private _fetchOne: (params: SelectOne) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
 
   constructor(
     options: Partial<SelectAll>,
-    fetchAll: (params: SelectAll) => QueryWithExtra<GenericResultWrapper>,
-    fetchOne: (params: SelectOne) => QueryWithExtra<GenericResultWrapper>
+    fetchAll: (params: SelectAll) => QueryWithExtra<GenericResultWrapper, any, IsAsync>,
+    fetchOne: (params: SelectOne) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
   ) {
     this._options = options
     this._fetchAll = fetchAll
@@ -21,8 +30,8 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     this._debugger = state
   }
 
-  tableName(tableName: SelectAll['tableName']): SelectBuilder<GenericResultWrapper, GenericResult> {
-    return new SelectBuilder<GenericResultWrapper, GenericResult>(
+  tableName(tableName: SelectAll['tableName']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
       {
         ...this._options,
         tableName: tableName,
@@ -32,14 +41,14 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  fields(fields: SelectAll['fields']): SelectBuilder<GenericResultWrapper, GenericResult> {
+  fields(fields: SelectAll['fields']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
     return this._parseArray('fields', this._options.fields, fields)
   }
 
   where(
     conditions: string | Array<string>,
     params?: Primitive | Primitive[]
-  ): SelectBuilder<GenericResultWrapper, GenericResult> {
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
     if (!Array.isArray(conditions)) {
       conditions = [conditions]
     }
@@ -56,7 +65,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
       params = (this._options.where as any).params.concat(params)
     }
 
-    return new SelectBuilder<GenericResultWrapper, GenericResult>(
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
       {
         ...this._options,
         where: {
@@ -69,24 +78,24 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  join(join: SelectAll['join']): SelectBuilder<GenericResultWrapper, GenericResult> {
+  join(join: SelectAll['join']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
     return this._parseArray('join', this._options.join, join)
   }
 
-  groupBy(groupBy: SelectAll['groupBy']): SelectBuilder<GenericResultWrapper, GenericResult> {
+  groupBy(groupBy: SelectAll['groupBy']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
     return this._parseArray('groupBy', this._options.groupBy, groupBy)
   }
 
-  having(having: SelectAll['having']): SelectBuilder<GenericResultWrapper, GenericResult> {
+  having(having: SelectAll['having']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
     return this._parseArray('having', this._options.having, having)
   }
 
-  orderBy(orderBy: SelectAll['orderBy']): SelectBuilder<GenericResultWrapper, GenericResult> {
+  orderBy(orderBy: SelectAll['orderBy']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
     return this._parseArray('orderBy', this._options.orderBy, orderBy)
   }
 
-  offset(offset: SelectAll['offset']): SelectBuilder<GenericResultWrapper, GenericResult> {
-    return new SelectBuilder<GenericResultWrapper, GenericResult>(
+  offset(offset: SelectAll['offset']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
       {
         ...this._options,
         offset: offset,
@@ -96,8 +105,8 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  limit(limit: SelectAll['limit']): SelectBuilder<GenericResultWrapper, GenericResult> {
-    return new SelectBuilder<GenericResultWrapper, GenericResult>(
+  limit(limit: SelectAll['limit']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
       {
         ...this._options,
         limit: limit,
@@ -107,7 +116,11 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  private _parseArray(fieldName: string, option: any, value: any): SelectBuilder<GenericResultWrapper, GenericResult> {
+  private _parseArray(
+    fieldName: string,
+    option: any,
+    value: any
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
     let val = []
     if (!Array.isArray(value)) {
       val.push(value)
@@ -119,7 +132,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
       val = [...option, ...val]
     }
 
-    return new SelectBuilder<GenericResultWrapper, GenericResult>(
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
       {
         ...this._options,
         [fieldName]: val as Array<string>,
@@ -129,11 +142,11 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  getQueryAll(): Query<ArrayResult<GenericResultWrapper, GenericResult>> {
+  getQueryAll(): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync> {
     return this._fetchAll(this._options as SelectAll)
   }
 
-  getQueryOne(): Query<OneResult<GenericResultWrapper, GenericResult>> {
+  getQueryOne(): Query<OneResult<GenericResultWrapper, GenericResult>, IsAsync> {
     return this._fetchOne(this._options as SelectAll)
   }
 
@@ -141,15 +154,15 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     return this._fetchAll(this._options as SelectAll).execute()
   }
 
-  async all(): Promise<ArrayResult<GenericResultWrapper, GenericResult>> {
+  all(): MaybeAsync<IsAsync, ArrayResult<GenericResultWrapper, GenericResult>> {
     return this._fetchAll(this._options as SelectAll).execute()
   }
 
-  async one(): Promise<OneResult<GenericResultWrapper, GenericResult>> {
+  one(): MaybeAsync<IsAsync, OneResult<GenericResultWrapper, GenericResult>> {
     return this._fetchOne(this._options as SelectOne).execute()
   }
 
-  async count(): Promise<CountResult<GenericResultWrapper>> {
+  count(): MaybeAsync<IsAsync, CountResult<GenericResultWrapper>> {
     return this._fetchOne(this._options as SelectOne).count()
   }
 }
