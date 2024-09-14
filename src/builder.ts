@@ -254,7 +254,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  _parse_arguments(row: DefaultObject): Array<any> {
+  protected _parse_arguments(row: DefaultObject): Array<any> {
     // Raw parameters are placed directly in the query, and keeping them here would result in more parameters that are
     // expected in the query and could result in weird results or outright errors when using PostgreSQL
     return Object.values(row).filter((value) => {
@@ -262,7 +262,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     })
   }
 
-  _onConflict(resolution?: string | ConflictTypes | ConflictUpsert): string {
+  protected _onConflict(resolution?: string | ConflictTypes | ConflictUpsert): string {
     if (resolution) {
       if (typeof resolution === 'object') {
         if (!Array.isArray(resolution.column)) {
@@ -283,7 +283,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     return ''
   }
 
-  _insert(params: Insert): string {
+  protected _insert(params: Insert): string {
     const rows = []
 
     let data: Array<DefaultObject>
@@ -347,7 +347,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  _update(params: Update): string {
+  protected _update(params: Update): string {
     const whereParamsLength: number =
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
         ? Array.isArray(params.where?.params)
@@ -375,7 +375,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  _delete(params: Delete): string {
+  protected _delete(params: Delete): string {
     return (
       `DELETE
             FROM ${params.tableName}` +
@@ -384,7 +384,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  _select(params: SelectAll): string {
+  protected _select(params: SelectAll): string {
     return (
       `SELECT ${this._fields(params.fields)}
        FROM ${params.tableName}` +
@@ -398,14 +398,14 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  _fields(value?: string | Array<string>): string {
+  protected _fields(value?: string | Array<string>): string {
     if (!value) return '*'
     if (typeof value === 'string') return value
 
     return value.join(', ')
   }
 
-  _where(value?: Where): string {
+  protected _where(value?: Where): string {
     if (!value) return ''
     let conditions = value
 
@@ -422,7 +422,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     return ''
   }
 
-  _join(value?: Join | Array<Join>): string {
+  protected _join(value?: Join | Array<Join>): string {
     if (!value) return ''
 
     if (!Array.isArray(value)) {
@@ -442,21 +442,21 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     return ' ' + joinQuery.join(' ')
   }
 
-  _groupBy(value?: string | Array<string>): string {
+  protected _groupBy(value?: string | Array<string>): string {
     if (!value) return ''
     if (typeof value === 'string') return ` GROUP BY ${value}`
 
     return ` GROUP BY ${value.join(', ')}`
   }
 
-  _having(value?: string | Array<string>): string {
+  protected _having(value?: string | Array<string>): string {
     if (!value) return ''
     if (typeof value === 'string') return ` HAVING ${value}`
 
     return ` HAVING ${value.join(' AND ')}`
   }
 
-  _orderBy(value?: string | Array<string> | Record<string, string | OrderTypes>): string {
+  protected _orderBy(value?: string | Array<string> | Record<string, string | OrderTypes>): string {
     if (!value) return ''
     if (typeof value === 'string') return ` ORDER BY ${value}`
 
@@ -485,19 +485,19 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     return ` ORDER BY ${result.join(', ')}`
   }
 
-  _limit(value?: number): string {
+  protected _limit(value?: number): string {
     if (!value) return ''
 
     return ` LIMIT ${value}`
   }
 
-  _offset(value?: number): string {
+  protected _offset(value?: number): string {
     if (!value) return ''
 
     return ` OFFSET ${value}`
   }
 
-  _returning(value?: string | Array<string>): string {
+  protected _returning(value?: string | Array<string>): string {
     if (!value) return ''
     if (typeof value === 'string') return ` RETURNING ${value}`
 

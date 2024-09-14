@@ -12,9 +12,9 @@ import { Query, QueryWithExtra } from './tools'
 
 export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnObject, IsAsync extends boolean = true> {
   _debugger = false
-  private _options: Partial<SelectAll> = {}
-  private _fetchAll: (params: SelectAll) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
-  private _fetchOne: (params: SelectOne) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
+  _options: Partial<SelectAll> = {}
+  _fetchAll: (params: SelectAll) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
+  _fetchOne: (params: SelectOne) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
 
   constructor(
     options: Partial<SelectAll>,
@@ -116,11 +116,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  private _parseArray(
-    fieldName: string,
-    option: any,
-    value: any
-  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+  _parseArray(fieldName: string, option: any, value: any): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
     let val = []
     if (!Array.isArray(value)) {
       val.push(value)

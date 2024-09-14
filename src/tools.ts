@@ -67,7 +67,3 @@ export class QueryWithExtra<GenericResultWrapper, Result = any, IsAsync extends 
 export function trimQuery(query: string): string {
   return query.replace(/\s\s+/g, ' ')
 }
-
-export function defaultLogger<IsAsync extends boolean>(query: RawQuery, meta: QueryLoggerMeta): any {
-  console.log(`[workers-qb][${meta.duration}ms] ${JSON.stringify(query)}`)
-}
