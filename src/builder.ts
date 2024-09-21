@@ -111,6 +111,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
         ...params,
         fields: 'count(*) as total',
         offset: undefined,
+        groupBy: undefined,
         limit: 1,
       }),
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
@@ -134,6 +135,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
         ...params,
         fields: 'count(*) as total',
         offset: undefined,
+        groupBy: undefined,
         limit: 1,
       }),
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
