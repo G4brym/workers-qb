@@ -160,6 +160,22 @@ describe('Select Builder', () => {
     }
   })
 
+  test('count should remove group by', async () => {
+    for (const result of [
+      await new QuerybuilderTest()
+        .fetchAll({
+          tableName: 'testTable',
+          offset: 4,
+          groupBy: ['field'],
+        })
+        .count(),
+    ]) {
+      expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
+      expect((result.results as any).arguments).toEqual(undefined)
+      expect((result.results as any).fetchType).toEqual('ONE')
+    }
+  })
+
   test('select with simplified where list', async () => {
     for (const result of [
       new QuerybuilderTest().fetchOne({
