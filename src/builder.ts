@@ -382,6 +382,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
       `DELETE
             FROM ${params.tableName}` +
       this._where(params.where) +
+      this._limit(params.limit) +
       this._returning(params.returning)
     )
   }
