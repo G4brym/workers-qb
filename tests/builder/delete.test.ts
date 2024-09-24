@@ -38,6 +38,19 @@ describe('Delete Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
+  test('delete with limit and offset', async () => {
+    const result = new QuerybuilderTest().delete({
+      tableName: 'testTable',
+      where: 'field = false',
+      limit: 10,
+      offset: 10,
+    })
+
+    expect(result.query).toEqual('DELETE FROM testTable WHERE field = false LIMIT 10 OFFSET 10')
+    expect(result.arguments).toEqual(undefined)
+    expect(result.fetchType).toEqual('ALL')
+  })
+
   test('delete with simplified where list', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',
@@ -104,7 +117,24 @@ describe('Delete Builder', () => {
       limit: 10000
     })
 
-    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 LIMIT 10000 RETURNING id, field')
+    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id, field LIMIT 10000')
+    expect(result.arguments).toEqual(['test', 123])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  test('delete with multiple where with multiple returning and limit and order', async () => {
+    const result = new QuerybuilderTest().delete({
+      tableName: 'testTable',
+      where: {
+        conditions: ['field = ?1', 'id = ?2'],
+        params: ['test', 123],
+      },
+      returning: ['id', 'field'],
+      orderBy: "id",
+      limit: 10000
+    })
+
+    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id, field ORDER BY id LIMIT 10000')
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
   })
