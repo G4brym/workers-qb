@@ -105,8 +105,10 @@ export type UpdateWithoutReturning = Omit<Update, 'returning'>
 export type Delete = {
   tableName: string
   where: Where // This field is optional, but is kept required in type to warn users of delete without where
-  limit?: number
   returning?: string | Array<string>
+  orderBy?: string | Array<string> | Record<string, string | OrderTypes>
+  limit?: number
+  offset?: number
 }
 
 export type DeleteReturning = Omit<Delete, 'returning'> & {
