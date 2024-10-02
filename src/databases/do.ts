@@ -15,33 +15,23 @@ export class DOQB extends QueryBuilder<{}, false> {
 
   execute(query: Query<any, false>) {
     return this.loggerWrapper(query, this.options.logger, () => {
+      let cursor
       if (query.arguments) {
-        let stmt = this.db.prepare(query.query)
-        // @ts-expect-error Their types appear to be wrong here
-        const result = stmt(...query.arguments) as SqlStorageCursor
-        if (query.fetchType == FetchTypes.ONE) {
-          return {
-            results: Array.from(result)[0],
-          }
-        }
-
-        // by default return everything
-        return {
-          results: Array.from(result),
-        }
+        cursor = this.db.exec(query.query, ...query.arguments)
+      } else {
+        cursor = this.db.exec(query.query)
       }
 
-      const cursor = this.db.exec(query.query)
+      const result = cursor.toArray()
 
       if (query.fetchType == FetchTypes.ONE) {
         return {
-          results: Array.from(cursor)[0],
+          results: result.length > 0 ? result[0] : undefined,
         }
       }
 
-      // by default return everything
       return {
-        results: Array.from(cursor),
+        results: result,
       }
     })
   }
