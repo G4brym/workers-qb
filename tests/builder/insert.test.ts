@@ -307,7 +307,7 @@ describe('Insert Builder', () => {
 
     expect(result.query).toEqual(
       'INSERT INTO phonebook2 (name, phonenumber, validDate) VALUES (?1, ?2, ?3) ON CONFLICT (name) DO ' +
-        'UPDATE SET phonenumber = excluded.phonenumber, validDate = excluded.validDate WHERE excluded.validDate > Date(now()) AND active = true'
+        'UPDATE SET phonenumber = excluded.phonenumber, validDate = excluded.validDate WHERE (excluded.validDate > Date(now())) AND (active = true)'
     )
     expect(result.arguments).toEqual(['Alice', '704-555-1212', '2018-05-08'])
     expect(result.fetchType).toEqual('ONE')
