@@ -43,7 +43,7 @@ describe('Update Builder', () => {
       where: ['field = true', 'active = true'],
     })
 
-    expect(result.query).toEqual('UPDATE testTable SET my_field = ?1 WHERE field = true AND active = true')
+    expect(result.query).toEqual('UPDATE testTable SET my_field = ?1 WHERE (field = true) AND (active = true)')
     expect(result.arguments).toEqual(['test_data'])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -117,7 +117,7 @@ describe('Update Builder', () => {
       },
     })
 
-    expect(result.query).toEqual('UPDATE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2')
+    expect(result.query).toEqual('UPDATE testTable SET my_field = ?3, another = ?4 WHERE (field = ?1) AND (id = ?2)')
     expect(result.arguments).toEqual(['test', 345, 'test_update', 123])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -137,7 +137,7 @@ describe('Update Builder', () => {
     })
 
     expect(result.query).toEqual(
-      'UPDATE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id'
+      'UPDATE testTable SET my_field = ?3, another = ?4 WHERE (field = ?1) AND (id = ?2) RETURNING id'
     )
     expect(result.arguments).toEqual(['test', 345, 'test_update', 123])
     expect(result.fetchType).toEqual('ALL')
@@ -158,7 +158,7 @@ describe('Update Builder', () => {
     })
 
     expect(result.query).toEqual(
-      'UPDATE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id, field'
+      'UPDATE testTable SET my_field = ?3, another = ?4 WHERE (field = ?1) AND (id = ?2) RETURNING id, field'
     )
     expect(result.arguments).toEqual(['test', 345, 'test_update', 123])
     expect(result.fetchType).toEqual('ALL')
@@ -180,7 +180,7 @@ describe('Update Builder', () => {
     })
 
     expect(result.query).toEqual(
-      'UPDATE OR IGNORE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id, field'
+      'UPDATE OR IGNORE testTable SET my_field = ?3, another = ?4 WHERE (field = ?1) AND (id = ?2) RETURNING id, field'
     )
     expect(result.arguments).toEqual(['test', 345, 'test_update', 123])
     expect(result.fetchType).toEqual('ALL')
@@ -202,7 +202,7 @@ describe('Update Builder', () => {
     })
 
     expect(result.query).toEqual(
-      'UPDATE OR REPLACE testTable SET my_field = ?3, another = ?4 WHERE field = ?1 AND id = ?2 RETURNING id, field'
+      'UPDATE OR REPLACE testTable SET my_field = ?3, another = ?4 WHERE (field = ?1) AND (id = ?2) RETURNING id, field'
     )
     expect(result.arguments).toEqual(['test', 345, 'test_update', 123])
     expect(result.fetchType).toEqual('ALL')

@@ -57,7 +57,7 @@ describe('Delete Builder', () => {
       where: ['field = false', 'active = false'],
     })
 
-    expect(result.query).toEqual('DELETE FROM testTable WHERE field = false AND active = false')
+    expect(result.query).toEqual('DELETE FROM testTable WHERE (field = false) AND (active = false)')
     expect(result.arguments).toEqual(undefined)
     expect(result.fetchType).toEqual('ALL')
   })
@@ -71,7 +71,7 @@ describe('Delete Builder', () => {
       },
     })
 
-    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2')
+    expect(result.query).toEqual('DELETE FROM testTable WHERE (field = ?1) AND (id = ?2)')
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -86,7 +86,7 @@ describe('Delete Builder', () => {
       returning: 'id',
     })
 
-    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id')
+    expect(result.query).toEqual('DELETE FROM testTable WHERE (field = ?1) AND (id = ?2) RETURNING id')
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -101,7 +101,7 @@ describe('Delete Builder', () => {
       returning: ['id', 'field'],
     })
 
-    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id, field')
+    expect(result.query).toEqual('DELETE FROM testTable WHERE (field = ?1) AND (id = ?2) RETURNING id, field')
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -114,10 +114,12 @@ describe('Delete Builder', () => {
         params: ['test', 123],
       },
       returning: ['id', 'field'],
-      limit: 10000
+      limit: 10000,
     })
 
-    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id, field LIMIT 10000')
+    expect(result.query).toEqual(
+      'DELETE FROM testTable WHERE (field = ?1) AND (id = ?2) RETURNING id, field LIMIT 10000'
+    )
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -130,11 +132,13 @@ describe('Delete Builder', () => {
         params: ['test', 123],
       },
       returning: ['id', 'field'],
-      orderBy: "id",
-      limit: 10000
+      orderBy: 'id',
+      limit: 10000,
     })
 
-    expect(result.query).toEqual('DELETE FROM testTable WHERE field = ?1 AND id = ?2 RETURNING id, field ORDER BY id LIMIT 10000')
+    expect(result.query).toEqual(
+      'DELETE FROM testTable WHERE (field = ?1) AND (id = ?2) RETURNING id, field ORDER BY id LIMIT 10000'
+    )
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
   })

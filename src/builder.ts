@@ -420,8 +420,10 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
 
     if (typeof conditions === 'string') return ` WHERE ${conditions.toString()}`
 
-    if ((conditions as Array<string>).length > 0) {
-      return ` WHERE ${(conditions as Array<string>).join(' AND ')}`
+    if ((conditions as Array<string>).length === 1) return ` WHERE ${(conditions as Array<string>)[0]!.toString()}`
+
+    if ((conditions as Array<string>).length > 1) {
+      return ` WHERE (${(conditions as Array<string>).join(') AND (')})`
     }
 
     return ''

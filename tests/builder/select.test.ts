@@ -184,7 +184,7 @@ describe('Select Builder', () => {
         where: ['field = true', 'active = false'],
       }),
     ]) {
-      expect(result.query).toEqual('SELECT * FROM testTable WHERE field = true AND active = false LIMIT 1')
+      expect(result.query).toEqual('SELECT * FROM testTable WHERE (field = true) AND (active = false) LIMIT 1')
       expect(result.arguments).toEqual(undefined)
       expect(result.fetchType).toEqual('ONE')
     }
@@ -526,7 +526,7 @@ describe('Select Builder', () => {
         .where('test = ?', 123)
         .getQueryAll(),
     ]) {
-      expect(result.query).toEqual('SELECT * FROM testTable WHERE field = ? AND test = ?')
+      expect(result.query).toEqual('SELECT * FROM testTable WHERE (field = ?) AND (test = ?)')
       expect(result.arguments).toEqual(['test', 123])
       expect(result.fetchType).toEqual('ALL')
     }
@@ -551,7 +551,7 @@ describe('Select Builder', () => {
         .groupBy('type')
         .getQueryAll(),
     ]) {
-      expect(result.query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type')
+      expect(result.query).toEqual('SELECT * FROM testTable WHERE (field = ?1) AND (test = ?2) GROUP BY type')
       expect(result.arguments).toEqual(['test', 123])
       expect(result.fetchType).toEqual('ALL')
     }
@@ -577,7 +577,7 @@ describe('Select Builder', () => {
         .groupBy('day')
         .getQueryAll(),
     ]) {
-      expect(result.query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type, day')
+      expect(result.query).toEqual('SELECT * FROM testTable WHERE (field = ?1) AND (test = ?2) GROUP BY type, day')
       expect(result.arguments).toEqual(['test', 123])
       expect(result.fetchType).toEqual('ALL')
     }
@@ -605,7 +605,7 @@ describe('Select Builder', () => {
         .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
-        'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type HAVING COUNT(trackid) > 15'
+        'SELECT * FROM testTable WHERE (field = ?1) AND (test = ?2) GROUP BY type HAVING COUNT(trackid) > 15'
       )
       expect(result.arguments).toEqual(['test', 123])
       expect(result.fetchType).toEqual('ALL')
@@ -635,7 +635,7 @@ describe('Select Builder', () => {
         .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
-        'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type HAVING COUNT(trackid) > 15 AND COUNT(trackid) < 30'
+        'SELECT * FROM testTable WHERE (field = ?1) AND (test = ?2) GROUP BY type HAVING COUNT(trackid) > 15 AND COUNT(trackid) < 30'
       )
       expect(result.arguments).toEqual(['test', 123])
       expect(result.fetchType).toEqual('ALL')
@@ -663,7 +663,9 @@ describe('Select Builder', () => {
         .orderBy('id')
         .getQueryAll(),
     ]) {
-      expect(result.query).toEqual('SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type ORDER BY id')
+      expect(result.query).toEqual(
+        'SELECT * FROM testTable WHERE (field = ?1) AND (test = ?2) GROUP BY type ORDER BY id'
+      )
       expect(result.arguments).toEqual(['test', 123])
       expect(result.fetchType).toEqual('ALL')
     }
@@ -692,7 +694,7 @@ describe('Select Builder', () => {
         .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
-        'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type ORDER BY id, timestamp'
+        'SELECT * FROM testTable WHERE (field = ?1) AND (test = ?2) GROUP BY type ORDER BY id, timestamp'
       )
       expect(result.arguments).toEqual(['test', 123])
       expect(result.fetchType).toEqual('ALL')
@@ -725,7 +727,7 @@ describe('Select Builder', () => {
         .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
-        'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type ORDER BY id ASC, timestamp DESC'
+        'SELECT * FROM testTable WHERE (field = ?1) AND (test = ?2) GROUP BY type ORDER BY id ASC, timestamp DESC'
       )
       expect(result.arguments).toEqual(['test', 123])
       expect(result.fetchType).toEqual('ALL')
@@ -756,9 +758,34 @@ describe('Select Builder', () => {
         .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
-        'SELECT * FROM testTable WHERE field = ?1 AND test = ?2 GROUP BY type LIMIT 10 OFFSET 15'
+        'SELECT * FROM testTable WHERE (field = ?1) AND (test = ?2) GROUP BY type LIMIT 10 OFFSET 15'
       )
       expect(result.arguments).toEqual(['test', 123])
+      expect(result.fetchType).toEqual('ALL')
+    }
+  })
+
+  test('select with multiple where with OR conditions', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        fields: '*',
+        where: {
+          conditions: ['field = ?1 OR test = ?2', 'test = ?3 OR field = ?4'],
+          params: ['test', 123, 456, 'test'],
+        },
+      }),
+      new QuerybuilderTest()
+        .select('testTable')
+        .fields('*')
+        .where('field = ?1 OR test = ?2', ['test', 123])
+        .where('test = ?3 OR field = ?4', [456, 'test'])
+        .getQueryAll(),
+    ]) {
+      expect(result.query).toEqual(
+        'SELECT * FROM testTable WHERE (field = ?1 OR test = ?2) AND (test = ?3 OR field = ?4)'
+      )
+      expect(result.arguments).toEqual(['test', 123, 456, 'test'])
       expect(result.fetchType).toEqual('ALL')
     }
   })
