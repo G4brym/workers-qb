@@ -30,6 +30,7 @@ import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import { Query, QueryWithExtra, Raw } from './tools'
 import { SelectBuilder } from './modularBuilder'
 import { asyncLoggerWrapper, defaultLogger } from './logger'
+import { asyncMigrationsBuilder, MigrationOptions } from './migrations'
 
 export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> {
   protected options: QueryBuilderOptions<IsAsync>

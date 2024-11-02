@@ -2,13 +2,17 @@ import { QueryBuilder } from '../builder'
 import { FetchTypes } from '../enums'
 import { Query } from '../tools'
 import { D1Result, QueryBuilderOptions } from '../interfaces'
+import { asyncMigrationsBuilder, MigrationOptions } from '../migrations'
 
 export class D1QB extends QueryBuilder<D1Result> {
   public db: any
-
   constructor(db: any, options?: QueryBuilderOptions) {
     super(options)
     this.db = db
+  }
+
+  migrations(options: MigrationOptions) {
+    return new asyncMigrationsBuilder<D1Result>(options, this)
   }
 
   async execute(query: Query) {
