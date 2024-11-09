@@ -66,7 +66,7 @@
     "eslint-plugin-prettier": "^4.0.0",
     "husky": "^9.1.6",
     "jest": "^29.7.0",
-    "pinst": "^2.1.6",
+    "pinst": "^3.0.0",
     "prettier": "^2.4.0",
     "ts-jest": "^29.1.4",
     "tsup": "^8.1.0",
