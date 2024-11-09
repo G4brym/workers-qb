@@ -1,6 +1,6 @@
 import { QueryBuilder } from '../src/builder'
-import { Query } from '../src/tools'
 import { D1Result } from '../src/interfaces'
+import { Query } from '../src/tools'
 
 export class QuerybuilderTest extends QueryBuilder<{}> {
   async execute(query: Query): Promise<Query<any>> {

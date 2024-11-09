@@ -1,7 +1,8 @@
+import { describe, expect, it } from 'vitest'
 import { QuerybuilderTest } from '../utils'
 
 describe('Delete Builder', () => {
-  test('delete with one where without returning', async () => {
+  it('delete with one where without returning', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',
       where: {
@@ -15,7 +16,7 @@ describe('Delete Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
-  test('delete with simplified where', async () => {
+  it('delete with simplified where', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',
       where: 'field = false',
@@ -26,7 +27,7 @@ describe('Delete Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
-  test('delete with limit', async () => {
+  it('delete with limit', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',
       where: 'field = false',
@@ -38,7 +39,7 @@ describe('Delete Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
-  test('delete with limit and offset', async () => {
+  it('delete with limit and offset', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',
       where: 'field = false',
@@ -51,7 +52,7 @@ describe('Delete Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
-  test('delete with simplified where list', async () => {
+  it('delete with simplified where list', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',
       where: ['field = false', 'active = false'],
@@ -62,7 +63,7 @@ describe('Delete Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
-  test('delete with multiple where without returning', async () => {
+  it('delete with multiple where without returning', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',
       where: {
@@ -76,7 +77,7 @@ describe('Delete Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
-  test('delete with multiple where with one returning', async () => {
+  it('delete with multiple where with one returning', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',
       where: {
@@ -91,7 +92,7 @@ describe('Delete Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
-  test('delete with multiple where with multiple returning', async () => {
+  it('delete with multiple where with multiple returning', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',
       where: {
@@ -106,7 +107,7 @@ describe('Delete Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
-  test('delete with multiple where with multiple returning and limit', async () => {
+  it('delete with multiple where with multiple returning and limit', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',
       where: {
@@ -124,7 +125,7 @@ describe('Delete Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
-  test('delete with multiple where with multiple returning and limit and order', async () => {
+  it('delete with multiple where with multiple returning and limit and order', async () => {
     const result = new QuerybuilderTest().delete({
       tableName: 'testTable',
       where: {

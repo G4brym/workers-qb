@@ -1,9 +1,10 @@
-import { QuerybuilderTest } from '../utils'
+import { describe, expect, it } from 'vitest'
 import { ConflictTypes } from '../../src/enums'
 import { Raw } from '../../src/tools'
+import { QuerybuilderTest } from '../utils'
 
 describe('Insert Builder', () => {
-  test('insert one field without returning', async () => {
+  it('insert one field without returning', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'testTable',
       data: {
@@ -16,7 +17,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('insert with Raw sql values', async () => {
+  it('insert with Raw sql values', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'testTable',
       data: {
@@ -30,7 +31,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('insert multiple fields without returning', async () => {
+  it('insert multiple fields without returning', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'testTable',
       data: {
@@ -44,7 +45,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('insert multiple fields with one returning', async () => {
+  it('insert multiple fields with one returning', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'testTable',
       data: {
@@ -59,7 +60,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('insert multiple fields with multiple returning', async () => {
+  it('insert multiple fields with multiple returning', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'testTable',
       data: {
@@ -74,7 +75,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('insert on conflict ignore', async () => {
+  it('insert on conflict ignore', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'testTable',
       data: {
@@ -92,7 +93,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('insert on conflict replace', async () => {
+  it('insert on conflict replace', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'testTable',
       data: {
@@ -110,7 +111,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('insert in bulk', async () => {
+  it('insert in bulk', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'testTable',
       data: [
@@ -138,7 +139,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ALL')
   })
 
-  test('upsert', async () => {
+  it('upsert', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'phonebook2',
       data: {
@@ -169,7 +170,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('upsert with where', async () => {
+  it('upsert with where', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'phonebook2',
       data: {
@@ -205,7 +206,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('upsert with inline where', async () => {
+  it('upsert with inline where', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'phonebook2',
       data: {
@@ -239,7 +240,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('upsert with where and Raw', async () => {
+  it('upsert with where and Raw', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'phonebook2',
       data: {
@@ -268,7 +269,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('upsert with simplified where', async () => {
+  it('upsert with simplified where', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'phonebook2',
       data: {
@@ -287,7 +288,7 @@ describe('Insert Builder', () => {
     })
   })
 
-  test('upsert with simplified where list', async () => {
+  it('upsert with simplified where list', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'phonebook2',
       data: {
@@ -313,7 +314,7 @@ describe('Insert Builder', () => {
     expect(result.fetchType).toEqual('ONE')
   })
 
-  test('upsert with Raw and multiple columns', async () => {
+  it('upsert with Raw and multiple columns', async () => {
     const result = new QuerybuilderTest().insert({
       tableName: 'phonebook2',
       data: {

@@ -1,9 +1,9 @@
 import { QueryBuilder } from '../builder'
-import { Query } from '../tools'
 import { FetchTypes } from '../enums'
 import { QueryBuilderOptions } from '../interfaces'
 import { syncLoggerWrapper } from '../logger'
 import { MigrationOptions, syncMigrationsBuilder } from '../migrations'
+import { Query } from '../tools'
 
 export class DOQB extends QueryBuilder<{}, false> {
   public db: any

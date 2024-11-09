@@ -1,8 +1,9 @@
-import { QuerybuilderTest } from '../utils'
+import { describe, expect, it } from 'vitest'
 import { JoinTypes, OrderTypes } from '../../src/enums'
+import { QuerybuilderTest } from '../utils'
 
 describe('Select Builder', () => {
-  test('select simple', async () => {
+  it('select simple', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -16,7 +17,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select fields default value', async () => {
+  it('select fields default value', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -29,7 +30,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select fields default value one', async () => {
+  it('select fields default value one', async () => {
     for (const result of [
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
@@ -42,7 +43,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with one where', async () => {
+  it('select with one where', async () => {
     for (const result of [
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
@@ -60,7 +61,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with simplified where', async () => {
+  it('select with simplified where', async () => {
     for (const result of [
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
@@ -74,7 +75,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with empty where', async () => {
+  it('select with empty where', async () => {
     for (const result of [
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
@@ -89,7 +90,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with empty where 2', async () => {
+  it('select with empty where 2', async () => {
     for (const result of [
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
@@ -106,7 +107,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('count with empty where 2', async () => {
+  it('count with empty where 2', async () => {
     for (const result of [
       await new QuerybuilderTest()
         .fetchOne({
@@ -125,7 +126,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('count from fetchOne with offset defined', async () => {
+  it('count from fetchOne with offset defined', async () => {
     for (const result of [
       await new QuerybuilderTest()
         .fetchOne({
@@ -145,7 +146,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('count from fetchAll with offset defined', async () => {
+  it('count from fetchAll with offset defined', async () => {
     for (const result of [
       await new QuerybuilderTest()
         .fetchAll({
@@ -160,7 +161,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('count should remove group by', async () => {
+  it('count should remove group by', async () => {
     for (const result of [
       await new QuerybuilderTest()
         .fetchAll({
@@ -176,7 +177,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with simplified where list', async () => {
+  it('select with simplified where list', async () => {
     for (const result of [
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
@@ -190,7 +191,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with simple join', async () => {
+  it('select with simple join', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -219,7 +220,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with multiple joins', async () => {
+  it('select with multiple joins', async () => {
     for (const result of [
       await new QuerybuilderTest()
         .fetchAll({
@@ -260,7 +261,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('count with multiple joins', async () => {
+  it('count with multiple joins', async () => {
     for (const result of [
       await new QuerybuilderTest()
         .fetchAll({
@@ -301,7 +302,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with left join', async () => {
+  it('select with left join', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -331,7 +332,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with subquery join', async () => {
+  it('select with subquery join', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -375,7 +376,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('count with subquery join', async () => {
+  it('count with subquery join', async () => {
     for (const result of [
       await new QuerybuilderTest()
         .fetchAll({
@@ -421,7 +422,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with nested subquery joins', async () => {
+  it('select with nested subquery joins', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -493,7 +494,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with one where no parameters', async () => {
+  it('select with one where no parameters', async () => {
     for (const result of [
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
@@ -509,7 +510,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with multiple where', async () => {
+  it('select with multiple where', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -532,7 +533,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with multiple where and one group by', async () => {
+  it('select with multiple where and one group by', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -557,7 +558,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with multiple where and multiple group by', async () => {
+  it('select with multiple where and multiple group by', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -583,7 +584,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with multiple where and one group by and having', async () => {
+  it('select with multiple where and one group by and having', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -612,7 +613,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with multiple where and one group by and multiple having', async () => {
+  it('select with multiple where and one group by and multiple having', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -642,7 +643,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with multiple where and one group by and one order by', async () => {
+  it('select with multiple where and one group by and one order by', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -671,7 +672,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with multiple where and one group by and multiple order by', async () => {
+  it('select with multiple where and one group by and multiple order by', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -701,7 +702,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with multiple where and one group by and object order by', async () => {
+  it('select with multiple where and one group by and object order by', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -734,7 +735,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with multiple where and one group by and limit and offset', async () => {
+  it('select with multiple where and one group by and limit and offset', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
@@ -765,7 +766,7 @@ describe('Select Builder', () => {
     }
   })
 
-  test('select with multiple where with OR conditions', async () => {
+  it('select with multiple where with OR conditions', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
