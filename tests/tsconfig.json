@@ -4,5 +4,5 @@
     "moduleResolution": "bundler",
     "types": ["@cloudflare/workers-types/experimental", "@cloudflare/vitest-pool-workers"]
   },
-  "include": ["./**/*.ts", "../src/env.d.ts"]
+  "include": ["./**/*.ts", "./bindings.d.ts"]
 }
