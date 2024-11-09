@@ -2,13 +2,19 @@ import { QueryBuilder } from '../builder'
 import { FetchTypes } from '../enums'
 import { Query } from '../tools'
 import { PGResult, QueryBuilderOptions } from '../interfaces'
+import { asyncMigrationsBuilder, MigrationOptions } from '../migrations'
 
 export class PGQB extends QueryBuilder<PGResult> {
   public db: any
+  _migrationsBuilder = asyncMigrationsBuilder
 
   constructor(db: any, options?: QueryBuilderOptions) {
     super(options)
     this.db = db
+  }
+
+  migrations(options: MigrationOptions) {
+    return new asyncMigrationsBuilder<PGResult>(options, this)
   }
 
   async connect() {
