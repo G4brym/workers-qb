@@ -4,6 +4,9 @@ export default defineWorkersConfig({
   test: {
     poolOptions: {
       workers: {
+        wrangler: {
+          configPath: './wrangler.toml',
+        },
         miniflare: {
           compatibilityFlags: ['nodejs_compat'],
           d1Databases: {
