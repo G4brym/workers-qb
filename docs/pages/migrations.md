@@ -36,7 +36,7 @@ Having this code inside the constructor will automatically apply new migrations 
 
 ## Methods
 
-#### `migrations()`
+### `migrations()`
 
 ```typescript
 qb.migrations(options: MigrationOptions): Migrations
@@ -49,7 +49,7 @@ qb.migrations(options: MigrationOptions): Migrations
     
     - `tableName?: string` - The name of the table to store migration records, defaults to 'migrations'.
 
-#### `initialize()`
+### `initialize()`
 
 ```typescript
 initialize(): void
@@ -58,7 +58,7 @@ initialize(): void
 
   - Initializes the migration table if it doesn't exist. Creates a table named according to `_tableName` or `migrations` if non is set, with columns for `id`, `name`, and `applied_at`.
 
-#### `getApplied()`
+### `getApplied()`
 
 ```typescript
 getApplied(): Array<MigrationEntry>
@@ -69,7 +69,7 @@ getApplied(): Array<MigrationEntry>
   
   - **Returns:** An array of `MigrationEntry` objects representing applied migrations.
 
-#### `getUnapplied()`
+### `getUnapplied()`
 
 ```typescript
 getUnapplied(): Array<Migration>
@@ -80,7 +80,7 @@ getUnapplied(): Array<Migration>
   
   - **Returns:** An array of `Migration` objects that have not yet been applied.
 
-#### `apply()`
+### `apply()`
 
 ```typescript
 apply(): Array<Migration>
@@ -91,9 +91,9 @@ apply(): Array<Migration>
   
   - **Returns:** An array of `Migration` objects that were applied during this call.
 
-### Type Definitions
+## Type Definitions
 
-#### MigrationEntry
+### MigrationEntry
 
 ```typescript
 type MigrationEntry = {
@@ -110,7 +110,7 @@ type MigrationEntry = {
   
   - `applied_at`: The timestamp when the migration was applied.
 
-#### Migration
+### Migration
 
 ```typescript
 type Migration = {
@@ -124,7 +124,7 @@ type Migration = {
   
   - `sql`: The SQL command to execute for this migration.
 
-#### MigrationOptions
+### MigrationOptions
 
 ```typescript
 type MigrationOptions = {
