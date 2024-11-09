@@ -20,18 +20,7 @@ describe('Migrations', () => {
     const stub = env.TEST_DO.get(id)
 
     await runInDurableObject(stub, async (_instance, state) => {
-      const qb = new DOQB(state.storage.sql)
-
-      expect(
-        Array.from(
-          state.storage.sql.exec(`SELECT name
-                                                FROM sqlite_master
-                                                WHERE type = 'table'
-                                                  AND name not in ('_cf_KV', 'sqlite_sequence', '_cf_METADATA')`)
-        )
-      ).toEqual([])
-
-      qb.migrations({ migrations }).initialize()
+      // Initialize is called inside DO constructor
 
       expect(
         Array.from(
@@ -43,6 +32,9 @@ describe('Migrations', () => {
       ).toEqual([
         {
           name: 'migrations',
+        },
+        {
+          name: 'logs',
         },
       ])
     })
@@ -53,21 +45,7 @@ describe('Migrations', () => {
     const stub = env.TEST_DO.get(id)
 
     await runInDurableObject(stub, async (_instance, state) => {
-      const qb = new DOQB(state.storage.sql)
-
-      expect(
-        Array.from(
-          state.storage.sql.exec(`SELECT name
-                                                FROM sqlite_master
-                                                WHERE type = 'table'
-                                                  AND name not in ('_cf_KV', 'sqlite_sequence', '_cf_METADATA')`)
-        )
-      ).toEqual([])
-
-      const applyResp = qb.migrations({ migrations }).apply()
-
-      expect(applyResp.length).toEqual(1)
-      expect(applyResp[0]?.name).toEqual('100000000000000_add_logs_table.sql')
+      // Initialize is called inside DO constructor
 
       expect(
         Array.from(
@@ -85,6 +63,7 @@ describe('Migrations', () => {
         },
       ])
 
+      const qb = new DOQB(state.storage.sql)
       const applyResp2 = qb.migrations({ migrations }).apply()
       expect(applyResp2.length).toEqual(0)
     })
@@ -95,37 +74,7 @@ describe('Migrations', () => {
     const stub = env.TEST_DO.get(id)
 
     await runInDurableObject(stub, async (_instance, state) => {
-      const qb = new DOQB(state.storage.sql)
-
-      expect(
-        Array.from(
-          state.storage.sql.exec(`SELECT name
-                                                FROM sqlite_master
-                                                WHERE type = 'table'
-                                                  AND name not in ('_cf_KV', 'sqlite_sequence', '_cf_METADATA')`)
-        )
-      ).toEqual([])
-
-      const applyResp = qb.migrations({ migrations }).apply()
-
-      expect(applyResp.length).toEqual(1)
-      expect(applyResp[0]?.name).toEqual('100000000000000_add_logs_table.sql')
-
-      expect(
-        Array.from(
-          state.storage.sql.exec(`SELECT name
-                                                FROM sqlite_master
-                                                WHERE type = 'table'
-                                                  AND name not in ('_cf_KV', 'sqlite_sequence', '_cf_METADATA')`)
-        )
-      ).toEqual([
-        {
-          name: 'migrations',
-        },
-        {
-          name: 'logs',
-        },
-      ])
+      // Initialize is called inside DO constructor
 
       const updatedMigrations = [
         ...migrations,
@@ -140,6 +89,7 @@ describe('Migrations', () => {
         },
       ]
 
+      const qb = new DOQB(state.storage.sql)
       const applyResp2 = qb.migrations({ migrations: updatedMigrations }).apply()
 
       expect(applyResp2.length).toEqual(1)

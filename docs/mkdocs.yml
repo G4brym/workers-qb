@@ -38,6 +38,7 @@ nav:
   - basic-queries.md
   - modular-selects.md
   - utilities.md
+  - migrations.md
   - Advanced Queries:
       - advanced-queries/fields.md
       - advanced-queries/join.md
