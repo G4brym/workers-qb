@@ -1,8 +1,8 @@
 import { QueryBuilder } from '../builder'
 import { FetchTypes } from '../enums'
-import { Query } from '../tools'
 import { D1Result, QueryBuilderOptions } from '../interfaces'
-import { asyncMigrationsBuilder, MigrationOptions } from '../migrations'
+import { MigrationOptions, asyncMigrationsBuilder } from '../migrations'
+import { Query } from '../tools'
 
 export class D1QB extends QueryBuilder<D1Result> {
   public db: any

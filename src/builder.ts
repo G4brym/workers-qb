@@ -1,3 +1,4 @@
+import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import {
   ArrayResult,
   ConflictUpsert,
@@ -26,11 +27,10 @@ import {
   UpdateWithoutReturning,
   Where,
 } from './interfaces'
-import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
-import { Query, QueryWithExtra, Raw } from './tools'
-import { SelectBuilder } from './modularBuilder'
 import { asyncLoggerWrapper, defaultLogger } from './logger'
-import { asyncMigrationsBuilder, MigrationOptions } from './migrations'
+import { MigrationOptions, asyncMigrationsBuilder } from './migrations'
+import { SelectBuilder } from './modularBuilder'
+import { Query, QueryWithExtra, Raw } from './tools'
 
 export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> {
   protected options: QueryBuilderOptions<IsAsync>
@@ -79,9 +79,12 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     tableName: string
     ifExists?: boolean
   }): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync> {
-    return new Query((q) => {
-      return this.execute(q)
-    }, `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`)
+    return new Query(
+      (q) => {
+        return this.execute(q)
+      },
+      `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`
+    )
   }
 
   select<GenericResult = DefaultReturnObject>(

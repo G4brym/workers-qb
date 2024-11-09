@@ -1,5 +1,5 @@
-import { Query } from './tools'
 import { QueryLoggerMeta, RawQuery } from './interfaces'
+import { Query } from './tools'
 
 export function defaultLogger(query: RawQuery, meta: QueryLoggerMeta): any {
   console.log(`[workers-qb][${meta.duration}ms] ${JSON.stringify(query)}`)

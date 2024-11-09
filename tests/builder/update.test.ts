@@ -1,6 +1,6 @@
-import { QuerybuilderTest } from '../utils'
 import { ConflictTypes } from '../../src/enums'
 import { Raw } from '../../src/tools'
+import { QuerybuilderTest } from '../utils'
 
 describe('Update Builder', () => {
   test('update one field with one where and verify arguments', async () => {

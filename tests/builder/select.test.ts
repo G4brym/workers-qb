@@ -1,5 +1,5 @@
-import { QuerybuilderTest } from '../utils'
 import { JoinTypes, OrderTypes } from '../../src/enums'
+import { QuerybuilderTest } from '../utils'
 
 describe('Select Builder', () => {
   test('select simple', async () => {
