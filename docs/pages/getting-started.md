@@ -1,4 +1,3 @@
-## Installation
 
 ```
 npm install workers-qb --save
@@ -10,7 +9,7 @@ npm install workers-qb --save
 import { D1QB } from 'workers-qb'
 
 export interface Env {
-  DB: any
+  DB: D1Database
 }
 
 export default {
@@ -35,7 +34,7 @@ export default {
       .execute()
 
     // Or in a modular approach
-    const employeeList = await qb.select<Employee>('employees').where('active = ?', true).execute()
+    const employeeListModular = await qb.select<Employee>('employees').where('active = ?', true).execute()
 
     // You get IDE type hints on each employee data, like:
     // employeeList.results[0].name
@@ -44,6 +43,26 @@ export default {
       activeEmployees: employeeList.results?.length || 0,
     })
   },
+}
+```
+
+## Example for Cloudflare Durable Objects
+
+```ts
+import { DOQB } from 'workers-qb'
+
+export class DOSRS extends DurableObject {
+  getEmployees() {
+    const qb = new DOQB(this.ctx.storage.sql)
+
+    const fetched = qb
+      .fetchAll({
+        tableName: 'employees',
+      })
+      .execute()
+
+    return fetched.results
+  }
 }
 ```
 

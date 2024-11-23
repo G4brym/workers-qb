@@ -19,12 +19,13 @@ Currently, 3 databases are supported:
 
 ## Features
 
-- [x] Zero dependencies.
+- [x] Zero dependencies
 - [x] Fully typed/TypeScript support
+- [x] [Migrations](https://workers-qb.massadas.com/migrations/)
 - [x] [Type Checks for data read](https://workers-qb.massadas.com/type-check/)
 - [x] [Create/drop tables](https://workers-qb.massadas.com/basic-queries/#dropping-and-creating-tables)
 - [x] [Insert/Bulk Inserts/Update/Select/Delete/Join queries](https://workers-qb.massadas.com/basic-queries/)
-- [x] [Modular selects](https://workers-qb.massadas.com/modular-selects/)
+- [x] [Modular selects](https://workers-qb.massadas.com/modular-selects/) (qb.select(...).where(...).where(...).one())
 - [x] [On Conflict for Inserts and Updates](https://workers-qb.massadas.com/advanced-queries/onConflict/)
 - [x] [Upsert](https://workers-qb.massadas.com/advanced-queries/upsert/)
 
@@ -40,7 +41,7 @@ npm install workers-qb --save
 import { D1QB } from 'workers-qb'
 
 export interface Env {
-  DB: any
+  DB: D1Database
 }
 
 export default {
@@ -65,7 +66,7 @@ export default {
       .execute()
 
     // Or in a modular approach
-    const employeeList = await qb.select<Employee>('employees').where('active = ?', true).execute()
+    const employeeListModular = await qb.select<Employee>('employees').where('active = ?', true).execute()
 
     // You get IDE type hints on each employee data, like:
     // employeeList.results[0].name
@@ -74,6 +75,26 @@ export default {
       activeEmployees: employeeList.results?.length || 0,
     })
   },
+}
+```
+
+## Example for Cloudflare Durable Objects
+
+```ts
+import { DOQB } from 'workers-qb'
+
+export class DOSRS extends DurableObject {
+  getEmployees() {
+    const qb = new DOQB(this.ctx.storage.sql)
+
+    const fetched = qb
+      .fetchAll({
+        tableName: 'employees',
+      })
+      .execute()
+
+    return fetched.results
+  }
 }
 ```
 

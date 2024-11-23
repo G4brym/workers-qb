@@ -19,11 +19,12 @@ Currently, 3 databases are supported:
 
 ## Features
 
-- [x] Zero dependencies.
+- [x] Zero dependencies
 - [x] Fully typed/TypeScript support
+- [x] [Migrations](https://workers-qb.massadas.com/migrations/)
 - [x] [Type Checks for data read](https://workers-qb.massadas.com/type-check/)
 - [x] [Create/drop tables](https://workers-qb.massadas.com/basic-queries/#dropping-and-creating-tables)
 - [x] [Insert/Bulk Inserts/Update/Select/Delete/Join queries](https://workers-qb.massadas.com/basic-queries/)
-- [x] [Modular selects](https://workers-qb.massadas.com/modular-selects/)
+- [x] [Modular selects](https://workers-qb.massadas.com/modular-selects/) (qb.select(...).where(...).where(...).one())
 - [x] [On Conflict for Inserts and Updates](https://workers-qb.massadas.com/advanced-queries/onConflict/)
 - [x] [Upsert](https://workers-qb.massadas.com/advanced-queries/upsert/)
