@@ -5,10 +5,10 @@ updates:
     schedule:
       interval: "weekly"
     groups:
+      major:
+        update-types: [ "major" ]
       dev-deps:
         dependency-type: "development"
-      major:
-        update-types: [ "version-update:semver-major" ]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
