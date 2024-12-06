@@ -5,12 +5,9 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      cloudflare:
-        patterns:
-          - "@cloudflare/*"
-          - wrangler
-    ignore:
-      - dependency-name: '\*'
+      dev-deps:
+        dependency-type: "development"
+      major:
         update-types: [ "version-update:semver-major" ]
   - package-ecosystem: "github-actions"
     directory: "/"
