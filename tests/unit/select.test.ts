@@ -790,4 +790,73 @@ describe('Select Builder', () => {
       expect(result.fetchType).toEqual('ALL')
     }
   })
+
+  it('select whereIn single field', async () => {
+    const result = new QuerybuilderTest().select('testTable').whereIn('field', [1, 2, 3, 4]).getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE (field) IN (VALUES (?), (?), (?), (?))')
+    expect(result.arguments).toEqual([1, 2, 3, 4])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  it('select whereIn multiple fields', async () => {
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .whereIn(
+        ['field', 'test'],
+        [
+          ['somebody', 1],
+          ['once', 2],
+          ['told', 3],
+          ['me', 4],
+        ]
+      )
+      .getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE (field, test) IN (VALUES (?, ?), (?, ?))')
+    expect(result.arguments).toEqual(['somebody', 1, 'once', 2, 'told', 3, 'me', 4])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  it('select whereIn multiple fields with another where', async () => {
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .where('commited = ?', 1)
+      .whereIn(
+        ['field', 'test'],
+        [
+          ['somebody', 1],
+          ['once', 2],
+          ['told', 3],
+          ['me', 4],
+        ]
+      )
+      .getQueryAll()
+
+    expect(result.query).toEqual(
+      'SELECT * FROM testTable WHERE (commited = ?) AND ((field, test) IN (VALUES (?, ?), (?, ?)))'
+    )
+    expect(result.arguments).toEqual([1, 'somebody', 1, 'once', 2, 'told', 3, 'me', 4])
+    expect(result.fetchType).toEqual('ALL')
+
+    const result2 = new QuerybuilderTest()
+      .select('testTable')
+      .whereIn(
+        ['field', 'test'],
+        [
+          ['somebody', 1],
+          ['once', 2],
+          ['told', 3],
+          ['me', 4],
+        ]
+      )
+      .where('commited = ?', 1)
+      .getQueryAll()
+
+    expect(result2.query).toEqual(
+      'SELECT * FROM testTable WHERE ((field, test) IN (VALUES (?, ?), (?, ?))) AND (commited = ?)'
+    )
+    expect(result2.arguments).toEqual(['somebody', 1, 'once', 2, 'told', 3, 'me', 4, 1])
+    expect(result2.fetchType).toEqual('ALL')
+  })
 })

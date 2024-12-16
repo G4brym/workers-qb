@@ -78,6 +78,71 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
+  whereIn<T extends string | Array<string>, P extends T extends Array<string> ? Primitive[][] : Primitive[]>(
+    fields: T,
+    values: P
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+    let whereInCondition: string
+    let whereInParams: Primitive[]
+
+    const seperateWithComma = (prev: string, next: string) => prev + ', ' + next
+
+    // if we have no values, we no-op
+    if (values.length === 0) {
+      return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+        {
+          ...this._options,
+        },
+        this._fetchAll,
+        this._fetchOne
+      )
+    }
+
+    if (!Array.isArray(fields)) {
+      // at this point, we know that it's a string
+      whereInCondition = `(${fields}) IN (VALUES `
+
+      whereInCondition += values.map(() => '(?)').reduce(seperateWithComma)
+      whereInCondition += ')'
+      // if it's not an array, we can assume that values is whereInParams[]
+      whereInParams = values as Primitive[]
+    } else {
+      // NOTE(lduarte): we assume that this is const throughout the values list, if it's not, oh well garbage in, garbage out
+      const fieldLength = fields.length
+
+      whereInCondition = `(${fields.map((val) => val).reduce(seperateWithComma)}) IN (VALUES `
+
+      const valuesString = `(${[...new Array(fieldLength).keys()].map(() => '?').reduce(seperateWithComma)})`
+
+      whereInCondition += [...new Array(fieldLength).keys()].map(() => valuesString).reduce(seperateWithComma)
+      whereInCondition += ')'
+      // finally, flatten the list since the whereInParams are in a single list
+      whereInParams = values.flat()
+    }
+
+    let conditions: string | Array<string> = [whereInCondition]
+    let params: Primitive[] = whereInParams
+    if ((this._options.where as any)?.conditions) {
+      conditions = (this._options.where as any)?.conditions.concat(conditions)
+    }
+
+    if ((this._options.where as any)?.params) {
+      params = (this._options.where as any)?.params.concat(params)
+    }
+
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+      {
+        ...this._options,
+        where: {
+          conditions: conditions,
+          params: params,
+        },
+      },
+      this._fetchAll,
+      this._fetchOne
+    )
+  }
+
   join(join: SelectAll['join']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
     return this._parseArray('join', this._options.join, join)
   }
