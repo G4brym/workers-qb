@@ -61,11 +61,15 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     throw new Error('Batch execute method not implemented')
   }
 
+  lazyExecute(query: Query<any, IsAsync>): IsAsync extends true ? Promise<AsyncIterable<any>> : Iterable<any> {
+    throw new Error('Execute lazyExecute not implemented')
+  }
+
   createTable<GenericResult = undefined>(params: {
     tableName: string
     schema: string
     ifNotExists?: boolean
-  }): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync> {
+  }): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync> {
     return new Query(
       (q) => {
         return this.execute(q)
@@ -78,7 +82,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
   dropTable<GenericResult = undefined>(params: {
     tableName: string
     ifExists?: boolean
-  }): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync> {
+  }): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync> {
     return new Query(
       (q) => {
         return this.execute(q)
@@ -127,20 +131,26 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  fetchAll<GenericResult = DefaultReturnObject>(
-    params: SelectAll
-  ): QueryWithExtra<GenericResultWrapper, ArrayResult<GenericResultWrapper, GenericResult>, IsAsync> {
+  fetchAll<GenericResult = DefaultReturnObject, IsLazy extends true | undefined = undefined>(
+    params: SelectAll<IsLazy>
+  ): QueryWithExtra<GenericResultWrapper, ArrayResult<GenericResultWrapper, GenericResult, IsAsync, IsLazy>, IsAsync> {
     return new QueryWithExtra(
       (q) => {
-        return this.execute(q)
+        return params.lazy
+          ? (this.lazyExecute(q) as unknown as MaybeAsync<
+              IsAsync,
+              ArrayResult<GenericResultWrapper, GenericResult, IsAsync, IsLazy>
+            >)
+          : this.execute(q)
       },
-      this._select(params),
+      this._select({ ...params, lazy: undefined }),
       this._select({
         ...params,
         fields: 'count(*) as total',
         offset: undefined,
         groupBy: undefined,
         limit: 1,
+        lazy: undefined,
       }),
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
         ? Array.isArray(params.where?.params)
@@ -156,7 +166,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
   ): Query<OneResult<GenericResultWrapper, GenericResult>, IsAsync>
   raw<GenericResult = DefaultReturnObject>(
     params: RawQueryFetchAll
-  ): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync>
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync>
   raw<GenericResult = DefaultReturnObject>(params: RawQueryWithoutFetching): Query<GenericResultWrapper, IsAsync>
   raw<GenericResult = DefaultReturnObject>(params: RawQuery): unknown {
     return new Query<any, IsAsync>(
@@ -174,7 +184,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
   ): Query<OneResult<GenericResultWrapper, GenericResult>, IsAsync>
   insert<GenericResult = DefaultReturnObject>(
     params: InsertMultiple
-  ): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync>
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync>
   insert<GenericResult = DefaultReturnObject>(params: InsertWithoutReturning): Query<GenericResultWrapper, IsAsync>
   insert<GenericResult = DefaultReturnObject>(params: Insert): unknown {
     let args: any[] = []
@@ -218,7 +228,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
 
   update<GenericResult = DefaultReturnObject>(
     params: UpdateReturning
-  ): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync>
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync>
   update<GenericResult = DefaultReturnObject>(params: UpdateWithoutReturning): Query<GenericResultWrapper, IsAsync>
   update<GenericResult = DefaultReturnObject>(params: Update): unknown {
     let args = this._parse_arguments(params.data)
@@ -243,7 +253,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
 
   delete<GenericResult = DefaultReturnObject>(
     params: DeleteReturning
-  ): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync>
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync>
   delete<GenericResult = DefaultReturnObject>(params: DeleteWithoutReturning): Query<GenericResultWrapper, IsAsync>
   delete<GenericResult = DefaultReturnObject>(params: Delete): unknown {
     return new Query<any, IsAsync>(
