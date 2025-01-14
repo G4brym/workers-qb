@@ -28,6 +28,7 @@ Currently, 3 databases are supported:
 - [x] [Modular selects](https://workers-qb.massadas.com/modular-selects/) (qb.select(...).where(...).where(...).one())
 - [x] [On Conflict for Inserts and Updates](https://workers-qb.massadas.com/advanced-queries/onConflict/)
 - [x] [Upsert](https://workers-qb.massadas.com/advanced-queries/upsert/)
+- [x] Lazy Load Rows
 
 ## Installation
 
