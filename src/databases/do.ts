@@ -40,4 +40,16 @@ export class DOQB extends QueryBuilder<{}, false> {
       }
     })
   }
+
+  lazyExecute(query: Query<any, false>): Iterable<any> {
+    return this.loggerWrapper(query, this.options.logger, () => {
+      let cursor
+      if (query.arguments) {
+        cursor = this.db.exec(query.query, ...query.arguments)
+      } else {
+        cursor = this.db.exec(query.query)
+      }
+      return cursor
+    })
+  }
 }

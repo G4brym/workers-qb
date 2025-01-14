@@ -58,8 +58,9 @@ export type RawQueryFetchAll = Omit<RawQuery, 'fetchType'> & {
 
 export type RawQueryWithoutFetching = Omit<RawQuery, 'fetchType'>
 
-export type SelectAll = SelectOne & {
+export type SelectAll<IsLazy extends true | undefined = undefined> = SelectOne & {
   limit?: number
+  lazy?: IsLazy
 }
 
 export type ConflictUpsert = {
@@ -144,7 +145,32 @@ export type PGResult = {
   rowCount: number
 }
 
-export type ArrayResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Array<Result> }>
+export type IterableResult<
+  ResultWrapper,
+  Result,
+  IsAsync extends boolean,
+  IsLazy extends true | undefined = undefined,
+> = IsLazy extends true
+  ? IsAsync extends true
+    ? Promise<Merge<ResultWrapper, { results?: AsyncIterable<Result> }>>
+    : Merge<ResultWrapper, { results?: Iterable<Result> }>
+  : never
+
+export type FullArrayResult<
+  ResultWrapper,
+  Result,
+  IsAsync extends boolean,
+  IsLazy extends true | undefined = undefined,
+> = IsLazy extends undefined
+  ? IsAsync extends true
+    ? Promise<Merge<ResultWrapper, { results?: Array<Result> }>>
+    : Merge<ResultWrapper, { results?: Array<Result> }>
+  : never
+
+export type ArrayResult<ResultWrapper, Result, IsAsync extends boolean, IsLazy extends true | undefined = undefined> =
+  | IterableResult<ResultWrapper, Result, IsAsync, IsLazy>
+  | FullArrayResult<ResultWrapper, Result, IsAsync, IsLazy>
+
 export type OneResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Result }>
 
 export type CountResult<GenericResultWrapper> = OneResult<GenericResultWrapper, { total: number }>

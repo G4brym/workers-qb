@@ -10,6 +10,10 @@ import {
 } from './interfaces'
 import { Query, QueryWithExtra } from './tools'
 
+export interface SelectExecuteOptions<IsLazy extends true | undefined> {
+  lazy?: IsLazy
+}
+
 export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnObject, IsAsync extends boolean = true> {
   _debugger = false
   _options: Partial<SelectAll> = {}
@@ -203,7 +207,9 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  getQueryAll(): Query<ArrayResult<GenericResultWrapper, GenericResult>, IsAsync> {
+  getQueryAll<IsLazy extends true | undefined = undefined>(
+    options?: SelectExecuteOptions<IsLazy>
+  ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync, IsLazy>, IsAsync> {
     return this._fetchAll(this._options as SelectAll)
   }
 
@@ -211,11 +217,15 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     return this._fetchOne(this._options as SelectAll)
   }
 
-  execute(): MaybeAsync<IsAsync, ArrayResult<GenericResultWrapper, GenericResult>> {
+  execute<IsLazy extends true | undefined = undefined>(
+    options?: SelectExecuteOptions<IsLazy>
+  ): ArrayResult<GenericResultWrapper, GenericResult, IsAsync, IsLazy> {
     return this._fetchAll(this._options as SelectAll).execute()
   }
 
-  all(): MaybeAsync<IsAsync, ArrayResult<GenericResultWrapper, GenericResult>> {
+  all<IsLazy extends true | undefined = undefined>(
+    options?: SelectExecuteOptions<IsLazy>
+  ): ArrayResult<GenericResultWrapper, GenericResult, IsAsync, IsLazy> {
     return this._fetchAll(this._options as SelectAll).execute()
   }
 
