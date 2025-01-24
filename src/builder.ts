@@ -371,6 +371,14 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
           : 1
         : 0
 
+    let whereString = this._where(params.where)
+
+    let parameterIndex = 1
+    if (whereString && whereString.match(/(?<!\d)\?(?!\d)/)) {
+      // if the user is using unnumbered parameters in where, replace '?' in whereString with numbered parameters
+      whereString = whereString.replace(/\?/g, () => `?${parameterIndex++}`)
+    }
+
     const set: Array<string> = []
     let index = 1
     for (const [key, value] of Object.entries(params.data)) {
@@ -386,7 +394,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     return (
       `UPDATE ${this._onConflict(params.onConflict)}${params.tableName}
        SET ${set.join(', ')}` +
-      this._where(params.where) +
+      whereString +
       this._returning(params.returning)
     )
   }
