@@ -1,8 +1,14 @@
 <div align="center">
-  <h1>workers-qb</h1>
-  <p><em>Zero-dependency Query Builder for Cloudflare Workers</em></p>
+  <a href="https://workers-qb.massadas.com/">
+    <img src="https://raw.githubusercontent.com/G4brym/workers-qb/refs/heads/main/docs/logo.png" width="500" height="auto" alt="workers-qb"/>
+  </a>
+</div>
 
-  <p>
+<p align="center">
+    <em>Zero-dependency Query Builder for Cloudflare Workers</em>
+</p>
+
+<p align="center">
     <a href="https://workers-qb.massadas.com/" target="_blank">
       <img src="https://img.shields.io/badge/docs-workers--qb-blue.svg" alt="Documentation">
     </a>
@@ -12,8 +18,7 @@
     <a href="https://github.com/G4brym/workers-qb/blob/main/LICENSE" target="_blank">
       <img src="https://img.shields.io/badge/license-MIT-brightgreen.svg" alt="Software License">
     </a>
-  </p>
-</div>
+</p>
 
 ## Overview
 
