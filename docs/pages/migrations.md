@@ -1,139 +1,253 @@
-## Managing Durable Objects Migrations
+# Database Migrations
 
-In order to automatically manage migrations inside Durable Objects, just apply run the apply method inside the constructor
+`workers-qb` provides a built-in migration system to manage changes to your database schema in a structured and version-controlled way. Migrations are essential for evolving your database schema over time, ensuring consistency across different environments, and enabling collaboration among developers.
 
-```ts
-import { DurableObject } from 'cloudflare:workers'
-import { DOQB } from '../src'
-import { Env } from './bindings'
+## Introduction to Database Migrations
 
-export const migrations: Migration[] = [
-  {
-    name: '100000000000000_add_logs_table.sql',
-    sql: `
-      create table logs
-      (
-        id   INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL
-      );`,
+Database migrations are scripts that define changes to your database schema. Each migration typically represents a specific set of changes, such as creating a new table, adding a column, or modifying an existing column. Migrations are applied in a sequential order, allowing you to track and manage the evolution of your database schema.
+
+`workers-qb` migrations offer:
+
+*   **Schema Versioning:** Track database schema changes over time.
+*   **Reproducibility:** Apply migrations consistently across development, staging, and production environments.
+*   **Collaboration:** Enable teams to manage database changes collaboratively.
+*   **Rollback (Conceptual):** While `workers-qb` doesn't provide automatic rollback out-of-the-box, migrations are structured to allow for manual rollback strategies.
+
+## Setting up Migrations
+
+To use migrations with `workers-qb`, you need to set up a migrations folder and initialize the migrations system.
+
+### Creating a Migrations Folder
+
+Create a dedicated folder in your project to store your migration files. A common convention is to name it `migrations`.
+
+```
+project-root/
+├── migrations/
+│   └── ... migration files will go here ...
+├── src/
+│   └── ... your application code ...
+├── wrangler.toml
+└── package.json
+```
+
+### Initializing Migrations Table
+
+`workers-qb` uses a table to track applied migrations. You need to initialize this table in your database. This is typically done once when you set up migrations for your project.
+
+#### For Cloudflare D1
+
+For Cloudflare D1, you will use the `asyncMigrationsBuilder`.
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+export interface Env {
+  DB: D1Database;
+}
+
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const qb = new D1QB(env.DB);
+
+    const migrations = [
+        {
+            name: '0001_create_users_table',
+            sql: `
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    email TEXT UNIQUE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            `
+        }
+        // ... more migrations ...
+    ];
+
+    const migrationBuilder = qb.migrations({
+        migrations: migrations,
+    });
+
+    await migrationBuilder.initialize(); // Initialize migrations table for D1
+
+    // ... your application logic ...
   },
-]
+};
+```
 
-export class TestDO extends DurableObject {
-  constructor(state: DurableObjectState, env: Env) {
-    super(state, env)
+#### For Cloudflare Durable Objects
 
-    void this.ctx.blockConcurrencyWhile(async () => {
-      const qb = new DOQB(this.ctx.storage.sql)
-      qb.migrations({ migrations }).apply()
-    })
+For Cloudflare Durable Objects, you will use the `syncMigrationsBuilder`.
+
+```typescript
+import { DOQB } from 'workers-qb';
+
+export class MyDurableObject extends DurableObject {
+  async fetch(request: Request): Promise<Response> {
+    const qb = new DOQB(this.storage.sql);
+
+    const migrations = [
+        {
+            name: '0001_create_items_table',
+            sql: `
+                CREATE TABLE IF NOT EXISTS items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    value TEXT
+                );
+            `
+        }
+        // ... more migrations ...
+    ];
+
+    const migrationBuilder = qb.migrations({
+        migrations: migrations,
+    });
+
+    migrationBuilder.initialize(); // Initialize migrations table for Durable Objects
+
+    // ... your Durable Object logic ...
+    return new Response("Migrations initialized");
   }
 }
 ```
 
-Having this code inside the constructor will automatically apply new migrations when you update your worker.
+## Creating Migration Files
 
+Each migration is defined as an object with a `name` and `sql` property. The `name` should be a unique identifier for the migration. The `sql` property contains the SQL statements to be executed.
 
-## Methods
-
-### `migrations()`
+**Example Migration Structure (in code):**
 
 ```typescript
-qb.migrations(options: MigrationOptions): Migrations
+// migrations/0001_create_users_table.ts (if using separate files)
+export const createUsersTableMigration = {
+    name: '0001_create_users_table',
+    sql: `
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    `
+};
+
+// migrations/0002_add_role_to_users.ts
+export const addRoleToUsersMigration = {
+    name: '0002_add_role_to_users',
+    sql: `
+        ALTER TABLE users ADD COLUMN role_id INTEGER;
+    `
+};
+
+// ... more migration files ...
+
+// In your main worker code, you would collect these migrations, e.g.,
+const migrations = [
+    createUsersTableMigration,
+    addRoleToUsersMigration,
+    // ... import/require more migrations ...
+];
 ```
-- **Parameters:**
 
-  - `options: MigrationOptions` - An object containing migrations and optional table name.
-  
-    - `migrations: Array<Migration>` - An array of migration objects to be applied.
-    
-    - `tableName?: string` - The name of the table to store migration records, defaults to 'migrations'.
+## Applying Migrations
 
-### `initialize()`
+To apply pending migrations, use the `apply()` method on the migrations builder.
+
+#### Applying Migrations in D1
 
 ```typescript
-initialize(): void
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization and migrations definition as before) ...
+
+export default {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const qb = new D1QB(env.DB);
+    const migrationBuilder = qb.migrations({ migrations });
+
+    const appliedMigrations = await migrationBuilder.apply(); // Apply pending migrations for D1
+
+    if (appliedMigrations.length > 0) {
+      console.log('Applied D1 migrations:', appliedMigrations.map(m => m.name));
+    } else {
+      console.log('No new D1 migrations to apply.');
+    }
+
+    // ... your application logic ...
+  },
+};
 ```
-- **Description:**
 
-  - Initializes the migration table if it doesn't exist. Creates a table named according to `_tableName` or `migrations` if non is set, with columns for `id`, `name`, and `applied_at`.
-
-### `getApplied()`
+#### Applying Migrations in Durable Objects
 
 ```typescript
-getApplied(): Array<MigrationEntry>
-```
-- **Description:**
+import { DOQB } from 'workers-qb';
 
-  - Fetches all migrations that have been applied from the database.
-  
-  - **Returns:** An array of `MigrationEntry` objects representing applied migrations.
+export class MyDurableObject extends DurableObject {
+  async fetch(request: Request): Promise<Response> {
+    const qb = new DOQB(this.storage.sql);
+    const migrationBuilder = qb.migrations({ migrations });
 
-### `getUnapplied()`
+    const appliedMigrations = migrationBuilder.apply(); // Apply pending migrations for Durable Objects
 
-```typescript
-getUnapplied(): Array<Migration>
-```
-- **Description:**
+    if (appliedMigrations.length > 0) {
+      console.log('Applied DO migrations:', appliedMigrations.map(m => m.name));
+    } else {
+      console.log('No new DO migrations to apply.');
+    }
 
-  - Compares the list of all migrations with those that have been applied to determine which ones remain unapplied.
-  
-  - **Returns:** An array of `Migration` objects that have not yet been applied.
-
-### `apply()`
-
-```typescript
-apply(): Array<Migration>
-```
-- **Description:**
-
-  - Applies all unapplied migrations by executing their SQL statements and logging the migration to the migration table.
-  
-  - **Returns:** An array of `Migration` objects that were applied during this call.
-
-## Type Definitions
-
-### MigrationEntry
-
-```typescript
-type MigrationEntry = {
-  id: number
-  name: string
-  applied_at: Date
+    // ... your Durable Object logic ...
+    return new Response("Migrations applied");
+  }
 }
 ```
-- **Fields:**
 
-  - `id`: The unique identifier for each migration entry.
-  
-  - `name`: The name of the migration.
-  
-  - `applied_at`: The timestamp when the migration was applied.
+## Checking Migration Status
 
-### Migration
+You can check the status of your migrations using the `getApplied()` and `getUnapplied()` methods, which work similarly for both D1 and Durable Objects.
 
-```typescript
-type Migration = {
-  name: string
-  sql: string
-}
-```
-- **Fields:**
+### Listing Applied Migrations
 
-  - `name`: The name of the migration.
-  
-  - `sql`: The SQL command to execute for this migration.
-
-### MigrationOptions
+#### For D1
 
 ```typescript
-type MigrationOptions = {
-  migrations: Array<Migration>
-  tableName?: string
-}
+import { D1QB } from 'workers-qb';
+// ...
+const appliedMigrations = await migrationBuilder.getApplied(); // For D1
+// ...
 ```
-- **Fields:**
 
-  - `migrations`: An array of migration objects.
+#### For Durable Objects
 
-  - `tableName`: Optional name for the migrations table.
+```typescript
+import { DOQB } from 'workers-qb';
+// ...
+const appliedMigrations = migrationBuilder.getApplied(); // For Durable Objects
+// ...
+```
+
+### Listing Unapplied Migrations
+
+#### For D1
+
+```typescript
+import { D1QB } from 'workers-qb';
+// ...
+const unappliedMigrations = await migrationBuilder.getUnapplied(); // For D1
+// ...
+```
+
+#### For Durable Objects
+
+```typescript
+import { DOQB } from 'workers-qb';
+// ...
+const unappliedMigrations = migrationBuilder.getUnapplied(); // For Durable Objects
+// ...
+```
+
+**Rollback Considerations:** (No changes in this section)
+
+This concludes the documentation on database migrations with `workers-qb`, including specific examples for Cloudflare D1 and Durable Objects. Next, explore [Type Checking](type-check.md) to understand how to leverage TypeScript for type-safe database interactions.

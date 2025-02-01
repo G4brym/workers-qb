@@ -32,30 +32,17 @@ plugins:
   - markdownextradata:
       data: data
 nav:
-  - workers-qb: index.md
-  - getting-started.md
-  - type-check.md
+  - index.md
   - basic-queries.md
-  - modular-selects.md
-  - utilities.md
+  - advanced-queries.md
   - migrations.md
-  - Advanced Queries:
-      - advanced-queries/fields.md
-      - advanced-queries/join.md
-      - advanced-queries/where.md
-      - advanced-queries/groupBy.md
-      - advanced-queries/having.md
-      - advanced-queries/orderBy.md
-      - advanced-queries/limit.md
-      - advanced-queries/returning.md
-      - advanced-queries/onConflict.md
-      - advanced-queries/upsert.md
-      - advanced-queries/raw-sql.md
-  - Supported Databases:
-      - databases/cloudflare-d1.md
-      - databases/cloudflare-do.md
+  - type-check.md
+  - Databases:
+      - databases/d1.md
+      - databases/do.md
       - databases/postgresql.md
-      - databases/bring-your-own-database.md
+      - databases/byodb.md
+  - api.md
 markdown_extensions:
   - toc:
       permalink: true
