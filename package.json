@@ -14,7 +14,8 @@
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "lint": "npx @biomejs/biome check src/ tests/ || (npx @biomejs/biome check --write src/ tests/; exit 1)",
     "test": "vitest run --root tests",
-    "prepare": "husky"
+    "prepare": "husky",
+    "build-docs": "cd docs && mkdocs build && cp _redirects site/_redirects"
   },
   "publishConfig": {
     "access": "public"
