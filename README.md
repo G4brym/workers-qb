@@ -1,6 +1,6 @@
 <div align="center">
   <a href="https://workers-qb.massadas.com/">
-    <img src="https://raw.githubusercontent.com/G4brym/workers-qb/refs/heads/main/docs/logo.png" width="500" height="auto" alt="workers-qb"/>
+    <img src="https://raw.githubusercontent.com/G4brym/workers-qb/refs/heads/main/docs/assets/logo.png" width="500" height="auto" alt="workers-qb"/>
   </a>
 </div>
 
@@ -183,7 +183,7 @@ Visit our [comprehensive documentation](https://workers-qb.massadas.com/) for de
 - [Advanced Queries](https://workers-qb.massadas.com/advanced-queries/)
 - [Migrations](https://workers-qb.massadas.com/migrations/)
 - [Type Checking](https://workers-qb.massadas.com/type-check/)
-- [Database-specific guides](https://workers-qb.massadas.com/databases/)
+- [Database-specific guides](https://workers-qb.massadas.com/databases/d1)
 
 ## Contributing
 

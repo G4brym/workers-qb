@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>workers-qb Logo</title>
+  <style>
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 8px; /* Spacing between emoji and text */
+      width: fit-content;
+      padding: 0.7em;
+    }
+
+    .logo-emoji {
+      font-size: 10em; /* Adjust emoji size */
+      margin-right: 0.2em;
+    }
+
+    .logo-text {
+      font-family: sans-serif;
+      font-weight: bold;
+      font-size: 10em; /* Adjust text size */
+      color: #2D3748; /* Dark gray for text */
+    }
+  </style>
+</head>
+<body>
+<div id="logo" class="logo-container">
+  <span class="logo-emoji">🔍⚙️</span>
+  <span class="logo-text">workers-qb</span>
+</div>
+</body>
+</html>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+<script>
+  async function captureLogo() {
+    const element = document.getElementById("logo"); // Target the logo
+    const canvas = await html2canvas(element, { backgroundColor: null });
+    const dataURL = canvas.toDataURL("image/png");
+
+    // Create download link
+    const link = document.createElement("a");
+    link.href = dataURL;
+    link.download = "logo.png";
+    link.click();
+  }
+
+  captureLogo()
+</script>

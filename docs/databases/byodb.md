@@ -106,5 +106,3 @@ export class SQLiteQB extends QueryBuilder<SQLiteResultWrapper, false> { // Sync
 5.  **Thoroughly test your custom adapter** with various query types and scenarios.
 
 By creating custom database adapters, you can extend the reach of `workers-qb` to support a wide variety of SQL and SQL-like databases in your Cloudflare Worker projects.
-
-This concludes the BYODB guide. For API details, refer to the [API Reference](../api.md).

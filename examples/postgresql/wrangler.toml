@@ -1,7 +1,0 @@
-name = "postgresql-example"
-main = "src/worker.ts"
-compatibility_date = "2023-05-12"
-node_compat = true
-
-[vars]
-DB_URL = "postgresql://user:password@hostname:5432/db_name"

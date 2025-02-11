@@ -1,6 +1,6 @@
 {
   "name": "workers-qb",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "description": "Zero dependencies Query Builder for Cloudflare Workers",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -15,7 +15,10 @@
     "lint": "npx @biomejs/biome check src/ tests/ || (npx @biomejs/biome check --write src/ tests/; exit 1)",
     "test": "vitest run --root tests",
     "prepare": "husky",
-    "build-docs": "cd docs && mkdocs build && cp _redirects site/_redirects"
+    "build-docs": "npm run docs:build && cp docs/_redirects .vitepress/dist/_redirects",
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
   },
   "publishConfig": {
     "access": "public"
@@ -63,6 +66,7 @@
     "husky": "^9.1.6",
     "tsup": "^8.3.5",
     "typescript": "^5.6.3",
+    "vitepress": "^1.6.3",
     "vitest": "2.1.8",
     "wrangler": "^3.86.0"
   }

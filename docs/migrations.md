@@ -10,8 +10,6 @@ Database migrations are scripts that define changes to your database schema. Eac
 
 *   **Schema Versioning:** Track database schema changes over time.
 *   **Reproducibility:** Apply migrations consistently across development, staging, and production environments.
-*   **Collaboration:** Enable teams to manage database changes collaboratively.
-*   **Rollback (Conceptual):** While `workers-qb` doesn't provide automatic rollback out-of-the-box, migrations are structured to allow for manual rollback strategies.
 
 ## Setting up Migrations
 
@@ -247,7 +245,3 @@ import { DOQB } from 'workers-qb';
 const unappliedMigrations = migrationBuilder.getUnapplied(); // For Durable Objects
 // ...
 ```
-
-**Rollback Considerations:** (No changes in this section)
-
-This concludes the documentation on database migrations with `workers-qb`, including specific examples for Cloudflare D1 and Durable Objects. Next, explore [Type Checking](type-check.md) to understand how to leverage TypeScript for type-safe database interactions.

@@ -149,5 +149,3 @@ export class MyDurableObject extends DurableObject {
 In this example, `fetchAll` is called with `lazy: true` and the generic type specified as `<Item, true>`. The `execute()` method returns a result object where `results` is an `AsyncIterable<Item>`. You can then use an `for await...of` loop to iterate through the results asynchronously, processing items one by one as they are fetched from the database.
 
 **Note:** Lazy queries are particularly useful in Durable Objects to avoid blocking the event loop for extended periods when dealing with large datasets. However, keep in mind that each iteration still involves synchronous storage operations. Optimize your processing logic within the loop to maintain responsiveness.
-
-This guide provides an overview of using `workers-qb` with Cloudflare Durable Objects storage. Remember to consider the synchronous nature and SQLite limitations of Durable Objects storage when designing your applications. Next, explore the guide for [PostgreSQL integration](postgresql.md).

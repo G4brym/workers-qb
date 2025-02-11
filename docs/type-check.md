@@ -120,5 +120,3 @@ Similarly, for the `update` query, we define `UpdatedUserResult` to match the ex
 **Best Practice:** (No changes in this section)
 
 By consistently using generic types with `fetchAll`, `fetchOne`, `insert`, and `update` (especially with `returning`), you maximize the benefits of TypeScript's type system in your `workers-qb` database interactions, leading to more robust and maintainable code.
-
-This concludes the section on Type Checking. Now, proceed to the database-specific guides to learn about using `workers-qb` with different database systems.

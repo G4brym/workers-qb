@@ -204,5 +204,3 @@ export default {
 ### Closing Connection
 
 It's crucial to close the PostgreSQL connection when you are finished with your database operations to release resources. Always call `qb.close()` (which in turn calls `dbClient.end()`) in a `finally` block or using `ctx.waitUntil()` to ensure connection closure.
-
-This guide provides information on integrating `workers-qb` with PostgreSQL. Remember to handle connection management, error handling, and adapt your SQL syntax to PostgreSQL specifics. Next, explore the guide on [Bring Your Own Database (BYODB)](byodb.md) to learn how to extend `workers-qb` for other database systems.

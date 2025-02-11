@@ -92,4 +92,3 @@ Explore the comprehensive documentation to learn more about `workers-qb`:
 *   **[Migrations](migrations.md):** Discover how to manage your database schema using migrations.
 *   **[Type Checking](type-check.md):** Understand how to leverage TypeScript for type-safe database interactions.
 *   **[Database-Specific Guides](databases/d1.md):** Find detailed guides and examples for each supported database.
-*   **[API Reference](api.md):** Explore the complete API documentation for all classes, methods, and interfaces.

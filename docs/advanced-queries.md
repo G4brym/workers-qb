@@ -503,5 +503,3 @@ const rawSingleUser = await qb.raw<User>({
 
 console.log('Raw single user:', rawSingleUser.results);
 ```
-
-This concludes the advanced query features of `workers-qb`. Next, explore [Migrations](migrations.md) to learn how to manage your database schema changes.

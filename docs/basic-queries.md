@@ -529,5 +529,3 @@ await qb.delete({
 
 console.log('Old users deleted without returning data.');
 ```
-
-This concludes the basic query operations in `workers-qb`. Proceed to the [Advanced Queries](advanced-queries.md) section to explore more complex query building features.

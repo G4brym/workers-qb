@@ -3,3 +3,4 @@ dist
 .idea
 docs/site
 src/**/*.js
+.vitepress/cache
