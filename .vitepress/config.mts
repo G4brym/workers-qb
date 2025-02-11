@@ -6,10 +6,10 @@ export default defineConfig({
   title: "workers-qb",
   text: "Zero dependencies Query Builder for Cloudflare Workers",
   cleanUrls: true,
-  head: [['link', {rel: 'icon', type: "image/png", href: '/assets/logo-icon.png'}]],
+  head: [['link', {rel: 'icon', type: "image/png", href: 'https://raw.githubusercontent.com/G4brym/workers-qb/refs/heads/main/docs/assets/logo-icon.png'}]],
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
-    logo: '/assets/logo-icon.png',
+    logo: 'https://raw.githubusercontent.com/G4brym/workers-qb/refs/heads/main/docs/assets/logo-icon.png',
     nav: [
       {text: 'Home', link: '/'},
       {text: 'Docs', link: '/introduction'}

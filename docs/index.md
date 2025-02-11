@@ -4,7 +4,7 @@ layout: home
 
 hero:
   name: "workers-qb"
-  image: assets/logo-icon.png
+  image: https://raw.githubusercontent.com/G4brym/workers-qb/refs/heads/main/docs/assets/logo-icon.png
   tagline: Zero dependencies Query Builder for Cloudflare Workers
   actions:
     - theme: brand
