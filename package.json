@@ -15,10 +15,10 @@
     "lint": "npx @biomejs/biome check src/ tests/ || (npx @biomejs/biome check --write src/ tests/; exit 1)",
     "test": "vitest run --root tests",
     "prepare": "husky",
-    "build-docs": "npm run docs:build && cp docs/_redirects .vitepress/dist/_redirects",
-    "docs:dev": "vitepress dev",
-    "docs:build": "vitepress build",
-    "docs:preview": "vitepress preview"
+    "build-docs": "npm run docs:build && cp docs/_redirects docs/.vitepress/dist/_redirects",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "publishConfig": {
     "access": "public"

@@ -2,7 +2,6 @@ import {defineConfig} from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  srcDir: './docs',
   title: "workers-qb",
   text: "Zero dependencies Query Builder for Cloudflare Workers",
   cleanUrls: true,
