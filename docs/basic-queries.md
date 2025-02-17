@@ -131,13 +131,9 @@ await qb.dropTable({
 }).execute();
 ```
 
-## CRUD Operations
+## Insert
 
-`workers-qb` simplifies CRUD operations with intuitive methods.
-
-### Insert
-
-#### Insert One
+### Insert One
 
 Use the `insert` method with a single data object to insert a new row into a table.
 
@@ -164,7 +160,7 @@ const newUser = await qb.insert<User>({
 console.log('New user inserted:', newUser.results);
 ```
 
-#### Insert Multiple
+### Insert Multiple
 
 To insert multiple rows efficiently, provide an array of data objects to the `insert` method.
 
@@ -191,7 +187,7 @@ const newUsers = await qb.insert<User>({
 console.log('New users inserted:', newUsers.results);
 ```
 
-#### Insert Without Returning
+### Insert Without Returning
 
 If you don't need to retrieve data after insertion, you can omit the `returning` option for a slightly more performant operation.
 
@@ -211,7 +207,7 @@ await qb.insert({
 console.log('User inserted without returning data.');
 ```
 
-#### On Conflict - IGNORE
+### On Conflict - IGNORE
 
 Use `onConflict: 'IGNORE'` to skip insertion if a conflict occurs (e.g., due to a unique constraint).
 
@@ -232,7 +228,7 @@ await qb.insert({
 console.log('Insert attempted, conflict ignored if email exists.');
 ```
 
-#### On Conflict - REPLACE
+### On Conflict - REPLACE
 
 Use `onConflict: 'REPLACE'` to replace the existing row if a conflict occurs.
 
@@ -253,7 +249,7 @@ await qb.insert({
 console.log('Insert attempted, row replaced if email exists.');
 ```
 
-#### On Conflict - UPSERT (UPDATE)
+### On Conflict - UPSERT (UPDATE)
 
 For more complex conflict resolution, you can perform an UPSERT operation, updating specific columns if a conflict occurs. Use `onConflict` with an object to define the columns causing conflict, the data to update, and optional `where` conditions for the update.
 
@@ -284,9 +280,9 @@ console.log('Insert attempted, row updated (UPSERT) if email exists.');
 
 **Note:**  `Raw` is used here to execute raw SQL functions like `login_count + 1` and `CURRENT_TIMESTAMP` within the `data` object for `onConflict`.
 
-### Select
+## Select
 
-#### Simple Select All
+### Simple Select All
 
 The most basic select operation retrieves all columns and rows from a table.
 
@@ -308,7 +304,7 @@ const allUsers = await qb.fetchAll<User>({
 console.log('All users:', allUsers.results);
 ```
 
-#### Select Specific Fields
+### Select Specific Fields
 
 To retrieve only specific columns, use the `fields` option with an array of column names or a comma-separated string.
 
@@ -330,7 +326,7 @@ const userNamesAndEmails = await qb.fetchAll<UserNameAndEmail>({
 console.log('User names and emails:', userNamesAndEmails.results);
 ```
 
-#### `fetchOne`
+### `fetchOne`
 
 Use `fetchOne` to retrieve a single row that matches the specified criteria. It's ideal for fetching records by ID or unique identifiers.
 
@@ -356,7 +352,7 @@ const singleUser = await qb.fetchOne<User>({
 console.log('Single user:', singleUser.results);
 ```
 
-#### `fetchAll`
+### `fetchAll`
 
 `fetchAll` retrieves multiple rows based on your query. It's used for fetching lists of data, potentially with filters and ordering.
 
@@ -383,9 +379,9 @@ const activeUsers = await qb.fetchAll<User>({
 console.log('Active users:', activeUsers.results);
 ```
 
-### Update
+## Update
 
-#### Simple Update
+### Simple Update
 
 Update rows in a table using the `update` method. Specify the `tableName`, the `data` to update (as an object), and `where` conditions to target specific rows.
 
@@ -408,7 +404,7 @@ await qb.update({
 console.log('User name updated.');
 ```
 
-#### Update Returning Fields
+### Update Returning Fields
 
 To retrieve the updated rows, use the `returning` option.
 
@@ -438,7 +434,7 @@ const updatedUser = await qb.update<UpdatedUser>({
 console.log('Updated user:', updatedUser.results);
 ```
 
-#### Update Without Returning
+### Update Without Returning
 
 For performance optimization when you don't need the updated rows, omit the `returning` option.
 
@@ -461,9 +457,9 @@ await qb.update({
 console.log('User last login updated without returning data.');
 ```
 
-### Delete
+## Delete
 
-#### Simple Delete
+### Simple Delete
 
 Delete rows from a table using the `delete` method. Specify the `tableName` and `where` conditions to target rows for deletion. **Be cautious when using `delete` without `where` conditions as it will delete all rows in the table.**
 
@@ -483,7 +479,7 @@ await qb.delete({
 console.log('Anonymous user deleted.');
 ```
 
-#### Delete Returning Fields
+### Delete Returning Fields
 
 To retrieve the deleted rows, use the `returning` option.
 
@@ -510,7 +506,7 @@ const deletedUser = await qb.delete<DeletedUser>({
 console.log('Deleted user:', deletedUser.results);
 ```
 
-#### Delete Without Returning
+### Delete Without Returning
 
 For performance when you don't need the deleted rows, omit the `returning` option.
 

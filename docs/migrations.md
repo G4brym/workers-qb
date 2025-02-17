@@ -11,106 +11,6 @@ Database migrations are scripts that define changes to your database schema. Eac
 *   **Schema Versioning:** Track database schema changes over time.
 *   **Reproducibility:** Apply migrations consistently across development, staging, and production environments.
 
-## Setting up Migrations
-
-To use migrations with `workers-qb`, you need to set up a migrations folder and initialize the migrations system.
-
-### Creating a Migrations Folder
-
-Create a dedicated folder in your project to store your migration files. A common convention is to name it `migrations`.
-
-```
-project-root/
-├── migrations/
-│   └── ... migration files will go here ...
-├── src/
-│   └── ... your application code ...
-├── wrangler.toml
-└── package.json
-```
-
-### Initializing Migrations Table
-
-`workers-qb` uses a table to track applied migrations. You need to initialize this table in your database. This is typically done once when you set up migrations for your project.
-
-#### For Cloudflare D1
-
-For Cloudflare D1, you will use the `asyncMigrationsBuilder`.
-
-```typescript
-import { D1QB } from 'workers-qb';
-
-export interface Env {
-  DB: D1Database;
-}
-
-export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const qb = new D1QB(env.DB);
-
-    const migrations = [
-        {
-            name: '0001_create_users_table',
-            sql: `
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    email TEXT UNIQUE NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                );
-            `
-        }
-        // ... more migrations ...
-    ];
-
-    const migrationBuilder = qb.migrations({
-        migrations: migrations,
-    });
-
-    await migrationBuilder.initialize(); // Initialize migrations table for D1
-
-    // ... your application logic ...
-  },
-};
-```
-
-#### For Cloudflare Durable Objects
-
-For Cloudflare Durable Objects, you will use the `syncMigrationsBuilder`.
-
-```typescript
-import { DOQB } from 'workers-qb';
-
-export class MyDurableObject extends DurableObject {
-  async fetch(request: Request): Promise<Response> {
-    const qb = new DOQB(this.storage.sql);
-
-    const migrations = [
-        {
-            name: '0001_create_items_table',
-            sql: `
-                CREATE TABLE IF NOT EXISTS items (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    value TEXT
-                );
-            `
-        }
-        // ... more migrations ...
-    ];
-
-    const migrationBuilder = qb.migrations({
-        migrations: migrations,
-    });
-
-    migrationBuilder.initialize(); // Initialize migrations table for Durable Objects
-
-    // ... your Durable Object logic ...
-    return new Response("Migrations initialized");
-  }
-}
-```
-
 ## Creating Migration Files
 
 Each migration is defined as an object with a `name` and `sql` property. The `name` should be a unique identifier for the migration. The `sql` property contains the SQL statements to be executed.
@@ -118,6 +18,9 @@ Each migration is defined as an object with a `name` and `sql` property. The `na
 **Example Migration Structure (in code):**
 
 ```typescript
+// Optinally you can type the migrations with Migration
+import { type Migration } from 'workers-qb';
+
 // migrations/0001_create_users_table.ts (if using separate files)
 export const createUsersTableMigration = {
     name: '0001_create_users_table',
@@ -142,7 +45,7 @@ export const addRoleToUsersMigration = {
 // ... more migration files ...
 
 // In your main worker code, you would collect these migrations, e.g.,
-const migrations = [
+const migrations: Migration[] = [
     createUsersTableMigration,
     addRoleToUsersMigration,
     // ... import/require more migrations ...
@@ -165,13 +68,7 @@ export default {
     const qb = new D1QB(env.DB);
     const migrationBuilder = qb.migrations({ migrations });
 
-    const appliedMigrations = await migrationBuilder.apply(); // Apply pending migrations for D1
-
-    if (appliedMigrations.length > 0) {
-      console.log('Applied D1 migrations:', appliedMigrations.map(m => m.name));
-    } else {
-      console.log('No new D1 migrations to apply.');
-    }
+    await migrationBuilder.apply(); // Apply pending migrations for D1
 
     // ... your application logic ...
   },
@@ -184,20 +81,20 @@ export default {
 import { DOQB } from 'workers-qb';
 
 export class MyDurableObject extends DurableObject {
-  async fetch(request: Request): Promise<Response> {
-    const qb = new DOQB(this.storage.sql);
-    const migrationBuilder = qb.migrations({ migrations });
+  #qb: DOQB;
 
-    const appliedMigrations = migrationBuilder.apply(); // Apply pending migrations for Durable Objects
+  constructor(state: DurableObjectState, env: Env) {
+    super(state, env);
 
-    if (appliedMigrations.length > 0) {
-      console.log('Applied DO migrations:', appliedMigrations.map(m => m.name));
-    } else {
-      console.log('No new DO migrations to apply.');
-    }
+    this.#qb = new DOQB(this.ctx.storage.sql);
+    void this.ctx.blockConcurrencyWhile(async () => {
+      const migrationBuilder = this.#qb.migrations({ migrations });
+      migrationBuilder.apply();
+    });
+  }
 
-    // ... your Durable Object logic ...
-    return new Response("Migrations applied");
+  async getUsers(): Promise<Array<object>> {
+    return this.#qb.select('users').all().results
   }
 }
 ```
@@ -208,40 +105,23 @@ You can check the status of your migrations using the `getApplied()` and `getUna
 
 ### Listing Applied Migrations
 
-#### For D1
-
 ```typescript
 import { D1QB } from 'workers-qb';
 // ...
-const appliedMigrations = await migrationBuilder.getApplied(); // For D1
-// ...
-```
-
-#### For Durable Objects
-
-```typescript
-import { DOQB } from 'workers-qb';
-// ...
-const appliedMigrations = migrationBuilder.getApplied(); // For Durable Objects
+const qb = new D1QB(env.DB);
+const migrationBuilder = qb.migrations({ migrations });
+const appliedMigrations = await migrationBuilder.getApplied();
 // ...
 ```
 
 ### Listing Unapplied Migrations
 
-#### For D1
-
 ```typescript
 import { D1QB } from 'workers-qb';
 // ...
-const unappliedMigrations = await migrationBuilder.getUnapplied(); // For D1
+const qb = new D1QB(env.DB);
+const migrationBuilder = qb.migrations({ migrations });
+const unappliedMigrations = await migrationBuilder.getUnapplied();
 // ...
 ```
 
-#### For Durable Objects
-
-```typescript
-import { DOQB } from 'workers-qb';
-// ...
-const unappliedMigrations = migrationBuilder.getUnapplied(); // For Durable Objects
-// ...
-```
