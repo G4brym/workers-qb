@@ -58,9 +58,9 @@ export type RawQueryFetchAll = Omit<RawQuery, 'fetchType'> & {
 
 export type RawQueryWithoutFetching = Omit<RawQuery, 'fetchType'>
 
-export type SelectAll<IsLazy extends true | undefined = undefined> = SelectOne & {
+export type SelectAll = SelectOne & {
   limit?: number
-  lazy?: IsLazy
+  lazy?: boolean
 }
 
 export type ConflictUpsert = {
@@ -145,31 +145,22 @@ export type PGResult = {
   rowCount: number
 }
 
-export type IterableResult<
+export type IterableResult<ResultWrapper, Result, IsAsync extends boolean> = IsAsync extends true
+  ? Promise<Merge<ResultWrapper, { results?: AsyncIterable<Result> }>>
+  : Merge<ResultWrapper, { results?: Iterable<Result> }>
+
+export type FullArrayResult<ResultWrapper, Result, IsAsync extends boolean> = IsAsync extends true
+  ? Promise<Merge<ResultWrapper, { results?: Array<Result> }>>
+  : Merge<ResultWrapper, { results?: Array<Result> }>
+
+export type ArrayResult<
   ResultWrapper,
   Result,
   IsAsync extends boolean,
-  IsLazy extends true | undefined = undefined,
+  IsLazy extends boolean = false,
 > = IsLazy extends true
-  ? IsAsync extends true
-    ? Promise<Merge<ResultWrapper, { results?: AsyncIterable<Result> }>>
-    : Merge<ResultWrapper, { results?: Iterable<Result> }>
-  : never
-
-export type FullArrayResult<
-  ResultWrapper,
-  Result,
-  IsAsync extends boolean,
-  IsLazy extends true | undefined = undefined,
-> = IsLazy extends undefined
-  ? IsAsync extends true
-    ? Promise<Merge<ResultWrapper, { results?: Array<Result> }>>
-    : Merge<ResultWrapper, { results?: Array<Result> }>
-  : never
-
-export type ArrayResult<ResultWrapper, Result, IsAsync extends boolean, IsLazy extends true | undefined = undefined> =
-  | IterableResult<ResultWrapper, Result, IsAsync, IsLazy>
-  | FullArrayResult<ResultWrapper, Result, IsAsync, IsLazy>
+  ? IterableResult<ResultWrapper, Result, IsAsync>
+  : FullArrayResult<ResultWrapper, Result, IsAsync>
 
 export type OneResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Result }>
 

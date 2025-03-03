@@ -10,8 +10,8 @@ import {
 } from './interfaces'
 import { Query, QueryWithExtra } from './tools'
 
-export interface SelectExecuteOptions<IsLazy extends true | undefined> {
-  lazy?: IsLazy
+export interface SelectExecuteOptions {
+  lazy?: boolean
 }
 
 export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnObject, IsAsync extends boolean = true> {
@@ -207,26 +207,38 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  getQueryAll<IsLazy extends true | undefined = undefined>(
-    options?: SelectExecuteOptions<IsLazy>
-  ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync, IsLazy>, IsAsync> {
-    return this._fetchAll(this._options as SelectAll)
+  getQueryAll<P extends SelectExecuteOptions = SelectExecuteOptions>(
+    options?: P
+  ): Query<
+    ArrayResult<GenericResultWrapper, GenericResult, IsAsync, P extends { lazy: true } ? true : false>,
+    IsAsync
+  > {
+    return this._fetchAll({
+      ...this._options,
+      ...options,
+    } as SelectAll)
   }
 
   getQueryOne(): Query<OneResult<GenericResultWrapper, GenericResult>, IsAsync> {
     return this._fetchOne(this._options as SelectAll)
   }
 
-  execute<IsLazy extends true | undefined = undefined>(
-    options?: SelectExecuteOptions<IsLazy>
-  ): ArrayResult<GenericResultWrapper, GenericResult, IsAsync, IsLazy> {
-    return this._fetchAll(this._options as SelectAll).execute()
+  execute<P extends SelectExecuteOptions = SelectExecuteOptions>(
+    options?: P
+  ): ArrayResult<GenericResultWrapper, GenericResult, IsAsync, P extends { lazy: true } ? true : false> {
+    return this._fetchAll({
+      ...this._options,
+      ...options,
+    } as SelectAll).execute()
   }
 
-  all<IsLazy extends true | undefined = undefined>(
-    options?: SelectExecuteOptions<IsLazy>
-  ): ArrayResult<GenericResultWrapper, GenericResult, IsAsync, IsLazy> {
-    return this._fetchAll(this._options as SelectAll).execute()
+  all<P extends SelectExecuteOptions = SelectExecuteOptions>(
+    options?: P
+  ): ArrayResult<GenericResultWrapper, GenericResult, IsAsync, P extends { lazy: true } ? true : false> {
+    return this._fetchAll({
+      ...this._options,
+      ...options,
+    } as SelectAll).execute()
   }
 
   one(): MaybeAsync<IsAsync, OneResult<GenericResultWrapper, GenericResult>> {

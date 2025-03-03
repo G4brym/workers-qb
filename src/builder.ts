@@ -131,15 +131,19 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  fetchAll<GenericResult = DefaultReturnObject, IsLazy extends true | undefined = undefined>(
-    params: SelectAll<IsLazy>
-  ): QueryWithExtra<GenericResultWrapper, ArrayResult<GenericResultWrapper, GenericResult, IsAsync, IsLazy>, IsAsync> {
+  fetchAll<GenericResult = DefaultReturnObject, P extends SelectAll = SelectAll>(
+    params: P
+  ): QueryWithExtra<
+    GenericResultWrapper,
+    ArrayResult<GenericResultWrapper, GenericResult, IsAsync, P extends { lazy: true } ? true : false>,
+    IsAsync
+  > {
     return new QueryWithExtra(
       (q) => {
         return params.lazy
           ? (this.lazyExecute(q) as unknown as MaybeAsync<
               IsAsync,
-              ArrayResult<GenericResultWrapper, GenericResult, IsAsync, IsLazy>
+              ArrayResult<GenericResultWrapper, GenericResult, IsAsync, P extends { lazy: true } ? true : false>
             >)
           : this.execute(q)
       },
