@@ -7,3 +7,6 @@ export * from './interfaces'
 export * from './tools'
 export * from './logger'
 export * from './migrations'
+export * from './insertBuilder';
+export * from './updateBuilder';
+export * from './deleteBuilder';

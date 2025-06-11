@@ -128,23 +128,32 @@ export type D1Meta = {
   size_after: number
 }
 
-export type D1Result = {
-  // These 4 fields are deprecated, and only kept here for retro compatibility, users should use the meta field bellow
-  changes?: number
-  duration: number
-  last_row_id?: string | number
-  served_by: string
+// D1Result now generic over the type of 'results'
+export type D1Result<T = DefaultReturnObject | DefaultReturnObject[]> = {
+  results?: T; // This will hold the actual data rows
+  success: boolean;
+  meta?: D1Meta;
+  // Deprecated fields, kept for compatibility but should be phased out or mapped from meta
+  changes?: number; // often in meta
+  duration?: number; // often in meta
+  last_row_id?: string | number; // often in meta
+  served_by?: string; // often in meta
+};
 
-  meta?: D1Meta
-  success: boolean
-}
+// PGResult now generic over the type of 'rows'
+export type PGResult<T = DefaultReturnObject | DefaultReturnObject[]> = {
+  command: string;
+  rowCount: number;
+  oid?: number | null; // oid can be null for some commands
+  rows: T; // This will hold the actual data rows. Type T could be T[] for ALL, T for ONE.
+  // Potentially other fields from pg like fields, _parsers etc. if needed
+};
 
-export type PGResult = {
-  command: string
-  lastRowId?: string | number
-  rowCount: number
-}
-
+export type DOResult<T = DefaultObject | DefaultObject[]> = {
+  results?: T;
+  rawResponse?: any; // To store the raw output from the DO if needed
+  // Any other fields specific to DO might be added by the DO's own implementation
+};
 export type IterableResult<ResultWrapper, Result, IsAsync extends boolean> = IsAsync extends true
   ? Promise<Merge<ResultWrapper, { results?: AsyncIterable<Result> }>>
   : Merge<ResultWrapper, { results?: Iterable<Result> }>
@@ -169,3 +178,48 @@ export type CountResult<GenericResultWrapper> = OneResult<GenericResultWrapper, 
 export type AsyncType<T> = Promise<T>
 export type SyncType<T> = T
 export type MaybeAsync<IsAsync extends boolean, T> = IsAsync extends true ? AsyncType<T> : SyncType<T>
+
+// Options for executing a query
+export type ExecuteOptions = QueryBuilderOptions;
+
+// ExecuteResponse removed.
+
+// Executor function type
+export type Executor<ActualDatabaseResult, IsAsync extends boolean = true> = (
+  queryParts: RawQuery
+) => MaybeAsync<IsAsync, ActualDatabaseResult>;
+
+export interface InsertOptions extends ExecuteOptions {
+  tableName: string;
+  data?: DefaultObject | DefaultObject[];
+  returning?: string | string[];
+  onConflict?: string | ConflictTypes | ConflictUpsert;
+}
+
+export interface UpdateOptions extends ExecuteOptions {
+  tableName: string;
+  data?: DefaultObject;
+  where?: Where;
+  returning?: string | string[];
+}
+
+export interface SelectOptions extends ExecuteOptions {
+  tableName: string;
+  fields?: string | string[];
+  where?: Where;
+  join?: Join | Join[];
+  orderBy?: string | string[] | Record<string, string | OrderTypes>;
+  groupBy?: string | string[];
+  having?: string | string[];
+  limit?: number;
+  offset?: number;
+  lazy?: boolean;
+}
+
+export interface DeleteOptions extends ExecuteOptions {
+  tableName: string;
+  where?: Where;
+  returning?: string | string[];
+  orderBy?: string | Array<string> | Record<string, string | OrderTypes>;
+  limit?: number;
+}

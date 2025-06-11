@@ -11,7 +11,7 @@ Before you can start querying your database, you need to establish a connection 
 For Cloudflare D1, you'll use the `D1QB` class, passing your D1 database binding from your Worker environment:
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB } from 'workers-qb'; // Or your specific path if not using npm module yet
 
 export interface Env {
   DB: D1Database;
@@ -21,31 +21,42 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const qb = new D1QB(env.DB);
     // ... your queries using qb ...
+    // Example: const allUsers = await qb.select('users').all();
+    return new Response("Queries executed (check console for D1QB)");
   },
 };
 ```
 
 ### Cloudflare Durable Objects
 
-For Cloudflare Durable Objects storage, use the `DOQB` class, passing the `DurableObjectStorage` instance:
+For Cloudflare Durable Objects storage, use the `DOQB` class, passing the `DurableObjectStorage` instance (often `this.storage.sql` or `this.state.storage.sql` depending on your DO setup):
 
 ```typescript
-import { DOQB } from 'workers-qb';
+import { DOQB } from 'workers-qb'; // Or your specific path
+import { DurableObject } from '@cloudflare/workers-types';
 
+
+// Assuming this is part of your Durable Object class
+// @ts-ignore
 export class MyDurableObject extends DurableObject {
-  async fetch(request: Request): Promise<Response> {
-    const qb = new DOQB(this.storage.sql);
+  // ... constructor and other DO methods
+
+  async someMethod() {
+    // @ts-ignore
+    const qb = new DOQB(this.ctx.storage.sql);
     // ... your queries using qb ...
+    // Example: const user = await qb.select('users').where("id = ?", [1]).one();
   }
 }
 ```
+*Note: The exact way to access `DurableObjectStorage.sql()` might vary slightly based on your Durable Object structure (`this.state.storage.sql` or `this.env.CTX.storage.sql` etc.).*
 
 ### PostgreSQL
 
 For PostgreSQL, use the `PGQB` class and instantiate the `pg.Client` with your database connection URL. Remember to install `pg` and enable Node compatibility in your `wrangler.toml`.
 
 ```typescript
-import { PGQB } from 'workers-qb';
+import { PGQB } from 'workers-qb'; // Or your specific path
 import { Client } from 'pg';
 
 export interface Env {
@@ -54,31 +65,38 @@ export interface Env {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const dbClient = new Client(env.DB_URL);
+    const dbClient = new Client({ connectionString: env.DB_URL }); // Ensure pg.Client is instantiated
     const qb = new PGQB(dbClient);
-    await qb.connect(); // Connect to PostgreSQL
 
-    // ... your queries using qb ...
-
-    ctx.waitUntil(qb.close()); // Close the connection when done
+    try {
+      await qb.connect(); // Connect to PostgreSQL
+      // ... your queries using qb ...
+      // Example: const products = await qb.select('products').where("category = ?", ['electronics']).all();
+    } catch (e) {
+      console.error("Error with PGQB:", e);
+      return new Response("Error connecting or querying PG", { status: 500 });
+    } finally {
+      ctx.waitUntil(qb.close()); // Close the connection when done
+    }
+    return new Response("Queries executed (check console for PGQB)");
   },
 };
 ```
 
 ## Table Operations
 
-`workers-qb` provides methods for creating and dropping database tables.
+`workers-qb` provides methods for creating and dropping database tables. These methods are executed directly.
 
 ### Creating Tables
 
 Use the `createTable` method to define and create a new table. You need to specify the `tableName` and the `schema` as a string defining the table columns and their types.
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB } from 'workers-qb'; // Or your specific QB class
 
-// ... (D1QB initialization) ...
+// ... (QB initialization: const qb = new D1QB(env.DB);) ...
 
-await qb.createTable({
+const createResult = await qb.createTable({
   tableName: 'users',
   schema: `
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,9 +104,14 @@ await qb.createTable({
     email TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   `,
-}).execute();
+});
 
-console.log('Table "users" created successfully.');
+// For D1, createResult will be D1Result<unknown>
+if (createResult.success) {
+  console.log('Table "users" created successfully.');
+} else {
+  console.error('Failed to create table:', createResult.meta);
+}
 ```
 
 You can also use the `ifNotExists: true` option to prevent errors if the table already exists:
@@ -103,7 +126,7 @@ await qb.createTable({
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   `,
   ifNotExists: true,
-}).execute();
+});
 ```
 
 ### Dropping Tables
@@ -111,15 +134,17 @@ await qb.createTable({
 Use the `dropTable` method to remove a table from the database. Specify the `tableName` to be dropped.
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB } from 'workers-qb'; // Or your specific QB class
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
-await qb.dropTable({
+const dropResult = await qb.dropTable({
   tableName: 'users',
-}).execute();
+});
 
-console.log('Table "users" dropped successfully.');
+if (dropResult.success) { // Example for D1Result
+  console.log('Table "users" dropped successfully.');
+}
 ```
 
 You can use `ifExists: true` to avoid errors if the table doesn't exist:
@@ -128,19 +153,20 @@ You can use `ifExists: true` to avoid errors if the table doesn't exist:
 await qb.dropTable({
   tableName: 'users',
   ifExists: true,
-}).execute();
+});
 ```
 
 ## Insert
 
 ### Insert One
 
-Use the `insert` method with a single data object to insert a new row into a table.
+Use the `insertInto` method, followed by `values` and `execute`, to insert a new row. Use `returning` to get back specific fields.
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB } from 'workers-qb'; // Or your specific QB class
+import { D1Result } from 'workers-qb'; // For typing the result
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
 type User = {
   id: number;
@@ -148,26 +174,32 @@ type User = {
   email: string;
 };
 
-const newUser = await qb.insert<User>({
-  tableName: 'users',
-  data: {
+// D1QB.insertInto will return InsertBuilder<D1Result<User>, User, true>
+// The .execute() call then returns Promise<D1Result<User>>
+const insertResult: D1Result<User> = await qb
+  .insertInto<User>('users')
+  .values({
     name: 'John Doe',
     email: 'john.doe@example.com',
-  },
-  returning: ['id', 'name', 'email'], // Specify fields to return after insertion
-}).execute();
+  })
+  .returning(['id', 'name', 'email']) // Specify fields to return
+  .execute();
 
-console.log('New user inserted:', newUser.results);
+if (insertResult.success && insertResult.results) {
+  // For single insert with returning, D1 results is an array with one item
+  console.log('New user inserted:', insertResult.results[0]);
+}
 ```
 
 ### Insert Multiple
 
-To insert multiple rows efficiently, provide an array of data objects to the `insert` method.
+To insert multiple rows, provide an array of data objects to the `values` method.
 
 ```typescript
 import { D1QB } from 'workers-qb';
+import { D1Result } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
 type User = {
   id: number;
@@ -175,165 +207,182 @@ type User = {
   email: string;
 };
 
-const newUsers = await qb.insert<User>({
-  tableName: 'users',
-  data: [
+const insertResult: D1Result<User[]> = await qb
+  .insertInto<User>('users') // Specify User as the RowType
+  .values([
     { name: 'Jane Doe', email: 'jane.doe@example.com' },
     { name: 'Peter Pan', email: 'peter.pan@example.com' },
-  ],
-  returning: ['id', 'name', 'email'],
-}).execute();
+  ])
+  .returning(['id', 'name', 'email'])
+  .execute();
 
-console.log('New users inserted:', newUsers.results);
+if (insertResult.success && insertResult.results) {
+  console.log('New users inserted:', insertResult.results);
+}
 ```
 
 ### Insert Without Returning
 
-If you don't need to retrieve data after insertion, you can omit the `returning` option for a slightly more performant operation.
+If you don't need data back, omit `returning`. The result will typically contain metadata about the operation.
 
 ```typescript
 import { D1QB } from 'workers-qb';
+import { D1Result } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
-await qb.insert({
-  tableName: 'users',
-  data: {
+// RowType can be unknown or a generic object if not returning specific fields
+const insertResult: D1Result<unknown> = await qb
+  .insertInto('users')
+  .values({
     name: 'Anonymous User',
     email: 'anonymous@example.com',
-  },
-}).execute();
+  })
+  .execute();
 
-console.log('User inserted without returning data.');
+if (insertResult.success) {
+  console.log('User inserted. Changes:', insertResult.meta?.changes);
+}
 ```
 
 ### On Conflict - IGNORE
 
-Use `onConflict: 'IGNORE'` to skip insertion if a conflict occurs (e.g., due to a unique constraint).
+Use `onConflict` with `'IGNORE'` (or the `ConflictTypes` enum).
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB, ConflictTypes } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
-await qb.insert({
-  tableName: 'users',
-  data: {
-    email: 'john.doe@example.com', // Assuming 'email' is a unique key and already exists
-    name: 'Duplicate User',
-  },
-  onConflict: 'IGNORE',
-}).execute();
+await qb
+  .insertInto('users')
+  .values({
+    email: 'john.doe@example.com', // Assuming 'email' is unique and may exist
+    name: 'Duplicate User Attempt',
+  })
+  .onConflict(ConflictTypes.IGNORE) // or .onConflict('IGNORE')
+  .execute();
 
 console.log('Insert attempted, conflict ignored if email exists.');
 ```
 
 ### On Conflict - REPLACE
 
-Use `onConflict: 'REPLACE'` to replace the existing row if a conflict occurs.
+Use `onConflict` with `'REPLACE'` (or the `ConflictTypes` enum). *Note: `REPLACE` is specific to SQLite/D1.*
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB, ConflictTypes } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
-await qb.insert({
-  tableName: 'users',
-  data: {
-    email: 'john.doe@example.com', // Assuming 'email' is a unique key and already exists
-    name: 'Updated John Doe', // Will update the name if email exists
-  },
-  onConflict: 'REPLACE',
-}).execute();
+await qb
+  .insertInto('users')
+  .values({
+    email: 'john.doe@example.com',
+    name: 'Updated John Doe Name',
+  })
+  .onConflict(ConflictTypes.REPLACE) // or .onConflict('REPLACE')
+  .execute();
 
 console.log('Insert attempted, row replaced if email exists.');
 ```
 
 ### On Conflict - UPSERT (UPDATE)
 
-For more complex conflict resolution, you can perform an UPSERT operation, updating specific columns if a conflict occurs. Use `onConflict` with an object to define the columns causing conflict, the data to update, and optional `where` conditions for the update.
+For UPSERT, use `onConflict` with an object detailing the conflict target and update actions.
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB, Raw } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
-await qb.insert({
-  tableName: 'users',
-  data: {
-    email: 'john.doe@example.com', // Assuming 'email' is a unique key and already exists
+await qb
+  .insertInto('users')
+  .values({
+    email: 'john.doe@example.com',
     name: 'John Doe',
-    login_count: 1, // New login, should increment if user exists
-  },
-  onConflict: {
-    column: 'email', // Column that might cause conflict
+    login_count: 1,
+  })
+  .onConflict({
+    column: 'email', // Conflict target column(s)
     data: {
-      // Data to update on conflict
-      login_count: new Raw('login_count + 1'), // Increment login_count using Raw SQL
-      updated_at: new Raw('CURRENT_TIMESTAMP'), // Update timestamp
+      login_count: new Raw('login_count + 1'),
+      name: 'John Doe Verified', // Example: update name as well
+      // For PG, you might use something like:
+      // login_count: new Raw('users.login_count + 1'),
+      // name: new Raw('EXCLUDED.name'),
     },
-  },
-}).execute();
+    // where: { conditions: 'users.isActive = ?', params: [true] } // Optional: for targeted upsert on PG
+  })
+  .execute();
 
 console.log('Insert attempted, row updated (UPSERT) if email exists.');
 ```
-
-**Note:**  `Raw` is used here to execute raw SQL functions like `login_count + 1` and `CURRENT_TIMESTAMP` within the `data` object for `onConflict`.
+*Note: For PostgreSQL, the `data` in `onConflict` can use `EXCLUDED.column_name` to refer to values from the attempted insert using `Raw`. D1's `ON CONFLICT DO UPDATE` is simpler and doesn't use `EXCLUDED`.*
 
 ## Select
 
 ### Simple Select All
 
-The most basic select operation retrieves all columns and rows from a table.
+Retrieve all columns and rows using `select('tableName').all()`.
 
 ```typescript
 import { D1QB } from 'workers-qb';
+import { D1Result } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
 type User = {
   id: number;
   name: string;
   email: string;
+  created_at: string;
 };
 
-const allUsers = await qb.fetchAll<User>({
-  tableName: 'users',
-}).execute();
+// The .select<User>() call informs the RowType for the D1Result
+const allUsersResult: D1Result<User[]> = await qb
+  .select<User>('users')
+  .all();
 
-console.log('All users:', allUsers.results);
+if (allUsersResult.success) {
+  console.log('All users:', allUsersResult.results);
+}
 ```
 
 ### Select Specific Fields
 
-To retrieve only specific columns, use the `fields` option with an array of column names or a comma-separated string.
+Use the `fields()` method.
 
 ```typescript
 import { D1QB } from 'workers-qb';
+import { D1Result } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
 type UserNameAndEmail = {
   name: string;
   email: string;
 };
 
-const userNamesAndEmails = await qb.fetchAll<UserNameAndEmail>({
-  tableName: 'users',
-  fields: ['name', 'email'], // Or fields: 'name, email'
-}).execute();
+const userNamesAndEmailsResult: D1Result<UserNameAndEmail[]> = await qb
+  .select<UserNameAndEmail>('users')
+  .fields(['name', 'email']) // Or .fields('name, email')
+  .all();
 
-console.log('User names and emails:', userNamesAndEmails.results);
+if (userNamesAndEmailsResult.success) {
+  console.log('User names and emails:', userNamesAndEmailsResult.results);
+}
 ```
 
-### `fetchOne`
+### `one()`
 
-Use `fetchOne` to retrieve a single row that matches the specified criteria. It's ideal for fetching records by ID or unique identifiers.
+Use `one()` to retrieve a single row.
 
 ```typescript
 import { D1QB } from 'workers-qb';
+import { D1Result } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
 type User = {
   id: number;
@@ -341,25 +390,26 @@ type User = {
   email: string;
 };
 
-const singleUser = await qb.fetchOne<User>({
-  tableName: 'users',
-  where: {
-    conditions: 'id = ?',
-    params: 1, // Assuming you want to fetch user with ID 1
-  },
-}).execute();
+// D1Result will contain User | undefined in its 'results' field
+const singleUserResult: D1Result<User | undefined> = await qb
+  .select<User>('users')
+  .where('id = ?', [1])
+  .one();
 
-console.log('Single user:', singleUser.results);
+if (singleUserResult.success) {
+  console.log('Single user:', singleUserResult.results);
+}
 ```
 
-### `fetchAll`
+### `all()`
 
-`fetchAll` retrieves multiple rows based on your query. It's used for fetching lists of data, potentially with filters and ordering.
+`all()` retrieves multiple rows.
 
 ```typescript
 import { D1QB } from 'workers-qb';
+import { D1Result } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
 type User = {
   id: number;
@@ -367,51 +417,50 @@ type User = {
   email: string;
 };
 
-const activeUsers = await qb.fetchAll<User>({
-  tableName: 'users',
-  where: {
-    conditions: 'created_at > ?',
-    params: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(), // Users created in last 30 days
-  },
-  orderBy: 'created_at DESC',
-}).execute();
+const activeUsersResult: D1Result<User[]> = await qb
+  .select<User>('users')
+  .where('created_at > ?', [new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()])
+  .orderBy('created_at DESC')
+  .all();
 
-console.log('Active users:', activeUsers.results);
+if (activeUsersResult.success) {
+  console.log('Active users:', activeUsersResult.results);
+}
 ```
 
 ## Update
 
 ### Simple Update
 
-Update rows in a table using the `update` method. Specify the `tableName`, the `data` to update (as an object), and `where` conditions to target specific rows.
+Use `updateTable('tableName').set({ ... }).where(...).execute()`.
 
 ```typescript
 import { D1QB } from 'workers-qb';
+import { D1Result } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
-await qb.update({
-  tableName: 'users',
-  data: {
-    name: 'Updated Name',
-  },
-  where: {
-    conditions: 'email = ?',
-    params: 'john.doe@example.com',
-  },
-}).execute();
+// For updates without returning, RowType might be unknown or a generic object
+const updateResult: D1Result<unknown> = await qb
+  .updateTable('users')
+  .set({ name: 'Updated Name' })
+  .where('email = ?', ['john.doe@example.com'])
+  .execute();
 
-console.log('User name updated.');
+if (updateResult.success) {
+  console.log('User name updated. Changes:', updateResult.meta?.changes);
+}
 ```
 
 ### Update Returning Fields
 
-To retrieve the updated rows, use the `returning` option.
+Use `returning()` to get back the updated rows.
 
 ```typescript
 import { D1QB } from 'workers-qb';
+import { D1Result } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
 type UpdatedUser = {
   id: number;
@@ -419,74 +468,64 @@ type UpdatedUser = {
   email: string;
 };
 
-const updatedUser = await qb.update<UpdatedUser>({
-  tableName: 'users',
-  data: {
-    name: 'Corrected John Doe',
-  },
-  where: {
-    conditions: 'id = ?',
-    params: 1,
-  },
-  returning: ['id', 'name', 'email'],
-}).execute();
+const updatedUserResult: D1Result<UpdatedUser[]> = await qb
+  .updateTable<UpdatedUser>('users') // Specify RowType for returning
+  .set({ name: 'Corrected John Doe' })
+  .where('id = ?', [1])
+  .returning(['id', 'name', 'email'])
+  .execute();
 
-console.log('Updated user:', updatedUser.results);
+if (updatedUserResult.success && updatedUserResult.results) {
+  console.log('Updated user(s):', updatedUserResult.results);
+}
 ```
 
 ### Update Without Returning
 
-For performance optimization when you don't need the updated rows, omit the `returning` option.
+Omit `returning()` for performance.
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB, Raw } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
-await qb.update({
-  tableName: 'users',
-  data: {
-    last_login: new Raw('CURRENT_TIMESTAMP'), // Update with current timestamp
-  },
-  where: {
-    conditions: 'email = ?',
-    params: 'john.doe@example.com',
-  },
-}).execute();
+await qb
+  .updateTable('users')
+  .set({ last_login: new Raw('CURRENT_TIMESTAMP') })
+  .where('email = ?', ['john.doe@example.com'])
+  .execute();
 
-console.log('User last login updated without returning data.');
+console.log('User last login updated.');
 ```
 
 ## Delete
 
 ### Simple Delete
 
-Delete rows from a table using the `delete` method. Specify the `tableName` and `where` conditions to target rows for deletion. **Be cautious when using `delete` without `where` conditions as it will delete all rows in the table.**
+Use `deleteFrom('tableName').where(...).execute()`.
 
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
-await qb.delete({
-  tableName: 'users',
-  where: {
-    conditions: 'email = ?',
-    params: 'anonymous@example.com',
-  },
-}).execute();
+await qb
+  .deleteFrom('users')
+  .where('email = ?', ['anonymous@example.com'])
+  .execute();
 
 console.log('Anonymous user deleted.');
 ```
 
 ### Delete Returning Fields
 
-To retrieve the deleted rows, use the `returning` option.
+Use `returning()` to get back deleted rows.
 
 ```typescript
 import { D1QB } from 'workers-qb';
+import { D1Result } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
 type DeletedUser = {
   id: number;
@@ -494,34 +533,30 @@ type DeletedUser = {
   email: string;
 };
 
-const deletedUser = await qb.delete<DeletedUser>({
-  tableName: 'users',
-  where: {
-    conditions: 'id = ?',
-    params: 5, // Assuming you want to delete user with ID 5
-  },
-  returning: ['id', 'name', 'email'],
-}).execute();
+const deletedUserResult: D1Result<DeletedUser[]> = await qb
+  .deleteFrom<DeletedUser>('users') // Specify RowType for returning
+  .where('id = ?', [5])
+  .returning(['id', 'name', 'email'])
+  .execute();
 
-console.log('Deleted user:', deletedUser.results);
+if (deletedUserResult.success && deletedUserResult.results) {
+  console.log('Deleted user(s):', deletedUserResult.results);
+}
 ```
 
 ### Delete Without Returning
 
-For performance when you don't need the deleted rows, omit the `returning` option.
+Omit `returning()` for performance.
 
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// ... (QB initialization) ...
 
-await qb.delete({
-  tableName: 'users',
-  where: {
-    conditions: 'created_at < ?',
-    params: new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString(), // Delete users created more than a year ago
-  },
-}).execute();
+await qb
+  .deleteFrom('users')
+  .where('created_at < ?', [new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()])
+  .execute();
 
-console.log('Old users deleted without returning data.');
+console.log('Old users deleted.');
 ```
