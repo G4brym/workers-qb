@@ -76,7 +76,12 @@ Use the `createTable` method to define and create a new table. You need to speci
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 await qb.createTable({
   tableName: 'users',
@@ -113,7 +118,12 @@ Use the `dropTable` method to remove a table from the database. Specify the `tab
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 await qb.dropTable({
   tableName: 'users',
@@ -140,7 +150,12 @@ Use the `insert` method with a single data object to insert a new row into a tab
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type User = {
   id: number;
@@ -167,7 +182,12 @@ To insert multiple rows efficiently, provide an array of data objects to the `in
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type User = {
   id: number;
@@ -194,7 +214,12 @@ If you don't need to retrieve data after insertion, you can omit the `returning`
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 await qb.insert({
   tableName: 'users',
@@ -214,7 +239,12 @@ Use `onConflict: 'IGNORE'` to skip insertion if a conflict occurs (e.g., due to 
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 await qb.insert({
   tableName: 'users',
@@ -235,7 +265,12 @@ Use `onConflict: 'REPLACE'` to replace the existing row if a conflict occurs.
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 await qb.insert({
   tableName: 'users',
@@ -254,9 +289,14 @@ console.log('Insert attempted, row replaced if email exists.');
 For more complex conflict resolution, you can perform an UPSERT operation, updating specific columns if a conflict occurs. Use `onConflict` with an object to define the columns causing conflict, the data to update, and optional `where` conditions for the update.
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB, Raw } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 await qb.insert({
   tableName: 'users',
@@ -289,7 +329,12 @@ The most basic select operation retrieves all columns and rows from a table.
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type User = {
   id: number;
@@ -311,7 +356,12 @@ To retrieve only specific columns, use the `fields` option with an array of colu
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type UserNameAndEmail = {
   name: string;
@@ -333,7 +383,12 @@ Use `fetchOne` to retrieve a single row that matches the specified criteria. It'
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type User = {
   id: number;
@@ -359,7 +414,12 @@ console.log('Single user:', singleUser.results);
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type User = {
   id: number;
@@ -388,7 +448,12 @@ Update rows in a table using the `update` method. Specify the `tableName`, the `
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 await qb.update({
   tableName: 'users',
@@ -411,7 +476,12 @@ To retrieve the updated rows, use the `returning` option.
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type UpdatedUser = {
   id: number;
@@ -439,9 +509,14 @@ console.log('Updated user:', updatedUser.results);
 For performance optimization when you don't need the updated rows, omit the `returning` option.
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB, Raw } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 await qb.update({
   tableName: 'users',
@@ -466,7 +541,12 @@ Delete rows from a table using the `delete` method. Specify the `tableName` and 
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 await qb.delete({
   tableName: 'users',
@@ -486,7 +566,12 @@ To retrieve the deleted rows, use the `returning` option.
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type DeletedUser = {
   id: number;
@@ -513,7 +598,12 @@ For performance when you don't need the deleted rows, omit the `returning` optio
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 await qb.delete({
   tableName: 'users',

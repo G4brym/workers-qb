@@ -59,14 +59,24 @@ To apply pending migrations, use the `apply()` method on the migrations builder.
 #### Applying Migrations in D1
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB, type Migration } from 'workers-qb';
 
-// ... (D1QB initialization and migrations definition as before) ...
+// Define your migrations (example)
+const MIGRATION_0001_CREATE_USERS: Migration = {
+  name: '0001_create_users',
+  sql: 'CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT);',
+};
+const migrations: Migration[] = [MIGRATION_0001_CREATE_USERS];
+
+// Define your environment interface
+export interface Env {
+  DB: D1Database;
+}
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const qb = new D1QB(env.DB);
-    const migrationBuilder = qb.migrations({ migrations });
+    const qb = new D1QB(env.DB); // D1QB Initialization
+    const migrationBuilder = qb.migrations({ migrations }); // Pass your defined migrations
 
     await migrationBuilder.apply(); // Apply pending migrations for D1
 
@@ -108,8 +118,7 @@ You can check the status of your migrations using the `getApplied()` and `getUna
 ```typescript
 import { D1QB } from 'workers-qb';
 // ...
-const qb = new D1QB(env.DB);
-const migrationBuilder = qb.migrations({ migrations });
+// Assuming qb and migrations are initialized as in the "Applying Migrations in D1" example
 const appliedMigrations = await migrationBuilder.getApplied();
 // ...
 ```
@@ -119,8 +128,7 @@ const appliedMigrations = await migrationBuilder.getApplied();
 ```typescript
 import { D1QB } from 'workers-qb';
 // ...
-const qb = new D1QB(env.DB);
-const migrationBuilder = qb.migrations({ migrations });
+// Assuming qb and migrations are initialized as in the "Applying Migrations in D1" example
 const unappliedMigrations = await migrationBuilder.getUnapplied();
 // ...
 ```

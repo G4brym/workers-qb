@@ -13,7 +13,12 @@ An INNER JOIN returns rows only when there is a match in both tables based on th
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type UserWithRole = {
   userName: string;
@@ -40,7 +45,12 @@ A LEFT JOIN (or LEFT OUTER JOIN) returns all rows from the left table and the ma
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type UserWithOptionalRole = {
   userName: string;
@@ -67,7 +77,12 @@ A CROSS JOIN returns the Cartesian product of rows from the tables in the join. 
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type UserAndProduct = {
   userName: string;
@@ -94,7 +109,12 @@ You can also use subqueries as tables in your JOIN clauses.
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type UserWithOrderCount = {
   userName: string;
@@ -131,7 +151,12 @@ The `select()` method initiates a `SelectBuilder` instance, allowing you to prog
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 const selectBuilder = qb.select('users'); // Start building a select query on 'users' table
 ```
@@ -152,7 +177,12 @@ You can chain various methods on the `SelectBuilder` to define different parts o
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type UserInfo = {
   name: string;
@@ -187,7 +217,19 @@ The `SelectBuilder` provides methods to execute the built query and retrieve res
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
+
+// Assuming UserInfo is defined as in the previous example:
+// type UserInfo = {
+//   name: string;
+//   email: string;
+//   roleName: string;
+// };
 
 const activeUserCount = await qb.select('users')
   .where('is_active = ?', true)
@@ -215,7 +257,12 @@ You can use a simple string to define your WHERE clause. Use `?` placeholders fo
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 const usersByName = await qb.fetchAll({
   tableName: 'users',
@@ -233,7 +280,12 @@ For more structured conditions, you can use an object with `conditions` and `par
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 const usersByRoleAndActive = await qb.fetchAll({
   tableName: 'users',
@@ -256,13 +308,22 @@ The `whereIn` method provides a convenient way to filter records based on a set 
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 const usersInRoles = await qb.fetchAll({
   tableName: 'users',
-  where: qb.select('roles').fields('id').where('is_admin = ?', true).getQueryAll(), // Subquery to get admin role IDs
-}).execute() // Error! 'where' option should be 'whereIn' for IN clause
+  // The following 'where' is NOT the correct way to use a subquery for an IN clause.
+  // It would result in a query like: SELECT * FROM users WHERE (SELECT id FROM roles WHERE is_admin = ?).
+  // This is syntactically incorrect for most SQL databases for an IN condition.
+  where: qb.select('roles').fields('id').where('is_admin = ?', true).getQueryAll(),
+}).execute() // This will likely lead to a SQL error.
 
+// Correct way to use whereIn with a list of values:
 const usersInSpecificRoles = await qb.select('users')
   .whereIn('role_id', [1, 2, 3]) // Filter users with role_id in [1, 2, 3]
   .execute();
@@ -274,9 +335,17 @@ const usersInSpecificRolesMultipleColumns = await qb.select('users')
   .execute();
 
 console.log('Users in specific role and department combinations:', usersInSpecificRolesMultipleColumns.results);
+
+// Correct way to use whereIn with a subquery:
+const adminRoleIdsSubquery = qb.select('roles').fields('id').where('is_admin = ?', true);
+const usersWhoAreAdmins = await qb.select('users')
+  .whereIn('role_id', adminRoleIdsSubquery) // Subquery for IN clause
+  .execute();
+
+console.log('Users who are admins:', usersWhoAreAdmins.results);
 ```
 
-**Important:**  Note the corrected example using `whereIn` method on the `SelectBuilder` for IN clauses, instead of trying to put a subquery directly into the `where` option, which is not intended for `IN` clause subqueries in this builder's API design.
+**Important:** When using `whereIn`, provide either an array of values or a `SelectBuilder` instance for a subquery. Do not pass the result of `getQueryAll()` from a subquery directly into the `where` option if you intend to create an `IN` clause; use the `whereIn` method with the `SelectBuilder` instance itself.
 
 ## Group By and Having
 
@@ -287,7 +356,12 @@ Use the `groupBy` method to group rows with the same values in one or more colum
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type RoleUserCount = {
   roleName: string;
@@ -315,7 +389,12 @@ The `having` method filters groups based on aggregate functions, similar to WHER
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type RoleUserCount = {
   roleName: string;
@@ -346,7 +425,12 @@ Use the `orderBy` method to sort the result set by one or more columns. By defau
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type User = {
   id: number;
@@ -369,7 +453,19 @@ Specify the sorting direction (ASC for ascending, DESC for descending) for each 
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
+
+// Assuming User type is defined as in the previous example:
+// type User = {
+//   id: number;
+//   name: string;
+//   email: string;
+// };
 
 const usersOrderedByNameDesc = await qb.fetchAll<User>({
   tableName: 'users',
@@ -386,7 +482,19 @@ Order by multiple columns by providing an array or an object to `orderBy`.
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
+
+// Assuming User type is defined as in the previous example:
+// type User = {
+//   id: number;
+//   name: string;
+//   email: string;
+// };
 
 const usersOrderedByRoleNameAndName = await qb.fetchAll<User>({
   tableName: 'users',
@@ -408,7 +516,12 @@ Use the `limit` method to restrict the number of rows returned by the query.
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type User = {
   id: number;
@@ -431,7 +544,12 @@ Use the `offset` method to skip a certain number of rows before starting to retu
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type User = {
   id: number;
@@ -459,7 +577,12 @@ Use the `raw` method to execute a raw SQL query string. You can provide paramete
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 const tableName = 'users';
 const columnName = 'email';
@@ -479,7 +602,12 @@ When using `raw`, you can specify the `fetchType` to indicate whether you expect
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Example D1QB initialization:
+// interface Env {
+//   DB: D1Database;
+// }
+// const env: Env = /* your environment object */;
+// const qb = new D1QB(env.DB);
 
 type User = {
   id: number;

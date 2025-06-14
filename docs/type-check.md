@@ -29,7 +29,14 @@ You can also leverage type checking when using `insert` and `update` queries, es
 ```typescript
 import { D1QB, Raw } from 'workers-qb';
 
-// ... (D1QB initialization and User type definition from previous examples) ...
+// Define a type for the User, assuming it's similar to what's in your DB
+// type User = {
+//   id: number;
+//   name: string;
+//   email: string;
+//   created_at: string;
+//   updated_at: string;
+// };
 
 type NewUserResult = {
   id: number;
@@ -72,7 +79,14 @@ In this example, we define a type `NewUserResult` that matches the structure of 
 ```typescript
 import { D1QB, Raw } from 'workers-qb';
 
-// ... (D1QB initialization and User type definition) ...
+// Define a type for the User, assuming it's similar to what's in your DB
+// type User = {
+//   id: number;
+//   name: string;
+//   email: string;
+//   created_at: string;
+//   updated_at: string;
+// };
 
 type UpdatedUserResult = {
   id: number;

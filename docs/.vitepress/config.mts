@@ -9,6 +9,7 @@ export default defineConfig({
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     logo: 'https://raw.githubusercontent.com/G4brym/workers-qb/refs/heads/main/docs/assets/logo-icon.png',
+    outline: 'deep',
     nav: [
       {text: 'Home', link: '/'},
       {text: 'Docs', link: '/introduction'}
