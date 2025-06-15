@@ -30,7 +30,7 @@ import {
 import { asyncLoggerWrapper, defaultLogger } from './logger'
 import { MigrationOptions, asyncMigrationsBuilder } from './migrations'
 import { SelectBuilder } from './modularBuilder'
-import { Query, QueryWithExtra, Raw } from './tools'
+import { Query, QueryWithExtra, Raw } from './tools' // Query already here, no change needed to the import
 
 export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> {
   protected options: QueryBuilderOptions<IsAsync>
@@ -465,11 +465,16 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     const joinQuery: Array<string> = []
     value.forEach((item: Join) => {
       const type = item.type ? `${item.type} ` : ''
-      joinQuery.push(
-        `${type}JOIN ${typeof item.table === 'string' ? item.table : `(${this._select(item.table)})`}${
-          item.alias ? ` AS ${item.alias}` : ''
-        } ON ${item.on}`
-      )
+      let tableOrSubquery: string
+      if (typeof item.table === 'string') {
+        tableOrSubquery = item.table
+      } else if (item.table instanceof Query) {
+        tableOrSubquery = `(${item.table.query})`
+      } else {
+        // Fallback for other types, though subqueries should be Query instances
+        tableOrSubquery = `(${this._select(item.table as SelectAll)})`
+      }
+      joinQuery.push(`${type}JOIN ${tableOrSubquery}${item.alias ? ` AS ${item.alias}` : ''} ON ${item.on}`)
     })
 
     return ' ' + joinQuery.join(' ')
