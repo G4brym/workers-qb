@@ -868,15 +868,16 @@ describe('Select Builder', () => {
         join: {
           type: JoinTypes.CROSS,
           table: 'employees',
+          on: '1=1',
         },
       }),
       new QuerybuilderTest()
         .select('testTable')
         .fields('*')
-        .join({ type: JoinTypes.CROSS, table: 'employees' })
+        .join({ type: JoinTypes.CROSS, table: 'employees', on: '1=1' })
         .getQueryAll(),
     ]) {
-      expect(result.query).toEqual('SELECT * FROM testTable CROSS JOIN employees')
+      expect(result.query).toEqual('SELECT * FROM testTable CROSS JOIN employees ON 1=1')
       expect(result.arguments).toBeUndefined()
       expect(result.fetchType).toEqual('ALL')
     }
@@ -890,6 +891,7 @@ describe('Select Builder', () => {
         join: {
           type: JoinTypes.CROSS,
           table: 'employees',
+          on: '1=1',
         },
         where: {
           conditions: 'field = ?',
@@ -899,11 +901,11 @@ describe('Select Builder', () => {
       new QuerybuilderTest()
         .select('testTable')
         .fields('*')
-        .join({ type: JoinTypes.CROSS, table: 'employees' })
+        .join({ type: JoinTypes.CROSS, table: 'employees', on: '1=1' })
         .where('field = ?', 'test')
         .getQueryAll(),
     ]) {
-      expect(result.query).toEqual('SELECT * FROM testTable CROSS JOIN employees WHERE field = ?')
+      expect(result.query).toEqual('SELECT * FROM testTable CROSS JOIN employees ON 1=1 WHERE field = ?')
       expect(result.arguments).toEqual(['test'])
       expect(result.fetchType).toEqual('ALL')
     }
@@ -917,15 +919,16 @@ describe('Select Builder', () => {
         join: {
           type: JoinTypes.CROSS,
           table: 'employees',
+          on: '1=1',
         },
       }),
       new QuerybuilderTest()
         .select('testTable')
         .fields(['id', 'name'])
-        .join({ type: JoinTypes.CROSS, table: 'employees' })
+        .join({ type: JoinTypes.CROSS, table: 'employees', on: '1=1' })
         .getQueryAll(),
     ]) {
-      expect(result.query).toEqual('SELECT id, name FROM testTable CROSS JOIN employees')
+      expect(result.query).toEqual('SELECT id, name FROM testTable CROSS JOIN employees ON 1=1')
       expect(result.arguments).toBeUndefined()
       expect(result.fetchType).toEqual('ALL')
     }

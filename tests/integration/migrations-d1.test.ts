@@ -23,7 +23,7 @@ describe('Migrations', () => {
         await env.DB.prepare(`SELECT name
                                   FROM sqlite_master
                                   WHERE type = 'table'`).all()
-      ).results
+      ).results.filter((table: any) => table.name !== '_cf_METADATA')
     ).toEqual([])
 
     await qb.migrations({ migrations }).initialize()
@@ -34,7 +34,7 @@ describe('Migrations', () => {
                                   FROM sqlite_master
                                   WHERE type = 'table'
                                     AND name <> 'sqlite_sequence'`).all()
-      ).results
+      ).results.filter((table: any) => table.name !== '_cf_METADATA')
     ).toEqual([
       {
         name: 'migrations',
@@ -50,7 +50,7 @@ describe('Migrations', () => {
         await env.DB.prepare(`SELECT name
                                   FROM sqlite_master
                                   WHERE type = 'table'`).all()
-      ).results
+      ).results.filter((table: any) => table.name !== '_cf_METADATA')
     ).toEqual([])
 
     const applyResp = await qb.migrations({ migrations }).apply()
@@ -64,7 +64,7 @@ describe('Migrations', () => {
                                   FROM sqlite_master
                                   WHERE type = 'table'
                                     AND name <> 'sqlite_sequence'`).all()
-      ).results
+      ).results.filter((table: any) => table.name !== '_cf_METADATA')
     ).toEqual([
       {
         name: 'migrations',
@@ -86,7 +86,7 @@ describe('Migrations', () => {
         await env.DB.prepare(`SELECT name
                                   FROM sqlite_master
                                   WHERE type = 'table'`).all()
-      ).results
+      ).results.filter((table: any) => table.name !== '_cf_METADATA')
     ).toEqual([])
 
     const applyResp = await qb.migrations({ migrations }).apply()
@@ -100,7 +100,7 @@ describe('Migrations', () => {
                                   FROM sqlite_master
                                   WHERE type = 'table'
                                     AND name <> 'sqlite_sequence'`).all()
-      ).results
+      ).results.filter((table: any) => table.name !== '_cf_METADATA')
     ).toEqual([
       {
         name: 'migrations',
