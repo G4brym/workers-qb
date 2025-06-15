@@ -13,15 +13,17 @@ Database migrations are scripts that define changes to your database schema. Eac
 
 ## Creating Migration Files
 
-Each migration is defined as an object with a `name` and `sql` property. The `name` should be a unique identifier for the migration. The `sql` property contains the SQL statements to be executed.
+Each migration is defined as an object with a `name` and `sql` property. The `name` should be a unique identifier for the migration (e.g., `YYYYMMDDHHMMSS_descriptive_name` or a sequential number like `0001_descriptive_name`). The `sql` property contains the SQL statements to be executed.
+
+You can organize your migration files as you see fit. For example, you might have one `.ts` file per migration object, or a single file that exports an array of all migration objects.
 
 **Example Migration Structure (in code):**
 
 ```typescript
-// Optinally you can type the migrations with Migration
+// Optionally you can type the migrations with Migration
 import { type Migration } from 'workers-qb';
 
-// migrations/0001_create_users_table.ts (if using separate files)
+// Example: migrations/0001_create_users_table.ts (if using separate files)
 export const createUsersTableMigration = {
     name: '0001_create_users_table',
     sql: `
@@ -88,12 +90,14 @@ export class MyDurableObject extends DurableObject {
 
     this.#qb = new DOQB(this.ctx.storage.sql);
     void this.ctx.blockConcurrencyWhile(async () => {
+      // Assuming 'migrations' is an array of Migration objects defined elsewhere
       const migrationBuilder = this.#qb.migrations({ migrations });
-      migrationBuilder.apply();
+      await migrationBuilder.apply(); // Ensure apply is awaited
     });
   }
 
   async getUsers(): Promise<Array<object>> {
+    // Example method, ensure migrations are applied before accessing tables
     return this.#qb.select('users').all().results
   }
 }
@@ -108,6 +112,7 @@ You can check the status of your migrations using the `getApplied()` and `getUna
 ```typescript
 import { D1QB } from 'workers-qb';
 // ...
+// Assuming 'env' and 'migrations' are defined as in previous examples
 const qb = new D1QB(env.DB);
 const migrationBuilder = qb.migrations({ migrations });
 const appliedMigrations = await migrationBuilder.getApplied();
@@ -119,6 +124,7 @@ const appliedMigrations = await migrationBuilder.getApplied();
 ```typescript
 import { D1QB } from 'workers-qb';
 // ...
+// Assuming 'env' and 'migrations' are defined as in previous examples
 const qb = new D1QB(env.DB);
 const migrationBuilder = qb.migrations({ migrations });
 const unappliedMigrations = await migrationBuilder.getUnapplied();

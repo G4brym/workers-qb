@@ -74,7 +74,7 @@ export default {
 Use the `createTable` method to define and create a new table. You need to specify the `tableName` and the `schema` as a string defining the table columns and their types.
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB, Raw } from 'workers-qb';
 
 // ... (D1QB initialization) ...
 
@@ -254,7 +254,7 @@ console.log('Insert attempted, row replaced if email exists.');
 For more complex conflict resolution, you can perform an UPSERT operation, updating specific columns if a conflict occurs. Use `onConflict` with an object to define the columns causing conflict, the data to update, and optional `where` conditions for the update.
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB, Raw } from 'workers-qb'; // Ensure Raw is imported here
 
 // ... (D1QB initialization) ...
 
@@ -413,13 +413,13 @@ import { D1QB } from 'workers-qb';
 
 // ... (D1QB initialization) ...
 
-type UpdatedUser = {
+type User = { // Assuming User type includes id, name, email
   id: number;
   name: string;
   email: string;
 };
 
-const updatedUser = await qb.update<UpdatedUser>({
+const updatedUser = await qb.update<User>({
   tableName: 'users',
   data: {
     name: 'Corrected John Doe',
@@ -488,13 +488,13 @@ import { D1QB } from 'workers-qb';
 
 // ... (D1QB initialization) ...
 
-type DeletedUser = {
+type User = { // Assuming User type includes id, name, email
   id: number;
   name: string;
   email: string;
 };
 
-const deletedUser = await qb.delete<DeletedUser>({
+const deletedUser = await qb.delete<User>({
   tableName: 'users',
   where: {
     conditions: 'id = ?',

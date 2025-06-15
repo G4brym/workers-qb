@@ -27,18 +27,47 @@ Within your Durable Object class, you can access the `DurableObjectStorage` inst
 ```typescript
 import { DOQB } from 'workers-qb';
 
+// Define Env if it's used for configuration, otherwise it might not be needed for basic DOQB
+export interface Env {
+  // Example: You might have environment variables here for other purposes
+}
+
 export class MyDurableObject extends DurableObject {
+  #qb: DOQB; // Make qb a class member
+
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
-    // ... other initialization ...
+    this.#qb = new DOQB(this.storage.sql); // Initialize DOQB with DurableObjectStorage
+
+    // It's common to run schema migrations or table creations in the constructor,
+    // wrapped in blockConcurrencyWhile to ensure they complete before other operations.
+    this.ctx.blockConcurrencyWhile(async () => {
+      await this.initializeDB();
+    });
+  }
+
+  async initializeDB() {
+    // Example: Create table if it doesn't exist
+    // Note: .execute() is synchronous for DOQB, but blockConcurrencyWhile expects a Promise
+    this.#qb.createTable({
+        tableName: 'items', // Example table
+        ifNotExists: true,
+        schema: `
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            value TEXT
+        `
+    }).execute();
   }
 
   async fetch(request: Request): Promise<Response> {
-    const qb = new DOQB(this.storage.sql); // Initialize DOQB with DurableObjectStorage
+    // Now use this.#qb for queries
+    // ... your queries using this.#qb ...
 
-    // ... your queries using qb ...
+    // Example: Fetching an item (replace with actual logic)
+    const items = this.#qb.fetchAll({ tableName: 'items' }).execute();
 
-    return new Response("Durable Object queries executed");
+    return new Response(`Durable Object queries executed. Items count: ${items.results?.length}`);
   }
 }
 ```
@@ -56,20 +85,32 @@ All basic and advanced query operations described in [Basic Queries](../basic-qu
 ```typescript
 import { DOQB } from 'workers-qb';
 
-export class MyDurableObject extends DurableObject {
-  async fetch(request: Request): Promise<Response> {
-    const qb = new DOQB(this.storage.sql);
+// Define Env if it's used for configuration
+export interface Env { /* ... */ }
 
-    // Create table (if not exists) - typically in Durable Object's constructor or first fetch
-    qb.createTable({
-        tableName: 'items',
-        ifNotExists: true,
-        schema: `
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            value TEXT
-        `
-    }).execute();
+export class MyDurableObject extends DurableObject {
+  #qb: DOQB;
+
+  constructor(state: DurableObjectState, env: Env) {
+    super(state, env);
+    this.#qb = new DOQB(this.storage.sql);
+
+    this.ctx.blockConcurrencyWhile(async () => {
+      // Create table (if not exists) - good practice in constructor
+      this.#qb.createTable({
+          tableName: 'items',
+          ifNotExists: true,
+          schema: `
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              value TEXT
+          `
+      }).execute(); // Synchronous execute for DOQB
+    });
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    // qb is now this.#qb
 
     type Item = {
       id: number;
@@ -78,7 +119,7 @@ export class MyDurableObject extends DurableObject {
     };
 
     // Insert an item
-    const insertedItem = qb.insert<Item>({
+    const insertedItem = this.#qb.insert<Item>({
       tableName: 'items',
       data: {
         name: 'Example Item',
@@ -90,7 +131,7 @@ export class MyDurableObject extends DurableObject {
     console.log('Inserted item:', insertedItem.results);
 
     // Fetch all items
-    const allItems = qb.fetchAll<Item>({
+    const allItems = this.#qb.fetchAll<Item>({
       tableName: 'items',
     }).execute();
 
@@ -113,9 +154,20 @@ export class MyDurableObject extends DurableObject {
 ```typescript
 import { DOQB } from 'workers-qb';
 
+// Define Env if it's used for configuration
+export interface Env { /* ... */ }
+
 export class MyDurableObject extends DurableObject {
+  #qb: DOQB;
+
+  constructor(state: DurableObjectState, env: Env) {
+    super(state, env);
+    this.#qb = new DOQB(this.storage.sql);
+    // Assuming table 'items' is created in constructor as shown in the previous example
+  }
+
   async fetch(request: Request): Promise<Response> {
-    const qb = new DOQB(this.storage.sql);
+    // qb is now this.#qb
 
     type Item = {
       id: number;
@@ -124,7 +176,7 @@ export class MyDurableObject extends DurableObject {
     };
 
     // Lazy fetch all items
-    const lazyItemsResult = await qb.fetchAll<Item, true>({ // Note: <Item, true> for lazy fetch
+    const lazyItemsResult = await this.#qb.fetchAll<Item, true>({ // Note: <Item, true> for lazy fetch
       tableName: 'items',
       lazy: true, // Explicitly set lazy: true
     }).execute();
