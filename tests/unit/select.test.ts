@@ -859,4 +859,75 @@ describe('Select Builder', () => {
     expect(result2.arguments).toEqual(['somebody', 1, 'once', 2, 'told', 3, 'me', 4, 1])
     expect(result2.fetchType).toEqual('ALL')
   })
+
+  it('select with simple cross join', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        fields: '*',
+        join: {
+          type: JoinTypes.CROSS,
+          table: 'employees',
+        },
+      }),
+      new QuerybuilderTest()
+        .select('testTable')
+        .fields('*')
+        .join({ type: JoinTypes.CROSS, table: 'employees' })
+        .getQueryAll(),
+    ]) {
+      expect(result.query).toEqual('SELECT * FROM testTable CROSS JOIN employees')
+      expect(result.arguments).toBeUndefined()
+      expect(result.fetchType).toEqual('ALL')
+    }
+  })
+
+  it('select with cross join and where', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        fields: '*',
+        join: {
+          type: JoinTypes.CROSS,
+          table: 'employees',
+        },
+        where: {
+          conditions: 'field = ?',
+          params: ['test'],
+        },
+      }),
+      new QuerybuilderTest()
+        .select('testTable')
+        .fields('*')
+        .join({ type: JoinTypes.CROSS, table: 'employees' })
+        .where('field = ?', 'test')
+        .getQueryAll(),
+    ]) {
+      expect(result.query).toEqual('SELECT * FROM testTable CROSS JOIN employees WHERE field = ?')
+      expect(result.arguments).toEqual(['test'])
+      expect(result.fetchType).toEqual('ALL')
+    }
+  })
+
+  it('select with cross join and fields', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        fields: ['id', 'name'],
+        join: {
+          type: JoinTypes.CROSS,
+          table: 'employees',
+        },
+      }),
+      new QuerybuilderTest()
+        .select('testTable')
+        .fields(['id', 'name'])
+        .join({ type: JoinTypes.CROSS, table: 'employees' })
+        .getQueryAll(),
+    ]) {
+      expect(result.query).toEqual('SELECT id, name FROM testTable CROSS JOIN employees')
+      expect(result.arguments).toBeUndefined()
+      expect(result.fetchType).toEqual('ALL')
+    }
+  })
 })
