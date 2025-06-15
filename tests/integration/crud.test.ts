@@ -214,13 +214,15 @@ describe('Simple operations', () => {
         total_amount: number | null
       }
 
-      const mainQuery = qb.select<UserWithOrderStats>(usersTable).fields([
-        `${usersTable}.id`,
-        `${usersTable}.name`,
-        `${usersTable}.status`,
-        'order_stats.order_count',
-        'order_stats.total_amount',
-      ])
+      const mainQuery = qb
+        .select<UserWithOrderStats>(usersTable)
+        .fields([
+          `${usersTable}.id`,
+          `${usersTable}.name`,
+          `${usersTable}.status`,
+          'order_stats.order_count',
+          'order_stats.total_amount',
+        ])
       mainQuery.join({
         type: 'LEFT',
         table: userOrderStatsSubQuery, // Using the Query object from getQueryAll()

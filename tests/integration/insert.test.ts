@@ -128,10 +128,18 @@ describe('Insert with onConflict variations', () => {
       .execute()
 
     // Attempt to insert with the same email, triggering upsert
-    const { success, meta, results: returned } = await qb
+    const {
+      success,
+      meta,
+      results: returned,
+    } = await qb
       .insert<{ id: number; email: string; name: string; counter: number; status: string; version: number }>({
         tableName,
-        data: { email: 'upsert@example.com', name: 'New Name Data', counter: 100 /* This specific counter val will be ignored */ },
+        data: {
+          email: 'upsert@example.com',
+          name: 'New Name Data',
+          counter: 100 /* This specific counter val will be ignored */,
+        },
         onConflict: {
           column: 'email',
           data: {

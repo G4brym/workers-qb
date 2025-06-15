@@ -929,12 +929,7 @@ describe('Select Builder', () => {
   it('select whereIn subquery with its own arguments', () => {
     const qb = new QuerybuilderTest()
     const subQuery = qb.select('logs').fields('user_id').where('action = ?', 'login').where('time > ?', 1000)
-    const result = qb
-      .select('users')
-      .where('company_id = ?', 123)
-      .whereIn('id', subQuery)
-      .orderBy('name')
-      .getQueryAll()
+    const result = qb.select('users').where('company_id = ?', 123).whereIn('id', subQuery).orderBy('name').getQueryAll()
 
     expect(result.query).toEqual(
       'SELECT * FROM users WHERE (company_id = ?) AND (id IN (SELECT user_id FROM logs WHERE (action = ?) AND (time > ?))) ORDER BY name'

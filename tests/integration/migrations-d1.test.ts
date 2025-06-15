@@ -28,10 +28,7 @@ const MIGRATION_3_ADD_STATUS_TO_USERS: Migration = {
 }
 
 // Test migrations array, can be redefined in specific tests if needed
-export const testMigrations: Migration[] = [
-  MIGRATION_1_CREATE_LOGS,
-  MIGRATION_2_CREATE_USERS,
-]
+export const testMigrations: Migration[] = [MIGRATION_1_CREATE_LOGS, MIGRATION_2_CREATE_USERS]
 
 describe('Migrations D1', () => {
   let qb: D1QB
@@ -46,7 +43,9 @@ describe('Migrations D1', () => {
 
     // Verify clean state (optional, but good for sanity)
     const tables = (
-      await env.DB.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%';`).all()
+      await env.DB.prepare(
+        `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%';`
+      ).all()
     ).results
     expect(tables).toEqual([])
   })
@@ -131,7 +130,7 @@ describe('Migrations D1', () => {
   describe('getUnapplied()', () => {
     it('should return all migrations if none have been applied', async () => {
       const unapplied = await qb.migrations({ migrations: testMigrations }).getUnapplied()
-      expect(unapplied).toEqual(testMigrations.map(m => m.name))
+      expect(unapplied).toEqual(testMigrations.map((m) => m.name))
     })
 
     it('should return remaining migrations if some have been applied', async () => {
