@@ -30,8 +30,6 @@ Test your code with Jest framework:
 npm run test
 ```
 
-**Note:** This project uses [husky](https://typicode.github.io/husky/), [pinst](https://github.com/typicode/pinst) and [commitlint](https://commitlint.js.org/) to automatically execute test and [lint commit message](https://www.conventionalcommits.org/) before every commit.
-
 ### Build
 
 Build production (distribution) files in your **dist** folder:

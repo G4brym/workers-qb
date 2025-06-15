@@ -41,7 +41,9 @@ describe('Raw Query Tests', () => {
   })
 
   it('raw INSERT query', async () => {
-    const result = new QuerybuilderTest().raw('INSERT INTO testTable (name, value) VALUES (?1, ?2)', ['newName', 100]).getQuery()
+    const result = new QuerybuilderTest()
+      .raw('INSERT INTO testTable (name, value) VALUES (?1, ?2)', ['newName', 100])
+      .getQuery()
     expect(result.query).toEqual('INSERT INTO testTable (name, value) VALUES (?1, ?2)')
     expect(result.arguments).toEqual(['newName', 100])
     // INSERT operations typically don't have a fetchType like SELECT, or it might be 'EXECUTE' or undefined
@@ -49,7 +51,9 @@ describe('Raw Query Tests', () => {
   })
 
   it('raw UPDATE query', async () => {
-    const result = new QuerybuilderTest().raw('UPDATE testTable SET name = ?1 WHERE id = ?2', ['updatedName', 2]).getQuery()
+    const result = new QuerybuilderTest()
+      .raw('UPDATE testTable SET name = ?1 WHERE id = ?2', ['updatedName', 2])
+      .getQuery()
     expect(result.query).toEqual('UPDATE testTable SET name = ?1 WHERE id = ?2')
     expect(result.arguments).toEqual(['updatedName', 2])
     expect(result.fetchType).toBeUndefined() // Or specific value like 'NONE' or 'EXECUTE'
@@ -63,7 +67,9 @@ describe('Raw Query Tests', () => {
   })
 
   it('raw query with positional parameters (?)', async () => {
-    const result = new QuerybuilderTest().raw('SELECT * FROM anotherTable WHERE col1 = ? AND col2 = ?', ['val1', 'val2']).getQueryAll()
+    const result = new QuerybuilderTest()
+      .raw('SELECT * FROM anotherTable WHERE col1 = ? AND col2 = ?', ['val1', 'val2'])
+      .getQueryAll()
     expect(result.query).toEqual('SELECT * FROM anotherTable WHERE col1 = ? AND col2 = ?')
     expect(result.arguments).toEqual(['val1', 'val2'])
     expect(result.fetchType).toEqual('ALL')
