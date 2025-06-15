@@ -14,7 +14,6 @@
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "lint": "npx @biomejs/biome check src/ tests/ || (npx @biomejs/biome check --write src/ tests/; exit 1)",
     "test": "vitest run --root tests",
-    "prepare": "husky",
     "build-docs": "npm run docs:build && cp docs/_redirects docs/.vitepress/dist/_redirects",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
@@ -61,13 +60,11 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@cloudflare/vitest-pool-workers": "^0.6.0",
-    "@cloudflare/workers-types": "^4.20241106.0",
-    "husky": "^9.1.6",
-    "tsup": "^8.3.5",
-    "typescript": "^5.6.3",
+    "@cloudflare/vitest-pool-workers": "^0.8.38",
+    "@cloudflare/workers-types": "^4.20250614.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
     "vitepress": "^1.6.3",
-    "vitest": "2.1.8",
-    "wrangler": "^3.86.0"
+    "wrangler": "^4.20.0"
   }
 }
