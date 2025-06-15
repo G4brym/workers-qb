@@ -27,7 +27,7 @@ You can also leverage type checking when using `insert` and `update` queries, es
 **Example: Type Checking with `insert` and `returning`**
 
 ```typescript
-import { D1QB, Raw } from 'workers-qb';
+import { D1QB } from 'workers-qb';
 
 // ... (D1QB initialization and User type definition from previous examples) ...
 

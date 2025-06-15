@@ -99,10 +99,10 @@ export class SQLiteQB extends QueryBuilder<SQLiteResultWrapper, false> { // Sync
 
 **To create a production-ready adapter for your database:**
 
-1.  **Choose a suitable database client library** for your target database in JavaScript/TypeScript (if one exists for Cloudflare Workers environment).
-2.  **Study the documentation of your chosen database and its client library.**
-3.  **Implement `execute`, `batchExecute`, and `lazyExecute` methods** in your custom QueryBuilder class, handling connection, query execution, parameter binding, error handling, and result formatting according to your database's specifics.
-4.  **Consider adding migration support** by extending or adapting `syncMigrationsBuilder` or `asyncMigrationsBuilder` if needed.
-5.  **Thoroughly test your custom adapter** with various query types and scenarios.
+1.  **Choose a suitable database client library** for your target database in JavaScript/TypeScript (if one exists for the Cloudflare Workers environment).
+2.  **Study the documentation of your chosen database and its client library** thoroughly.
+3.  **Implement `execute`, `batchExecute` (if applicable), and `lazyExecute` (if applicable) methods** in your custom `QueryBuilder` class. This involves handling connections, query execution, parameter binding, error management, and transforming results into the `workers-qb` expected formats.
+4.  **Consider adding migration support** by extending or adapting `syncMigrationsBuilder` or `asyncMigrationsBuilder` if your database requires schema management.
+5.  **Thoroughly test your custom adapter** with a comprehensive suite of query types and edge cases.
 
 By creating custom database adapters, you can extend the reach of `workers-qb` to support a wide variety of SQL and SQL-like databases in your Cloudflare Worker projects.

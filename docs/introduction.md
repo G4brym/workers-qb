@@ -20,8 +20,7 @@
   *   Bulk inserts
   *   JOIN queries
   *   Modular SELECT query building
-  *   ON CONFLICT handling (for inserts and updates)
-  *   UPSERT support
+  *   ON CONFLICT handling (e.g., IGNORE, REPLACE, UPSERT)
 
 ## Supported Databases
 
@@ -88,7 +87,7 @@ This code snippet demonstrates:
 Explore the comprehensive documentation to learn more about `workers-qb`:
 
 *   **[Basic Queries](basic-queries.md):** Learn the fundamentals of creating, reading, updating, and deleting data.
-*   **[Advanced Queries](advanced-queries.md):** Dive into more complex query structures, including joins, subqueries, and conditional logic.
+*   **[Advanced Queries](advanced-queries.md):** Dive into more complex query structures, including joins and conditional logic.
 *   **[Migrations](migrations.md):** Discover how to manage your database schema using migrations.
 *   **[Type Checking](type-check.md):** Understand how to leverage TypeScript for type-safe database interactions.
 *   **[Database-Specific Guides](databases/d1.md):** Find detailed guides and examples for each supported database.

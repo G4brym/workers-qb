@@ -163,7 +163,7 @@ While `workers-qb` core doesn't provide a dedicated transaction management API, 
 **Example (Conceptual - Transaction Handling Outside `workers-qb` API):**
 
 ```typescript
-import { PGQB } from 'workers-qb';
+import { PGQB, Raw } from 'workers-qb'; // Added Raw import
 import { Client } from 'pg';
 
 export interface Env {

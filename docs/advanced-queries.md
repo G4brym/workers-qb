@@ -87,39 +87,6 @@ const userProductCombinations = await qb.fetchAll<UserAndProduct>({
 console.log('User and product combinations:', userProductCombinations.results);
 ```
 
-### JOIN with Subqueries
-
-You can also use subqueries as tables in your JOIN clauses.
-
-```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
-type UserWithOrderCount = {
-  userName: string;
-  orderCount: number;
-};
-
-const usersWithOrderCounts = await qb.fetchAll<UserWithOrderCount>({
-  tableName: 'users',
-  fields: ['users.name AS userName', 'orderCounts.count AS orderCount'],
-  join: {
-    type: 'LEFT',
-    table: qb.select('orders') // Subquery using select builder
-      .fields('user_id, COUNT(*) AS count')
-      .groupBy('user_id')
-      .getQueryAll(), // Get the Query object from SelectBuilder
-    alias: 'orderCounts',
-    on: 'users.id = orderCounts.user_id',
-  },
-}).execute();
-
-console.log('Users with order counts:', usersWithOrderCounts.results);
-```
-
-In this example, a subquery is built using `qb.select('orders')...getQueryAll()` to calculate the order count for each user. This subquery is then joined with the `users` table.
-
 ## Modular Select Queries
 
 `workers-qb` provides a modular `select()` builder for constructing SELECT queries in a chainable and readable manner.
@@ -179,7 +146,7 @@ console.log('Users info:', usersInfo.results);
 
 The `SelectBuilder` provides methods to execute the built query and retrieve results:
 
-*   `.execute()`: Executes the query and returns `ArrayResult` or `OneResult` based on the query configuration (implicitly calls `fetchAll` or `fetchOne` based on limit, etc. - in this case `fetchAll`).
+*   `.execute()`: Executes the query and returns `ArrayResult` or `OneResult` based on the nature of the constructed query (e.g., if `.limit(1)` is used, it might behave like `fetchOne`).
 *   `.all()`: Explicitly executes as `fetchAll` and returns `ArrayResult`.
 *   `.one()`: Explicitly executes as `fetchOne` and returns `OneResult`.
 *   `.count()`: Executes a `COUNT(*)` query based on the current builder configuration (ignoring fields, limit, offset, orderBy) and returns `CountResult`.
@@ -258,11 +225,6 @@ import { D1QB } from 'workers-qb';
 
 // ... (D1QB initialization) ...
 
-const usersInRoles = await qb.fetchAll({
-  tableName: 'users',
-  where: qb.select('roles').fields('id').where('is_admin = ?', true).getQueryAll(), // Subquery to get admin role IDs
-}).execute() // Error! 'where' option should be 'whereIn' for IN clause
-
 const usersInSpecificRoles = await qb.select('users')
   .whereIn('role_id', [1, 2, 3]) // Filter users with role_id in [1, 2, 3]
   .execute();
@@ -275,8 +237,6 @@ const usersInSpecificRolesMultipleColumns = await qb.select('users')
 
 console.log('Users in specific role and department combinations:', usersInSpecificRolesMultipleColumns.results);
 ```
-
-**Important:**  Note the corrected example using `whereIn` method on the `SelectBuilder` for IN clauses, instead of trying to put a subquery directly into the `where` option, which is not intended for `IN` clause subqueries in this builder's API design.
 
 ## Group By and Having
 
