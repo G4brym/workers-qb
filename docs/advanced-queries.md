@@ -315,14 +315,6 @@ import { D1QB } from 'workers-qb';
 // const env: Env = /* your environment object */;
 // const qb = new D1QB(env.DB);
 
-const usersInRoles = await qb.fetchAll({
-  tableName: 'users',
-  // The following 'where' is NOT the correct way to use a subquery for an IN clause.
-  // It would result in a query like: SELECT * FROM users WHERE (SELECT id FROM roles WHERE is_admin = ?).
-  // This is syntactically incorrect for most SQL databases for an IN condition.
-  where: qb.select('roles').fields('id').where('is_admin = ?', true).getQueryAll(),
-}).execute() // This will likely lead to a SQL error.
-
 // Correct way to use whereIn with a list of values:
 const usersInSpecificRoles = await qb.select('users')
   .whereIn('role_id', [1, 2, 3]) // Filter users with role_id in [1, 2, 3]
@@ -345,7 +337,7 @@ const usersWhoAreAdmins = await qb.select('users')
 console.log('Users who are admins:', usersWhoAreAdmins.results);
 ```
 
-**Important:** When using `whereIn`, provide either an array of values or a `SelectBuilder` instance for a subquery. Do not pass the result of `getQueryAll()` from a subquery directly into the `where` option if you intend to create an `IN` clause; use the `whereIn` method with the `SelectBuilder` instance itself.
+**Important:** When using `whereIn` with a subquery, provide the `SelectBuilder` instance directly. If you need to filter based on a list of values, provide an array of values.
 
 ## Group By and Having
 

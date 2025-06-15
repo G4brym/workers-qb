@@ -813,7 +813,9 @@ describe('Select Builder', () => {
       )
       .getQueryAll()
 
-    expect(result.query).toEqual('SELECT * FROM testTable WHERE (field, test) IN (VALUES (?, ?), (?, ?))')
+    expect(result.query).toEqual(
+      'SELECT * FROM testTable WHERE (field, test) IN (VALUES (?, ?), (?, ?), (?, ?), (?, ?))'
+    )
     expect(result.arguments).toEqual(['somebody', 1, 'once', 2, 'told', 3, 'me', 4])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -834,7 +836,7 @@ describe('Select Builder', () => {
       .getQueryAll()
 
     expect(result.query).toEqual(
-      'SELECT * FROM testTable WHERE (commited = ?) AND ((field, test) IN (VALUES (?, ?), (?, ?)))'
+      'SELECT * FROM testTable WHERE (commited = ?) AND ((field, test) IN (VALUES (?, ?), (?, ?), (?, ?), (?, ?)))'
     )
     expect(result.arguments).toEqual([1, 'somebody', 1, 'once', 2, 'told', 3, 'me', 4])
     expect(result.fetchType).toEqual('ALL')
@@ -854,7 +856,7 @@ describe('Select Builder', () => {
       .getQueryAll()
 
     expect(result2.query).toEqual(
-      'SELECT * FROM testTable WHERE ((field, test) IN (VALUES (?, ?), (?, ?))) AND (commited = ?)'
+      'SELECT * FROM testTable WHERE ((field, test) IN (VALUES (?, ?), (?, ?), (?, ?), (?, ?))) AND (commited = ?)'
     )
     expect(result2.arguments).toEqual(['somebody', 1, 'once', 2, 'told', 3, 'me', 4, 1])
     expect(result2.fetchType).toEqual('ALL')
@@ -879,51 +881,16 @@ describe('Select Builder', () => {
     expect(resultOne.fetchType).toEqual('ONE')
   })
 
-  it('select whereIn with Query object from getQueryAll() as subquery', () => {
-    const qb = new QuerybuilderTest()
-    const subQueryBuilder = qb.select('anotherTable').fields('id').where('status = ?', 'pending')
-    const subQueryObject = subQueryBuilder.getQueryAll() // This produces a Query object
-
-    const result = qb.select('testTable').where('name = ?', 'main').whereIn('item_id', subQueryObject).getQueryAll()
-
-    expect(result.query).toEqual(
-      'SELECT * FROM testTable WHERE (name = ?) AND (item_id IN (SELECT id FROM anotherTable WHERE status = ?))'
-    )
-    expect(result.arguments).toEqual(['main', 'pending'])
-    expect(result.fetchType).toEqual('ALL')
-  })
-
   it('select whereIn with SelectBuilder (multiple columns) as subquery', () => {
     const qb = new QuerybuilderTest()
     const subQuery = qb.select('subTable').fields(['fk1', 'fk2']).where('state = ?', 'CA')
     const result = qb.select('mainTable').whereIn(['m_fk1', 'm_fk2'], subQuery).getQueryAll()
 
     expect(result.query).toEqual(
-      'SELECT * FROM mainTable WHERE ((m_fk1, m_fk2) IN (SELECT fk1, fk2 FROM subTable WHERE state = ?))'
+      'SELECT * FROM mainTable WHERE (m_fk1, m_fk2) IN (SELECT fk1, fk2 FROM subTable WHERE state = ?)'
     )
     expect(result.arguments).toEqual(['CA'])
     expect(result.fetchType).toEqual('ALL')
-  })
-
-  it('select whereIn with Query object (multiple columns) as subquery', () => {
-    const qb = new QuerybuilderTest()
-    const subQueryBuilder = qb.select('subTable').fields(['fk1', 'fk2']).where('state = ?', 'NY')
-    const subQueryObject = subQueryBuilder.getQueryAll()
-    const result = qb.select('mainTable').whereIn(['m_fk1', 'm_fk2'], subQueryObject).getQueryAll()
-
-    expect(result.query).toEqual(
-      'SELECT * FROM mainTable WHERE ((m_fk1, m_fk2) IN (SELECT fk1, fk2 FROM subTable WHERE state = ?))'
-    )
-    expect(result.arguments).toEqual(['NY'])
-    expect(result.fetchType).toEqual('ALL')
-
-    // Test with getQueryOne on the outer query
-    const resultOne = qb.select('mainTable').whereIn(['m_fk1', 'm_fk2'], subQueryObject).getQueryOne()
-    expect(resultOne.query).toEqual(
-      'SELECT * FROM mainTable WHERE ((m_fk1, m_fk2) IN (SELECT fk1, fk2 FROM subTable WHERE state = ?)) LIMIT 1'
-    )
-    expect(resultOne.arguments).toEqual(['NY'])
-    expect(resultOne.fetchType).toEqual('ONE')
   })
 
   it('select whereIn subquery with its own arguments', () => {

@@ -91,40 +91,53 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
 
     const seperateWithComma = (prev: string, next: string) => prev + ', ' + next
 
-    // if we have no values, we no-op
-    if (values.length === 0) {
-      return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
-        {
-          ...this._options,
-        },
-        this._fetchAll,
-        this._fetchOne
-      )
-    }
+    if (values instanceof SelectBuilder) {
+      const subQueryData = values.getQueryAll()
+      const fieldSubQueryString = Array.isArray(fields) ? `(${fields.join(', ')})` : fields
+      whereInCondition = `${fieldSubQueryString} IN (${subQueryData.query})`
+      whereInParams = subQueryData.arguments || []
+    } else if (Array.isArray(values)) {
+      // if we have no values, we no-op
+      if (values.length === 0) {
+        return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+          {
+            ...this._options,
+          },
+          this._fetchAll,
+          this._fetchOne
+        )
+      }
 
-    if (!Array.isArray(fields)) {
-      // at this point, we know that it's a string
-      whereInCondition = `(${fields}) IN (VALUES `
+      if (!Array.isArray(fields)) {
+        // at this point, we know that it's a string
+        whereInCondition = `(${fields}) IN (VALUES `
 
-      whereInCondition += values.map(() => '(?)').reduce(seperateWithComma)
-      whereInCondition += ')'
-      // if it's not an array, we can assume that values is whereInParams[]
-      whereInParams = values as Primitive[]
+        whereInCondition += (values as Primitive[]).map(() => '(?)').reduce(seperateWithComma)
+        whereInCondition += ')'
+        // if it's not an array, we can assume that values is whereInParams[]
+        whereInParams = values as Primitive[]
+      } else {
+        // NOTE(lduarte): we assume that this is const throughout the values list, if it's not, oh well garbage in, garbage out
+        const fieldLength = fields.length
+
+        whereInCondition = `(${fields.map((val) => val).reduce(seperateWithComma)}) IN (VALUES `
+
+        const valuesString = `(${[...new Array(fieldLength).keys()].map(() => '?').reduce(seperateWithComma)})`
+
+        // This part seems to construct something like ((?,?), (?,?)) for multiple columns with array values
+        // It might need adjustment based on how many value groups are in `values`
+        // Assuming `values` is Primitive[][] here.
+        whereInCondition += (values as Primitive[][]).map(() => valuesString).reduce(seperateWithComma)
+        whereInCondition += ')'
+        // finally, flatten the list since the whereInParams are in a single list
+        whereInParams = (values as Primitive[][]).flat()
+      }
     } else {
-      // NOTE(lduarte): we assume that this is const throughout the values list, if it's not, oh well garbage in, garbage out
-      const fieldLength = fields.length
-
-      whereInCondition = `(${fields.map((val) => val).reduce(seperateWithComma)}) IN (VALUES `
-
-      const valuesString = `(${[...new Array(fieldLength).keys()].map(() => '?').reduce(seperateWithComma)})`
-
-      whereInCondition += [...new Array(fieldLength).keys()].map(() => valuesString).reduce(seperateWithComma)
-      whereInCondition += ')'
-      // finally, flatten the list since the whereInParams are in a single list
-      whereInParams = values.flat()
+      // This case should ideally not be reached if types are correct
+      throw new Error('Unsupported type for "values" in whereIn clause')
     }
 
-    let conditions: string | Array<string> = [whereInCondition]
+    let conditions: string | Array<string> = [whereInCondition!] // Added non-null assertion
     let params: Primitive[] = whereInParams
     if ((this._options.where as any)?.conditions) {
       conditions = (this._options.where as any)?.conditions.concat(conditions)
