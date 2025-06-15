@@ -214,7 +214,7 @@ describe('Simple operations', () => {
         total_amount: number | null
       }
 
-      const mainQuery = qb
+      const mainQueryBuilder = qb
         .select<UserWithOrderStats>(usersTable)
         .fields([
           `${usersTable}.id`,
@@ -223,15 +223,15 @@ describe('Simple operations', () => {
           'order_stats.order_count',
           'order_stats.total_amount',
         ])
-      mainQuery.join({
-        type: 'LEFT',
-        table: userOrderStatsSubQuery, // Using the Query object from getQueryAll()
-        alias: 'order_stats',
-        on: `${usersTable}.id = order_stats.user_id`,
-      })
-      mainQuery.orderBy(`${usersTable}.id`)
+        .join({
+          type: 'LEFT',
+          table: userOrderStatsSubQuery, // Using the Query object from getQueryAll()
+          alias: 'order_stats',
+          on: `${usersTable}.id = order_stats.user_id`,
+        })
+        .orderBy(`${usersTable}.id`);
 
-      const { results } = await mainQuery.execute()
+      const { results } = await mainQueryBuilder.execute()
 
       // 5. Assert the results
       expect(results).toBeInstanceOf(Array)
