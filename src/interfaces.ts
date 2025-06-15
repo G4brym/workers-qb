@@ -169,3 +169,109 @@ export type CountResult<GenericResultWrapper> = OneResult<GenericResultWrapper, 
 export type AsyncType<T> = Promise<T>
 export type SyncType<T> = T
 export type MaybeAsync<IsAsync extends boolean, T> = IsAsync extends true ? AsyncType<T> : SyncType<T>
+
+// JSON Functions
+export type JsonFunctionArgs = string | Raw | Record<string, Primitive> | Array<Primitive>
+
+export type Json = {
+  json: JsonFunctionArgs
+}
+
+export type JsonArray = {
+  json_array: JsonFunctionArgs
+}
+
+export type JsonArrayLength = {
+  json_array_length: JsonFunctionArgs
+}
+
+export type JsonExtract = {
+  json_extract: {
+    json: JsonFunctionArgs
+    path: string
+  }
+}
+
+export type JsonInsert = {
+  json_insert: {
+    json: JsonFunctionArgs
+    path: string
+    value: JsonFunctionArgs
+  }
+}
+
+export type JsonObject = {
+  json_object: Record<string, JsonFunctionArgs>
+}
+
+export type JsonPatch = {
+  json_patch: {
+    json: JsonFunctionArgs
+    patch: JsonFunctionArgs
+  }
+}
+
+export type JsonRemove = {
+  json_remove: {
+    json: JsonFunctionArgs
+    path: string
+  }
+}
+
+export type JsonReplace = {
+  json_replace: {
+    json: JsonFunctionArgs
+    path: string
+    value: JsonFunctionArgs
+  }
+}
+
+export type JsonSet = {
+  json_set: {
+    json: JsonFunctionArgs
+    path: string
+    value: JsonFunctionArgs
+  }
+}
+
+export type JsonType = {
+  json_type: JsonFunctionArgs
+}
+
+export type JsonValid = {
+  json_valid: JsonFunctionArgs
+}
+
+export type JsonQuote = {
+  json_quote: JsonFunctionArgs
+}
+
+export type JsonGroupArray = {
+  json_group_array: JsonFunctionArgs
+}
+
+export type JsonEach = {
+  json_each: JsonFunctionArgs
+}
+
+export type JsonTree = {
+  json_tree: JsonFunctionArgs
+}
+
+export type JsonFunction =
+  | Json
+  | JsonArray
+  | JsonArrayLength
+  | JsonExtract
+  | JsonInsert
+  | JsonObject
+  | JsonPatch
+  | JsonRemove
+  | JsonReplace
+  | JsonSet
+  | JsonType
+  | JsonValid
+  | JsonQuote
+  | JsonGroupArray
+  | JsonEach
+  | JsonTree
