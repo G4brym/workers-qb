@@ -463,3 +463,279 @@ const rawSingleUser = await qb.raw<User>({
 
 console.log('Raw single user:', rawSingleUser.results);
 ```
+
+## JSON Functions
+
+`workers-qb` provides methods to utilize Cloudflare D1's JSON functions, enabling powerful manipulation and querying of JSON data stored in your database. These methods typically map directly to their corresponding SQL JSON functions. The results are often JSON strings or values extracted from JSON.
+
+All JSON function methods are available directly on the `D1QB` instance (e.g., `qb.json_extract(...)`).
+
+### `json()`
+
+Validates a JSON string and returns it as a properly typed JSON string. This is useful for ensuring that a string is valid JSON before storing or operating on it.
+
+*   **Signature:** `json(jsonData: string): Promise<D1Result>`
+*   **SQL Equivalent:** `json(?)`
+*   **Example:**
+
+```typescript
+const myJsonString = '{"name": "test", "value": 123}';
+const validatedJson = await qb.json(myJsonString);
+// validatedJson.results will contain something like: { "json(?)": "{\"name\": \"test\", \"value\": 123}" }
+// The actual key in results may vary based on the driver.
+console.log(validatedJson.results);
+```
+
+### `json_array()`
+
+Creates a new JSON array from a list of values.
+
+*   **Signature:** `json_array(...args: any[]): Promise<D1Result>`
+*   **SQL Equivalent:** `json_array(value1, value2, ...)`
+*   **Example:**
+
+```typescript
+const newArray = await qb.json_array(1, "apple", null, JSON.stringify({ripe: true}));
+// newArray.results will contain the JSON string: '[1,"apple",null,{"ripe":true}]'
+// Example: { "json_array(...)": "[1,\"apple\",null,{\"ripe\":true}]" }
+console.log(newArray.results);
+```
+
+### `json_array_length()`
+
+Returns the number of elements in a JSON array. Can also return the length of a nested array using a path.
+
+*   **Signature:** `json_array_length(jsonData: string, path?: string): Promise<D1Result>`
+*   **SQL Equivalent:** `json_array_length(json, path)`
+*   **Example:**
+
+```typescript
+const arrString = '[1, 2, {"key": "value"}]';
+const length = await qb.json_array_length(arrString);
+// length.results: { "json_array_length(?)": 3 }
+
+const nestedArrString = '{"items": ["a", "b", "c", "d"]}';
+const nestedLength = await qb.json_array_length(nestedArrString, '$.items');
+// nestedLength.results: { "json_array_length(?, ?)": 4 }
+```
+
+### `json_extract()`
+
+Extracts one or more values from a JSON string using JSONPath expressions.
+
+*   **Signature:** `json_extract(jsonData: string, ...paths: string[]): Promise<D1Result>`
+*   **SQL Equivalent:** `json_extract(json, path1, path2, ...)`
+*   **Example:**
+
+```typescript
+const data = '{"name": "Jane Doe", "age": 30, "address": {"street": "123 Main St", "city": "Anytown"}}';
+const name = await qb.json_extract(data, '$.name');
+// name.results: { "json_extract(?,?)": "Jane Doe" }
+
+const addressCity = await qb.json_extract(data, '$.address.city');
+// addressCity.results: { "json_extract(?,?)": "Anytown" }
+```
+
+### `json_insert()`
+
+Inserts or appends values into a JSON string at specified paths. If a path already exists, it does not replace the value (use `json_set` or `json_replace` for that).
+
+*   **Signature:** `json_insert(jsonData: string, path: string, value: any, ...args: any[]): Promise<D1Result>`
+*   **SQL Equivalent:** `json_insert(json, path, value, path2, value2, ...)`
+*   **Example:**
+
+```typescript
+const originalJson = '{"name": "John", "tags": ["dev"]}';
+const newValue = '{"status": "active"}'; // Can be stringified JSON or primitive
+const updatedJson = await qb.json_insert(originalJson, '$.age', 30, '$.tags[1]', 'qa');
+// updatedJson.results will contain the modified JSON string:
+// '{"name":"John","tags":["dev","qa"],"age":30}'
+console.log(updatedJson.results);
+```
+
+### `json_object()`
+
+Creates a new JSON object from a list of key-value pairs.
+
+*   **Signature:** `json_object(...args: any[]): Promise<D1Result>` (expects alternating key (string), value pairs)
+*   **SQL Equivalent:** `json_object(key1, value1, key2, value2, ...)`
+*   **Example:**
+
+```typescript
+const newObject = await qb.json_object('firstName', 'Jane', 'lastName', 'Doe', 'hobbies', JSON.stringify(['reading', 'hiking']));
+// newObject.results will contain:
+// '{"firstName":"Jane","lastName":"Doe","hobbies":["reading","hiking"]}'
+console.log(newObject.results);
+```
+
+### `json_patch()`
+
+Applies a JSON patch (RFC 6902) to a JSON string. In SQLite, this often behaves more like a merge patch.
+
+*   **Signature:** `json_patch(jsonData: string, patchData: string): Promise<D1Result>`
+*   **SQL Equivalent:** `json_patch(json, patch)`
+*   **Example:**
+
+```typescript
+const doc = '{"a": 1, "b": 2}';
+// SQLite's json_patch is more of a "merge" operation
+const patch = '{"a": 6, "c": 7}'; // Patch to merge
+const patchedJson = await qb.json_patch(doc, patch);
+// patchedJson.results: '{"a":6,"b":2,"c":7}'
+console.log(patchedJson.results);
+```
+
+### `json_remove()`
+
+Removes one or more elements from a JSON string at specified paths.
+
+*   **Signature:** `json_remove(jsonData: string, ...paths: string[]): Promise<D1Result>`
+*   **SQL Equivalent:** `json_remove(json, path1, path2, ...)`
+*   **Example:**
+
+```typescript
+const data = '{"name": "Jane Doe", "age": 30, "obsoleteField": "deleteMe"}';
+const cleanedJson = await qb.json_remove(data, '$.obsoleteField', '$.age');
+// cleanedJson.results: '{"name":"Jane Doe"}'
+console.log(cleanedJson.results);
+```
+
+### `json_replace()`
+
+Replaces existing values in a JSON string at specified paths. If a path does not exist, no change is made.
+
+*   **Signature:** `json_replace(jsonData: string, path: string, value: any, ...args: any[]): Promise<D1Result>`
+*   **SQL Equivalent:** `json_replace(json, path, value, path2, value2, ...)`
+*   **Example:**
+
+```typescript
+const originalJson = '{"name": "John", "age": 30}';
+const updatedJson = await qb.json_replace(originalJson, '$.age', 31);
+// updatedJson.results: '{"name":"John","age":31}'
+
+const notChangedJson = await qb.json_replace(originalJson, '$.nonExistent', 'newValue');
+// notChangedJson.results: '{"name":"John","age":30}' (no change)
+console.log(updatedJson.results);
+```
+
+### `json_set()`
+
+Sets (inserts or replaces) values in a JSON string at specified paths. If the path exists, it replaces the value; if not, it inserts it.
+
+*   **Signature:** `json_set(jsonData: string, path: string, value: any, ...args: any[]): Promise<D1Result>`
+*   **SQL Equivalent:** `json_set(json, path, value, path2, value2, ...)`
+*   **Example:**
+
+```typescript
+const originalJson = '{"name": "John", "age": 30}';
+// Replace existing
+const updatedJson = await qb.json_set(originalJson, '$.age', 31);
+// updatedJson.results: '{"name":"John","age":31}'
+
+// Insert new
+const insertedJson = await qb.json_set(originalJson, '$.status', 'active');
+// insertedJson.results: '{"name":"John","age":30,"status":"active"}'
+console.log(insertedJson.results);
+```
+
+### `json_type()`
+
+Returns the type of a JSON value (e.g., 'object', 'array', 'string', 'integer', 'real', 'true', 'false', 'null'). Can target a specific path.
+
+*   **Signature:** `json_type(jsonData: string, path?: string): Promise<D1Result>`
+*   **SQL Equivalent:** `json_type(json, path)`
+*   **Example:**
+
+```typescript
+const data = '{"name": "Jane", "count": 100, "isActive": true, "tags": ["a", "b"]}';
+const typeOfName = await qb.json_type(data, '$.name');
+// typeOfName.results: { "json_type(?,?)": "text" } (SQLite specific type)
+
+const typeOfCount = await qb.json_type(data, '$.count');
+// typeOfCount.results: { "json_type(?,?)": "integer" }
+
+const typeOfTags = await qb.json_type(data, '$.tags');
+// typeOfTags.results: { "json_type(?,?)": "array" }
+```
+
+### `json_valid()`
+
+Checks if a string is valid JSON. Returns 1 if valid, 0 otherwise.
+
+*   **Signature:** `json_valid(jsonData: string): Promise<D1Result>`
+*   **SQL Equivalent:** `json_valid(json)`
+*   **Example:**
+
+```typescript
+const validJson = '{"key": "value"}';
+const isValid = await qb.json_valid(validJson);
+// isValid.results: { "json_valid(?)": 1 }
+
+const invalidJson = '{"key": "value"';
+const isInvalid = await qb.json_valid(invalidJson);
+// isInvalid.results: { "json_valid(?)": 0 }
+```
+
+### `json_quote()`
+
+Quotes a string as a JSON string value. For numbers or booleans, it returns them as JSON numbers or booleans (often unquoted in the result, but correctly typed for JSON context). Nulls become the 'null' literal.
+
+*   **Signature:** `json_quote(value: any): Promise<D1Result>`
+*   **SQL Equivalent:** `json_quote(value)`
+*   **Example:**
+
+```typescript
+const quotedString = await qb.json_quote("hello world");
+// quotedString.results: { "json_quote(?)": "\"hello world\"" }
+
+const quotedNumber = await qb.json_quote(123.45);
+// quotedNumber.results: { "json_quote(?)": 123.45 } (SQLite returns number directly)
+```
+
+### `json_group_array()`
+
+An aggregate function that returns a JSON array composed of all values in a group. Typically used in `SELECT` statements with `GROUP BY`. The `D1QB` method is a direct passthrough for the function name.
+
+*   **Signature:** `json_group_array(value: any): Promise<D1Result>`
+*   **SQL Equivalent (within a query):** `SELECT json_group_array(column_name) FROM table GROUP BY ...;`
+*   **Example (direct call, limited use):**
+
+```typescript
+// Note: More typically used in a full SELECT query via qb.select() or qb.raw().
+// Direct call like this might have limited use cases or specific DB behavior.
+const groupedArray = await qb.json_group_array('some_column_or_value');
+// Example result if 'some_column_or_value' was treated as a single literal for aggregation:
+// groupedArray.results: { "json_group_array(?)": "[\"some_column_or_value\"]" }
+console.log(groupedArray.results);
+```
+
+### `json_each()`
+
+A table-valued function that iterates over a JSON object or array, returning one row for each element. The `D1QB` method currently fetches the first row due to `FetchTypes.ONE` in its implementation.
+
+*   **Signature:** `json_each(jsonData: string, path?: string): Promise<D1Result>`
+*   **SQL Equivalent (within a query):** `SELECT * FROM json_each(json, path);`
+*   **Example (fetches first row):**
+
+```typescript
+const data = '{"a": 1, "b": [2,3]}';
+const firstElement = await qb.json_each(data);
+// firstElement.results will be an object representing the first row from json_each,
+// e.g., { key: "a", value: 1, type: "integer", ... }
+console.log(firstElement.results);
+```
+
+### `json_tree()`
+
+A table-valued function similar to `json_each`, but it recursively walks through the JSON structure. The `D1QB` method currently fetches the first row.
+
+*   **Signature:** `json_tree(jsonData: string, path?: string): Promise<D1Result>`
+*   **SQL Equivalent (within a query):** `SELECT * FROM json_tree(json, path);`
+*   **Example (fetches first row):**
+
+```typescript
+const nestedData = '{"a": 1, "b": {"c": 2, "d": {"e": 3}}}';
+const firstNode = await qb.json_tree(nestedData);
+// firstNode.results will be an object representing the first node from json_tree.
+console.log(firstNode.results);
+```
