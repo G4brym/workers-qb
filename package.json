@@ -66,6 +66,5 @@
     "typescript": "^5.8.3",
     "vitepress": "^1.6.3",
     "wrangler": "^4.20.0"
-  },
-  "dependencies": {}
+  }
 }
