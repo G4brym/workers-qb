@@ -2,7 +2,7 @@ import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from './enums'
 import { Raw } from './tools'
 import { Merge } from './typefest'
 
-export type Primitive = null | string | number | boolean | bigint | Raw
+export type Primitive = null | string | number | boolean | bigint | Raw | SelectAll
 
 export type QueryLoggerMeta = {
   duration?: number
@@ -40,6 +40,7 @@ export type SelectOne = {
   having?: string | Array<string>
   orderBy?: string | Array<string> | Record<string, string | OrderTypes>
   offset?: number
+  subQueryPlaceholders?: Record<string, SelectAll>
 }
 
 export type RawQuery = {

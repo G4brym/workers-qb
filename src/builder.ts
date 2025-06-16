@@ -110,23 +110,32 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
   fetchOne<GenericResult = DefaultReturnObject>(
     params: SelectOne
   ): QueryWithExtra<GenericResultWrapper, OneResult<GenericResultWrapper, GenericResult>, IsAsync> {
+    const queryArgs: any[] = []
+    const countQueryArgs: any[] = [] // Separate args for count query
+
+    // Ensure subQueryPlaceholders are passed to the count query as well, if they exist on params
+    const selectParamsForCount: SelectAll = {
+      ...params,
+      fields: 'count(*) as total',
+      offset: undefined,
+      groupBy: undefined,
+      limit: 1,
+    }
+    if (params.subQueryPlaceholders) {
+      selectParamsForCount.subQueryPlaceholders = params.subQueryPlaceholders;
+    }
+
+
+    const mainSql = this._select({ ...params, limit: 1 } as SelectAll, queryArgs)
+    const countSql = this._select(selectParamsForCount, countQueryArgs)
+
     return new QueryWithExtra(
       (q) => {
         return this.execute(q)
       },
-      this._select({ ...params, limit: 1 }),
-      this._select({
-        ...params,
-        fields: 'count(*) as total',
-        offset: undefined,
-        groupBy: undefined,
-        limit: 1,
-      }),
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
-        ? Array.isArray(params.where?.params)
-          ? params.where?.params
-          : [params.where?.params]
-        : undefined,
+      mainSql,
+      countSql,
+      queryArgs, // Use the populated queryArgs from the main _select call
       FetchTypes.ONE
     )
   }
@@ -138,6 +147,27 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     ArrayResult<GenericResultWrapper, GenericResult, IsAsync, P extends { lazy: true } ? true : false>,
     IsAsync
   > {
+    const queryArgs: any[] = []
+    const countQueryArgs: any[] = [] // Separate args for count query
+
+    const mainQueryParams = { ...params, lazy: undefined }
+
+    // Ensure subQueryPlaceholders are passed to the count query as well
+    const countQueryParams: SelectAll = {
+      ...params,
+      fields: 'count(*) as total',
+      offset: undefined,
+      groupBy: undefined,
+      limit: 1,
+      lazy: undefined,
+    }
+    if (params.subQueryPlaceholders) {
+      countQueryParams.subQueryPlaceholders = params.subQueryPlaceholders;
+    }
+
+    const mainSql = this._select(mainQueryParams, queryArgs)
+    const countSql = this._select(countQueryParams, countQueryArgs)
+
     return new QueryWithExtra(
       (q) => {
         return params.lazy
@@ -147,20 +177,9 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
             >)
           : this.execute(q)
       },
-      this._select({ ...params, lazy: undefined }),
-      this._select({
-        ...params,
-        fields: 'count(*) as total',
-        offset: undefined,
-        groupBy: undefined,
-        limit: 1,
-        lazy: undefined,
-      }),
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
-        ? Array.isArray(params.where?.params)
-          ? params.where?.params
-          : [params.where?.params]
-        : undefined,
+      mainSql,
+      countSql,
+      queryArgs, // Use the populated queryArgs from the main _select call
       FetchTypes.ALL
     )
   }
@@ -415,14 +434,28 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  protected _select(params: SelectAll): string {
+  protected _select(params: SelectAll, queryArgs?: any[]): string {
+    const isTopLevelCall = queryArgs === undefined
+    if (isTopLevelCall) {
+      queryArgs = []
+    }
+
+    // This assertion tells TypeScript that queryArgs is definitely assigned after the block above.
+    const currentQueryArgs = queryArgs!
+
+    const context = {
+      subQueryPlaceholders: params.subQueryPlaceholders,
+      queryArgs: currentQueryArgs,
+      toSQLCompiler: this._select.bind(this),
+    }
+
     return (
       `SELECT ${this._fields(params.fields)}
        FROM ${params.tableName}` +
-      this._join(params.join) +
-      this._where(params.where) +
+      this._join(params.join, context) +
+      this._where(params.where, context) +
       this._groupBy(params.groupBy) +
-      this._having(params.having) +
+      this._having(params.having, context) +
       this._orderBy(params.orderBy) +
       this._limit(params.limit) +
       this._offset(params.offset)
@@ -436,40 +469,109 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     return value.join(', ')
   }
 
-  protected _where(value?: Where): string {
+  protected _where(
+    value: Where | undefined,
+    context: {
+      subQueryPlaceholders?: Record<string, SelectAll>
+      queryArgs: any[]
+      // Allow toSQLCompiler to be undefined for calls not originating from _select, though practically it should always be provided.
+      toSQLCompiler?: (params: SelectAll, queryArgs: any[]) => string
+    }
+  ): string {
     if (!value) return ''
-    let conditions = value
+
+    let conditionStrings: string[]
+    let primitiveParams: any[] = []
 
     if (typeof value === 'object' && !Array.isArray(value)) {
-      conditions = value.conditions
+      conditionStrings = Array.isArray(value.conditions) ? value.conditions : [value.conditions]
+      if (value.params) {
+        primitiveParams = Array.isArray(value.params) ? value.params : [value.params]
+      }
+    } else if (Array.isArray(value)) {
+      conditionStrings = value
+    } else {
+      // Assuming value is a single string condition
+      conditionStrings = [value as string]
     }
 
-    if (typeof conditions === 'string') return ` WHERE ${conditions.toString()}`
+    if (conditionStrings.length === 0) return ''
 
-    if ((conditions as Array<string>).length === 1) return ` WHERE ${(conditions as Array<string>)[0]!.toString()}`
+    let primitiveParamIndex = 0
+    const processedConditions: string[] = []
 
-    if ((conditions as Array<string>).length > 1) {
-      return ` WHERE (${(conditions as Array<string>).join(') AND (')})`
+    for (const conditionStr of conditionStrings) {
+      // Regex to split by token or by '?'
+      const parts = conditionStr.split(/(__SUBQUERY_TOKEN_\d+__|\?)/g).filter(Boolean)
+      let builtCondition = ''
+
+      for (const part of parts) {
+        if (part === '?') {
+          if (primitiveParamIndex >= primitiveParams.length) {
+            throw new Error('SQL generation error: Not enough primitive parameters for "?" placeholders in WHERE clause.')
+          }
+          context.queryArgs.push(primitiveParams[primitiveParamIndex++])
+          builtCondition += '?'
+        } else if (part.startsWith('__SUBQUERY_TOKEN_') && part.endsWith('__')) {
+          if (!context.subQueryPlaceholders || !context.toSQLCompiler) {
+            throw new Error('SQL generation error: Subquery context not provided for token processing.')
+          }
+          const subQueryParams = context.subQueryPlaceholders[part]
+          if (!subQueryParams) {
+            throw new Error(`SQL generation error: Subquery token ${part} not found in placeholders.`)
+          }
+          builtCondition += context.toSQLCompiler(subQueryParams, context.queryArgs)
+        } else {
+          builtCondition += part
+        }
+      }
+      // Wrap each individual condition processed this way, as SelectBuilder.where() might send multiple conditions.
+      // The original logic for multiple conditions was: `WHERE (${(conditions as Array<string>).join(') AND (')})`
+      // So, we wrap each one and then join by AND.
+      processedConditions.push(`(${builtCondition})`)
     }
 
-    return ''
+    if (primitiveParamIndex < primitiveParams.length && primitiveParams.length > 0) { // Check primitiveParams.length to avoid error if no params were expected
+        throw new Error('SQL generation error: Too many primitive parameters provided for "?" placeholders in WHERE clause.')
+    }
+
+    if (processedConditions.length === 0) return ''
+    return ` WHERE ${processedConditions.join(' AND ')}`
   }
 
-  protected _join(value?: Join | Array<Join>): string {
+  protected _join(
+    value: Join | Array<Join> | undefined,
+    context: {
+      // subQueryPlaceholders are not directly used by _join for its own structure,
+      // but toSQLCompiler will need them if item.table is a SelectAll object
+      // that itself has subQueryPlaceholders.
+      subQueryPlaceholders?: Record<string, SelectAll>
+      queryArgs: any[]
+      toSQLCompiler: (params: SelectAll, queryArgs: any[]) => string
+    }
+  ): string {
     if (!value) return ''
 
+    let joinArray: Join[]
     if (!Array.isArray(value)) {
-      value = [value]
+      joinArray = [value]
+    } else {
+      joinArray = value
     }
 
     const joinQuery: Array<string> = []
-    value.forEach((item: Join) => {
+    joinArray.forEach((item: Join) => {
       const type = item.type ? `${item.type} ` : ''
-      joinQuery.push(
-        `${type}JOIN ${typeof item.table === 'string' ? item.table : `(${this._select(item.table)})`}${
-          item.alias ? ` AS ${item.alias}` : ''
-        } ON ${item.on}`
-      )
+      let tableSql: string
+      if (typeof item.table === 'string') {
+        tableSql = item.table
+      } else {
+        // Subquery in JOIN. item.table is SelectAll in this case.
+        // The toSQLCompiler (this._select) will handle any '?' or tokens within this subquery,
+        // and push its arguments to context.queryArgs.
+        tableSql = `(${context.toSQLCompiler(item.table, context.queryArgs)})`
+      }
+      joinQuery.push(`${type}JOIN ${tableSql}${item.alias ? ` AS ${item.alias}` : ''} ON ${item.on}`)
     })
 
     return ' ' + joinQuery.join(' ')
@@ -482,11 +584,26 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     return ` GROUP BY ${value.join(', ')}`
   }
 
-  protected _having(value?: string | Array<string>): string {
+  protected _having(
+    value: Where | undefined, // Using Where type as Having structure is similar for conditions/params
+    context: {
+      subQueryPlaceholders?: Record<string, SelectAll>
+      queryArgs: any[]
+      toSQLCompiler?: (params: SelectAll, queryArgs: any[]) => string
+    }
+  ): string {
     if (!value) return ''
-    if (typeof value === 'string') return ` HAVING ${value}`
 
-    return ` HAVING ${value.join(' AND ')}`
+    // Re-use the _where logic for building HAVING clause structure.
+    // The _where method already handles token/param processing and populates context.queryArgs.
+    const whereEquivalentString = this._where(value, context)
+
+    if (whereEquivalentString.startsWith(' WHERE ')) {
+      return ` HAVING ${whereEquivalentString.substring(' WHERE '.length)}`
+    }
+    // If _where returned empty (e.g., no conditions) or an unexpected format,
+ курорт // return an empty string for HAVING as well.
+    return ''
   }
 
   protected _orderBy(value?: string | Array<string> | Record<string, string | OrderTypes>): string {
