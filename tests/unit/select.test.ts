@@ -934,3 +934,148 @@ describe('Select Builder', () => {
     }
   })
 })
+
+describe('Subqueries in SELECT statements', () => {
+  it('column IN (subquery) - no parameters', () => {
+    const sub = new QuerybuilderTest().select('allowed_ids').fields('id')
+    const q = new QuerybuilderTest().select('users').where('id IN ?', [sub.getOptions()]).getQueryAll()
+
+    expect(q.query).toEqual('SELECT * FROM users WHERE (id IN (SELECT id FROM allowed_ids))')
+    expect(q.arguments).toEqual([])
+  })
+
+  it('column IN (subquery) - subquery with parameters', () => {
+    const sub = new QuerybuilderTest().select('projects').fields('id').where('status = ?', ['active'])
+    const q = new QuerybuilderTest().select('tasks').where('project_id IN ?', [sub.getOptions()]).getQueryAll()
+
+    expect(q.query).toEqual('SELECT * FROM tasks WHERE (project_id IN (SELECT id FROM projects WHERE (status = ?)))')
+    expect(q.arguments).toEqual(['active'])
+  })
+
+  it('column IN (subquery) - subquery with parameters, main query also with parameters', () => {
+    const sub = new QuerybuilderTest().select('projects').fields('id').where('status = ?', ['active'])
+    const q = new QuerybuilderTest()
+      .select('tasks')
+      .where('user_id = ?', [10])
+      .where('project_id IN ?', [sub.getOptions()])
+      .getQueryAll()
+
+    expect(q.query).toEqual(
+      'SELECT * FROM tasks WHERE (user_id = ?) AND (project_id IN (SELECT id FROM projects WHERE (status = ?)))'
+    )
+    expect(q.arguments).toEqual([10, 'active'])
+
+    // Test reverse order of where clauses
+    const q2 = new QuerybuilderTest()
+      .select('tasks')
+      .where('project_id IN ?', [sub.getOptions()])
+      .where('user_id = ?', [10])
+      .getQueryAll()
+
+    expect(q2.query).toEqual(
+      'SELECT * FROM tasks WHERE (project_id IN (SELECT id FROM projects WHERE (status = ?))) AND (user_id = ?)'
+    )
+    expect(q2.arguments).toEqual(['active', 10])
+  })
+
+  it('EXISTS (subquery) - subquery with parameters', () => {
+    const sub = new QuerybuilderTest()
+      .select('permissions')
+      .fields('id')
+      .where('user_id = ? AND action = ?', [100, 'edit']) // This will become (user_id = ?) AND (action = ?)
+    const q = new QuerybuilderTest().select('documents').where('EXISTS ?', [sub.getOptions()]).getQueryAll()
+
+    // The modularBuilder.where currently splits 'user_id = ? AND action = ?' into one condition string.
+    // The builder.ts _where method then processes it.
+    // The condition 'user_id = ? AND action = ?' becomes '(user_id = ? AND action = ?)' by _where.
+    // So the subquery is (SELECT id FROM permissions WHERE ((user_id = ?) AND (action = ?)))
+    // And the outer query is WHERE (EXISTS (SELECT id FROM permissions WHERE ((user_id = ?) AND (action = ?))))
+    // Let's verify if SelectBuilder's where() with multiple params like `where('col1 = ? AND col2 = ?', [1, 2])` is handled as one condition by _where.
+    // ModularBuilder: `currentInputConditions = Array.isArray(conditions) ? conditions : [conditions]` -> `['user_id = ? AND action = ?']`
+    // ModularBuilder: `currentInputParams = params === undefined ? [] : Array.isArray(params) ? params : [params]` -> `[100, 'edit']`
+    // ModularBuilder loops `for (const conditionStr of currentInputConditions)`. Only one string.
+    // ModularBuilder `conditionParts = conditionStr.split('?')` -> `['user_id = ', ' AND action = ', '']`
+    // ModularBuilder `builtCondition = 'user_id = ' + '?' + ' AND action = ' + '?' + ''` -> `user_id = ? AND action = ?`
+    // This `builtCondition` is then passed to QueryBuilder `_where`'s `conditionStrings`.
+    // QueryBuilder `_where` iterates `conditionStrings`. `parts = builtCondition.split(...)` -> `['user_id = ', '?', ' AND action = ', '?', '']`
+    // QueryBuilder `_where` then reconstructs it, adding params to queryArgs. `(user_id = ? AND action = ?)`
+    // So the final subquery SQL will be `SELECT id FROM permissions WHERE (user_id = ? AND action = ?)`
+    // And the final outer query SQL will be `SELECT * FROM documents WHERE (EXISTS (SELECT id FROM permissions WHERE (user_id = ? AND action = ?)))`
+
+    // If the where in subquery was instead `.where('user_id = ?', [100]).where('action = ?', ['edit'])`
+    // then sub.getOptions().where.conditions would be `['user_id = ?', 'action = ?']`
+    // QueryBuilder `_where` would process these into `(user_id = ?)` and `(action = ?)`, joined by AND.
+    // Resulting in `WHERE (user_id = ?) AND (action = ?)`. The parentheses around each are correct.
+    // The current subquery uses a single string `where('user_id = ? AND action = ?', [100, 'edit'])`
+    // The modular select builder `where` processes this into a single condition string `user_id = ? AND action = ?` and its params `[100, 'edit']`.
+    // This single string goes into `_where`'s `conditionStrings`.
+    // `_where` splits this single string "user_id = ? AND action = ?" by token/?, processes it, and wraps it: `(user_id = ? AND action = ?)`
+    // So the subquery SQL is `SELECT id FROM permissions WHERE (user_id = ? AND action = ?)`
+    // The outer query is `WHERE (EXISTS (SELECT id FROM permissions WHERE (user_id = ? AND action = ?)))`
+    expect(q.query).toEqual(
+      'SELECT * FROM documents WHERE (EXISTS (SELECT id FROM permissions WHERE (user_id = ? AND action = ?)))'
+    )
+    expect(q.arguments).toEqual([100, 'edit'])
+  })
+
+  it('column = (subquery) - scalar subquery', () => {
+    const sub = new QuerybuilderTest()
+      .select('settings')
+      .fields('value')
+      .where('key = ?', ['default_role'])
+      .limit(1) // limit is important for scalar subquery
+    const q = new QuerybuilderTest().select('users').where('role = ?', [sub.getOptions()]).getQueryAll()
+
+    expect(q.query).toEqual(
+      'SELECT * FROM users WHERE (role = (SELECT value FROM settings WHERE (key = ?) LIMIT 1))'
+    )
+    expect(q.arguments).toEqual(['default_role'])
+  })
+
+  it('Multiple subqueries', () => {
+    const sub1 = new QuerybuilderTest().select('group_members').fields('user_id').where('group_id = ?', [1])
+    const sub2 = new QuerybuilderTest().select('banned_users').fields('user_id').where('reason = ?', ['spam'])
+    const q = new QuerybuilderTest()
+      .select('users')
+      .where('id IN ?', [sub1.getOptions()])
+      .where('id NOT IN ?', [sub2.getOptions()])
+      .getQueryAll()
+
+    expect(q.query).toEqual(
+      'SELECT * FROM users WHERE (id IN (SELECT user_id FROM group_members WHERE (group_id = ?))) AND (id NOT IN (SELECT user_id FROM banned_users WHERE (reason = ?)))'
+    )
+    expect(q.arguments).toEqual([1, 'spam'])
+  })
+
+  it('Subquery in HAVING clause', () => {
+    // Subquery to get customer_ids with total order sum > 1000
+    const sub = new QuerybuilderTest()
+      .select('orders')
+      .fields('customer_id')
+      .groupBy('customer_id')
+      .having('SUM(total) > ?', [1000]) // `having` uses `Where` type, so params are array
+
+    // Main query to get customer details for those identified by subquery
+    const q = new QuerybuilderTest()
+      .select('customers')
+      .fields(['id', 'name', 'COUNT(orders.id) as order_count'])
+      .join({ table: 'orders', on: 'customers.id = orders.customer_id' })
+      .groupBy(['customers.id', 'customers.name']) // Group by an array of fields
+      .having('id IN ?', [sub.getOptions()])
+      .getQueryAll()
+
+    // Expected SQL for subquery: SELECT customer_id FROM orders GROUP BY customer_id HAVING (SUM(total) > ?)
+    // Expected SQL for main query:
+    // SELECT id, name, COUNT(orders.id) as order_count
+    // FROM customers JOIN orders ON customers.id = orders.customer_id
+    // GROUP BY customers.id, customers.name
+    // HAVING (id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING (SUM(total) > ?)))
+    expect(q.query).toEqual(
+      'SELECT id, name, COUNT(orders.id) as order_count FROM customers' +
+      ' JOIN orders ON customers.id = orders.customer_id' +
+      ' GROUP BY customers.id, customers.name' +
+      ' HAVING (id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING (SUM(total) > ?)))'
+    )
+    expect(q.arguments).toEqual([1000])
+  })
+})
