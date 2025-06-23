@@ -12,7 +12,7 @@ describe('Logger', () => {
         tableName: 'testTable',
         fields: ['id', 'name'],
         where: {
-          conditions: 'field = ?1',
+          conditions: ['field = ?1'],
           params: ['test'],
         },
       })
@@ -40,7 +40,7 @@ describe('Logger', () => {
           tableName: 'testTable',
           fields: ['id', 'name'],
           where: {
-            conditions: 'field = ?1',
+            conditions: ['field = ?1'],
             params: ['test'],
           },
         })

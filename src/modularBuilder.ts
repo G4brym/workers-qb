@@ -60,12 +60,12 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     params?: Primitive | Primitive[]
   ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>
   where(
-    field: string | JsonExpression,
+    field: string | JsonExpression | Raw, // Added Raw
     operator: string,
     value: Primitive
   ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>
   where(
-    arg1: string | Array<string> | JsonExpression,
+    arg1: string | Array<string> | JsonExpression | Raw, // Added Raw
     arg2?: Primitive | Primitive[] | string,
     arg3?: Primitive
   ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
@@ -74,8 +74,8 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     const newParams = [...currentWhere.params]
 
     if (arg3 !== undefined && typeof arg2 === 'string') {
-      // Overload: where(field: string | JsonExpression, operator: string, value: Primitive)
-      const fieldOrJsonExpr = arg1 as string | JsonExpression
+      // Overload: where(field: string | JsonExpression | Raw, operator: string, value: Primitive)
+      const fieldOrJsonExpr = arg1 as string | JsonExpression | Raw
       const operator = arg2
       const value = arg3
 
@@ -83,14 +83,14 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
         const jsonExpr = fieldOrJsonExpr as JsonExpression
         newConditions.push(`${jsonExpr.expression} ${operator} ?`)
         newParams.push(...jsonExpr.bindings, value)
+      } else if ((fieldOrJsonExpr as Raw).isRaw) {
+        const rawExpr = fieldOrJsonExpr as Raw
+        newConditions.push(`${rawExpr.content} ${operator} ?`)
+        newParams.push(value)
       } else {
         // Assuming fieldOrJsonExpr is a string (field name)
-        // We should also handle if it's a Raw instance for safety, though less common here
-        let fieldStr = fieldOrJsonExpr as string
-        if((fieldOrJsonExpr as Raw).isRaw) {
-          fieldStr = (fieldOrJsonExpr as Raw).content;
-        }
-        newConditions.push(`${fieldStr} ${operator} ?`)
+        const field = fieldOrJsonExpr as string
+        newConditions.push(`${field} ${operator} ?`)
         newParams.push(value)
       }
     } else {

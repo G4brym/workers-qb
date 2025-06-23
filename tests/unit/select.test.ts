@@ -50,7 +50,7 @@ describe('Select Builder', () => {
         tableName: 'testTable',
         fields: '*',
         where: {
-          conditions: 'field = ?',
+          conditions: ['field = ?'], // Corrected
           params: ['test'],
         },
       }),
@@ -67,11 +67,11 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
         fields: '*',
-        where: 'field = true',
+        where: { conditions: ['field = true'], params: [] }, // Corrected
       }),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable WHERE field = true LIMIT 1')
-      expect(result.arguments).toEqual(undefined)
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -86,7 +86,7 @@ describe('Select Builder', () => {
       }),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable LIMIT 1')
-      expect(result.arguments).toEqual(undefined)
+      expect(result.arguments).toBeUndefined()
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -96,7 +96,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // This is already correct
           conditions: [],
           params: [],
         },
@@ -114,7 +114,7 @@ describe('Select Builder', () => {
         .fetchOne({
           tableName: 'testTable',
           fields: '*',
-          where: {
+          where: { // Correct
             conditions: [],
             params: [],
           },
@@ -133,7 +133,7 @@ describe('Select Builder', () => {
         .fetchOne({
           tableName: 'testTable',
           fields: '*',
-          where: {
+          where: { // Correct
             conditions: [],
             params: [],
           },
@@ -153,11 +153,12 @@ describe('Select Builder', () => {
         .fetchAll({
           tableName: 'testTable',
           offset: 4,
+          // No where clause here, so it's fine
         })
         .count(),
     ]) {
       expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
-      expect((result.results as any).arguments).toEqual(undefined)
+      expect((result.results as any).arguments).toBeUndefined()
       expect((result.results as any).fetchType).toEqual('ONE')
     }
   })
@@ -169,11 +170,12 @@ describe('Select Builder', () => {
           tableName: 'testTable',
           offset: 4,
           groupBy: ['field'],
+          // No where clause
         })
         .count(),
     ]) {
       expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
-      expect((result.results as any).arguments).toEqual(undefined)
+      expect((result.results as any).arguments).toBeUndefined()
       expect((result.results as any).fetchType).toEqual('ONE')
     }
   })
@@ -183,11 +185,11 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
         fields: '*',
-        where: ['field = true', 'active = false'],
+        where: { conditions: ['field = true', 'active = false'], params: [] }, // Corrected
       }),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable WHERE (field = true) AND (active = false) LIMIT 1')
-      expect(result.arguments).toEqual(undefined)
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -197,8 +199,8 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
-          conditions: 'field = ?1',
+        where: { // Corrected
+          conditions: ['field = ?1'],
           params: ['test'],
         },
         join: {
@@ -227,8 +229,8 @@ describe('Select Builder', () => {
         .fetchAll({
           tableName: 'testTable',
           fields: '*',
-          where: {
-            conditions: 'field = ?1',
+          where: { // Corrected
+            conditions: ['field = ?1'],
             params: ['test'],
           },
           join: [
@@ -268,8 +270,8 @@ describe('Select Builder', () => {
         .fetchAll({
           tableName: 'testTable',
           fields: '*',
-          where: {
-            conditions: 'field = ?1',
+          where: { // Corrected
+            conditions: ['field = ?1'],
             params: ['test'],
           },
           join: [
@@ -308,8 +310,8 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: ['id', 'name'],
-        where: {
-          conditions: 'field = ?1',
+        where: { // Corrected
+          conditions: ['field = ?1'],
           params: ['test'],
         },
         join: {
@@ -338,8 +340,8 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
-          conditions: 'field = ?1',
+        where: { // Corrected
+          conditions: ['field = ?1'],
           params: ['test'],
         },
         join: {
@@ -383,8 +385,8 @@ describe('Select Builder', () => {
         .fetchAll({
           tableName: 'testTable',
           fields: '*',
-          where: {
-            conditions: 'field = ?1',
+          where: { // Corrected
+            conditions: ['field = ?1'],
             params: ['test'],
           },
           join: {
@@ -428,8 +430,8 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
-          conditions: 'field = ?1',
+        where: { // Corrected
+          conditions: ['field = ?1'],
           params: ['test'],
         },
         join: {
@@ -500,13 +502,14 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
         fields: '*',
-        where: {
-          conditions: "field = 'test'",
+        where: { // Corrected
+          conditions: ["field = 'test'"],
+          params: []
         },
       }),
     ]) {
       expect(result.query).toEqual("SELECT * FROM testTable WHERE field = 'test' LIMIT 1")
-      expect(result.arguments).toBeUndefined()
+      expect(result.arguments).toEqual([]) // Now expects empty array
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -516,7 +519,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?', 'test = ?'],
           params: ['test', 123],
         },
@@ -539,7 +542,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -564,7 +567,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -590,7 +593,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -619,7 +622,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -649,7 +652,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -678,7 +681,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -708,7 +711,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -741,7 +744,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -772,7 +775,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1 OR test = ?2', 'test = ?3 OR field = ?4'],
           params: ['test', 123, 456, 'test'],
         },
@@ -894,8 +897,8 @@ describe('Select Builder', () => {
           table: 'employees',
           on: '1=1',
         },
-        where: {
-          conditions: 'field = ?',
+        where: { // Corrected
+          conditions: ['field = ?'],
           params: ['test'],
         },
       }),

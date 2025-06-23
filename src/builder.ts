@@ -25,7 +25,7 @@ import {
   Update,
   UpdateReturning,
   UpdateWithoutReturning,
-  Where,
+  WhereInput,
 } from './interfaces'
 import { asyncLoggerWrapper, defaultLogger } from './logger'
 import { MigrationOptions, asyncMigrationsBuilder } from './migrations'
@@ -436,7 +436,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     return value.join(', ')
   }
 
-  protected _where(value?: Where): string {
+  protected _where(value?: WhereInput): string {
     if (!value) return ''
     let conditions = value
 
