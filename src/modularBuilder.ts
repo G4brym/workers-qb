@@ -7,8 +7,9 @@ import {
   Primitive,
   SelectAll,
   SelectOne,
+  WhereClause,
 } from './interfaces'
-import { Query, QueryWithExtra } from './tools'
+import { JsonExpression, Query, QueryWithExtra, Raw } from './tools'
 
 export interface SelectExecuteOptions {
   lazy?: boolean
@@ -49,32 +50,71 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     return this._parseArray('fields', this._options.fields, fields)
   }
 
+  // Overload signatures for the where method
   where(
-    conditions: string | Array<string>,
+    condition: string,
     params?: Primitive | Primitive[]
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>
+  where(
+    conditions: Array<string>,
+    params?: Primitive | Primitive[]
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>
+  where(
+    field: string | JsonExpression,
+    operator: string,
+    value: Primitive
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>
+  where(
+    arg1: string | Array<string> | JsonExpression,
+    arg2?: Primitive | Primitive[] | string,
+    arg3?: Primitive
   ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
-    if (!Array.isArray(conditions)) {
-      conditions = [conditions]
-    }
-    if (params === undefined) params = []
-    if (!Array.isArray(params)) {
-      params = [params]
-    }
+    const currentWhere: WhereClause = this._options.where || { conditions: [], params: [] }
+    const newConditions = [...currentWhere.conditions]
+    const newParams = [...currentWhere.params]
 
-    if ((this._options.where as any)?.conditions) {
-      conditions = (this._options.where as any).conditions.concat(conditions)
-    }
+    if (arg3 !== undefined && typeof arg2 === 'string') {
+      // Overload: where(field: string | JsonExpression, operator: string, value: Primitive)
+      const fieldOrJsonExpr = arg1 as string | JsonExpression
+      const operator = arg2
+      const value = arg3
 
-    if ((this._options.where as any)?.params) {
-      params = (this._options.where as any).params.concat(params)
+      if ((fieldOrJsonExpr as JsonExpression).isJsonExpression) {
+        const jsonExpr = fieldOrJsonExpr as JsonExpression
+        newConditions.push(`${jsonExpr.expression} ${operator} ?`)
+        newParams.push(...jsonExpr.bindings, value)
+      } else {
+        // Assuming fieldOrJsonExpr is a string (field name)
+        // We should also handle if it's a Raw instance for safety, though less common here
+        let fieldStr = fieldOrJsonExpr as string
+        if((fieldOrJsonExpr as Raw).isRaw) {
+          fieldStr = (fieldOrJsonExpr as Raw).content;
+        }
+        newConditions.push(`${fieldStr} ${operator} ?`)
+        newParams.push(value)
+      }
+    } else {
+      // Overload: where(conditions: string | Array<string>, params?: Primitive | Primitive[])
+      let conditionsArg = arg1 as string | Array<string>
+      let paramsArg = (arg2 || []) as Primitive | Primitive[]
+
+      if (!Array.isArray(conditionsArg)) {
+        conditionsArg = [conditionsArg]
+      }
+      if (!Array.isArray(paramsArg)) {
+        paramsArg = [paramsArg]
+      }
+
+      newConditions.push(...conditionsArg)
+      newParams.push(...paramsArg)
     }
 
     return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
       {
         ...this._options,
         where: {
-          conditions: conditions,
-          params: params,
+          conditions: newConditions,
+          params: newParams,
         },
       },
       this._fetchAll,
@@ -124,22 +164,16 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
       whereInParams = values.flat()
     }
 
-    let conditions: string | Array<string> = [whereInCondition]
-    let params: Primitive[] = whereInParams
-    if ((this._options.where as any)?.conditions) {
-      conditions = (this._options.where as any)?.conditions.concat(conditions)
-    }
-
-    if ((this._options.where as any)?.params) {
-      params = (this._options.where as any)?.params.concat(params)
-    }
+    const currentWhere: WhereClause = this._options.where || { conditions: [], params: [] };
+    const newConditions = [...currentWhere.conditions, whereInCondition];
+    const newParams = [...currentWhere.params, ...whereInParams];
 
     return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
       {
         ...this._options,
         where: {
-          conditions: conditions,
-          params: params,
+          conditions: newConditions,
+          params: newParams,
         },
       },
       this._fetchAll,

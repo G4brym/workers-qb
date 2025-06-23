@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { JoinTypes, OrderTypes } from '../../src/enums'
+import { json } from '../../src/tools'
 import { QuerybuilderTest } from '../utils'
 
 describe('Select Builder', () => {
@@ -932,5 +933,133 @@ describe('Select Builder', () => {
       expect(result.arguments).toBeUndefined()
       expect(result.fetchType).toEqual('ALL')
     }
+  })
+
+  describe('JSON Functions in WHERE clause', () => {
+    it('select with json_extract', () => {
+      const result = new QuerybuilderTest()
+        .select('dataTable')
+        .where(json("json_extract(data, '$.name')"), '=', 'John Doe')
+        .getQueryAll()
+
+      expect(result.query).toEqual("SELECT * FROM dataTable WHERE json_extract(data, '$.name') = ?")
+      expect(result.arguments).toEqual(['John Doe'])
+      expect(result.fetchType).toEqual('ALL')
+    })
+
+    it('select with json_extract and path binding', () => {
+      const result = new QuerybuilderTest()
+        .select('dataTable')
+        .where(json('json_extract(data, ?)', '$.name'), '=', 'Jane Doe')
+        .getQueryAll()
+
+      expect(result.query).toEqual('SELECT * FROM dataTable WHERE json_extract(data, ?) = ?')
+      expect(result.arguments).toEqual(['$.name', 'Jane Doe'])
+      expect(result.fetchType).toEqual('ALL')
+    })
+
+    it('select with json_extract and multiple path bindings', () => {
+      const result = new QuerybuilderTest()
+        .select('dataTable')
+        .where(json('json_extract(data, ? || ?)', '$.users[', 0), '=', 'First User')
+        .getQueryAll()
+
+      expect(result.query).toEqual('SELECT * FROM dataTable WHERE json_extract(data, ? || ?) = ?')
+      expect(result.arguments).toEqual(['$.users[', 0, 'First User'])
+      expect(result.fetchType).toEqual('ALL')
+    })
+
+    it('select with json_array_length', () => {
+      const result = new QuerybuilderTest()
+        .select('dataTable')
+        .where(json("json_array_length(logins, '$.history')"), '>', 5)
+        .getQueryAll()
+
+      expect(result.query).toEqual("SELECT * FROM dataTable WHERE json_array_length(logins, '$.history') > ?")
+      expect(result.arguments).toEqual([5])
+      expect(result.fetchType).toEqual('ALL')
+    })
+
+    it('select with json_type and path binding', () => {
+        const result = new QuerybuilderTest()
+          .select('dataTable')
+          .where(json('json_type(attributes, ?)', '$.settings.theme'), '=', 'dark')
+          .getQueryAll()
+
+        expect(result.query).toEqual('SELECT * FROM dataTable WHERE json_type(attributes, ?) = ?')
+        expect(result.arguments).toEqual(['$.settings.theme', 'dark'])
+        expect(result.fetchType).toEqual('ALL')
+      })
+
+    it('select with chained where clauses including JSON functions', () => {
+      const result = new QuerybuilderTest()
+        .select('dataTable')
+        .where('processed = ?', true)
+        .where(json('json_extract(data, ?)', '$.status'), '=', 'active')
+        .where('retries', '<', 3)
+        .getQueryAll()
+
+      expect(result.query).toEqual(
+        'SELECT * FROM dataTable WHERE (processed = ?) AND (json_extract(data, ?) = ?) AND (retries < ?)'
+      )
+      expect(result.arguments).toEqual([true, '$.status', 'active', 3])
+      expect(result.fetchType).toEqual('ALL')
+    })
+
+    it('select one with json_extract', () => {
+        const result = new QuerybuilderTest()
+          .select('dataTable')
+          .where(json("json_extract(data, '$.name')"), '=', 'John Doe')
+          .getQueryOne()
+
+        expect(result.query).toEqual("SELECT * FROM dataTable WHERE json_extract(data, '$.name') = ? LIMIT 1")
+        expect(result.arguments).toEqual(['John Doe'])
+        expect(result.fetchType).toEqual('ONE')
+      })
+
+    it('select with json function in where and regular field condition', () => {
+        const qb = new QuerybuilderTest().select('myTable');
+        const result = qb
+            .where(json('JSON_EXTRACT(meta, ?)', '$.isAdmin'), '=', 1)
+            .where('age', '>', 30)
+            .getQueryAll();
+
+        expect(result.query).toBe('SELECT * FROM myTable WHERE (JSON_EXTRACT(meta, ?) = ?) AND (age > ?)');
+        expect(result.arguments).toEqual(['$.isAdmin', 1, 30]);
+    });
+
+    it('select with regular field condition then json function in where', () => {
+        const qb = new QuerybuilderTest().select('myTable');
+        const result = qb
+            .where('age', '>', 30)
+            .where(json('JSON_EXTRACT(meta, ?)', '$.isAdmin'), '=', 1)
+            .getQueryAll();
+
+        expect(result.query).toBe('SELECT * FROM myTable WHERE (age > ?) AND (JSON_EXTRACT(meta, ?) = ?)');
+        expect(result.arguments).toEqual([30, '$.isAdmin', 1]);
+    });
+
+    it('select with multiple json functions in where', () => {
+        const qb = new QuerybuilderTest().select('myTable');
+        const result = qb
+            .where(json('JSON_EXTRACT(meta, ?)', '$.isAdmin'), '=', 1)
+            .where(json('JSON_TYPE(meta, ?)', '$.tags'), '=', 'array')
+            .getQueryAll();
+
+        expect(result.query).toBe('SELECT * FROM myTable WHERE (JSON_EXTRACT(meta, ?) = ?) AND (JSON_TYPE(meta, ?) = ?)');
+        expect(result.arguments).toEqual(['$.isAdmin', 1, '$.tags', 'array']);
+    });
+
+    it('select with json function using direct path and another with bound path', () => {
+        const qb = new QuerybuilderTest().select('myTable');
+        const result = qb
+            .where(json("JSON_EXTRACT(meta, '$.config.enabled')"), '=', true)
+            .where(json('JSON_EXTRACT(meta, ?)', '$.user.id'), '=', 'uuid-123')
+            .getQueryAll();
+
+        expect(result.query).toBe("SELECT * FROM myTable WHERE (JSON_EXTRACT(meta, '$.config.enabled') = ?) AND (JSON_EXTRACT(meta, ?) = ?)");
+        expect(result.arguments).toEqual([true, '$.user.id', 'uuid-123']);
+    });
+
   })
 })

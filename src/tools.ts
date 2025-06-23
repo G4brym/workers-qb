@@ -67,3 +67,12 @@ export class QueryWithExtra<GenericResultWrapper, Result = any, IsAsync extends 
 export function trimQuery(query: string): string {
   return query.replace(/\s\s+/g, ' ')
 }
+
+export class JsonExpression {
+  public isJsonExpression = true
+  constructor(public readonly expression: string, public readonly bindings: Primitive[] = []) {}
+}
+
+export function json(expression: string, ...bindings: Primitive[]): JsonExpression {
+  return new JsonExpression(expression, bindings);
+}
