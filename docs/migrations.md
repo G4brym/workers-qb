@@ -89,16 +89,17 @@ export class MyDurableObject extends DurableObject {
     super(state, env);
 
     this.#qb = new DOQB(this.ctx.storage.sql);
-    void this.ctx.blockConcurrencyWhile(async () => {
+    void this.ctx.blockConcurrencyWhile(() => {
       // Assuming 'migrations' is an array of Migration objects defined elsewhere
       const migrationBuilder = this.#qb.migrations({ migrations });
-      await migrationBuilder.apply(); // Ensure apply is awaited
+      migrationBuilder.apply(); // Operations within blockConcurrencyWhile are synchronous
     });
   }
 
-  async getUsers(): Promise<Array<object>> {
+  getUsers(): Array<object> {
     // Example method, ensure migrations are applied before accessing tables
-    return this.#qb.select('users').all().results
+    // Operations within Durable Objects are generally synchronous after the initial setup.
+    return this.#qb.select('users').all().results;
   }
 }
 ```
