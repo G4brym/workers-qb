@@ -96,9 +96,9 @@ export class MyDurableObject extends DurableObject {
     });
   }
 
-  async getUsers(): Promise<Array<object>> {
+  getUsers(): Array<object> {
     // Example method, ensure migrations are applied before accessing tables
-    return this.#qb.select('users').all().results
+    return this.#qb.select('users').all().results;
   }
 }
 ```
