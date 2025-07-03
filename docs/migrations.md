@@ -89,7 +89,7 @@ export class MyDurableObject extends DurableObject {
     super(state, env);
 
     this.#qb = new DOQB(this.ctx.storage.sql);
-    void this.ctx.blockConcurrencyWhile(() => {
+    void this.ctx.blockConcurrencyWhile(async () => {
       // Assuming 'migrations' is an array of Migration objects defined elsewhere
       const migrationBuilder = this.#qb.migrations({ migrations });
       migrationBuilder.apply();
@@ -98,7 +98,6 @@ export class MyDurableObject extends DurableObject {
 
   getUsers(): Array<object> {
     // Example method, ensure migrations are applied before accessing tables
-    // Operations within Durable Objects are generally synchronous after the initial setup.
     return this.#qb.select('users').all().results;
   }
 }

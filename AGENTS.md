@@ -46,7 +46,7 @@ Welcome, agent! This document provides guidance for working effectively with the
         ```typescript
         // Inside a Durable Object constructor
         this.#qb = new DOQB(this.ctx.storage.sql);
-        this.ctx.blockConcurrencyWhile(() => { // No async here
+        this.ctx.blockConcurrencyWhile(async () => {
           const migrationBuilder = this.#qb.migrations({ migrations });
           migrationBuilder.apply(); // No await here
         });

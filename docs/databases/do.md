@@ -41,8 +41,7 @@ export class MyDurableObject extends DurableObject {
 
     // It's common to run schema migrations or table creations in the constructor,
     // wrapped in blockConcurrencyWhile to ensure they complete before other operations.
-    // Operations inside blockConcurrencyWhile are synchronous with respect to DO storage.
-    this.ctx.blockConcurrencyWhile(() => {
+    this.ctx.blockConcurrencyWhile(async () => {
       this.initializeDB();
     });
   }
@@ -96,8 +95,7 @@ export class MyDurableObject extends DurableObject {
     super(state, env);
     this.#qb = new DOQB(this.storage.sql);
 
-    // Operations inside blockConcurrencyWhile are synchronous with respect to DO storage.
-    this.ctx.blockConcurrencyWhile(() => {
+    this.ctx.blockConcurrencyWhile(async () => {
       // Create table (if not exists) - good practice in constructor
       this.#qb.createTable({
           tableName: 'items',
