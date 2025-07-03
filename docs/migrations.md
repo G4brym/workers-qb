@@ -92,7 +92,7 @@ export class MyDurableObject extends DurableObject {
     void this.ctx.blockConcurrencyWhile(() => {
       // Assuming 'migrations' is an array of Migration objects defined elsewhere
       const migrationBuilder = this.#qb.migrations({ migrations });
-      migrationBuilder.apply(); // Operations within blockConcurrencyWhile are synchronous
+      migrationBuilder.apply();
     });
   }
 
