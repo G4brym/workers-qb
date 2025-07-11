@@ -53,28 +53,66 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     conditions: string | Array<string>,
     params?: Primitive | Primitive[]
   ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
-    if (!Array.isArray(conditions)) {
-      conditions = [conditions]
-    }
-    if (params === undefined) params = []
-    if (!Array.isArray(params)) {
-      params = [params]
+    // Ensure _options has the necessary fields for subquery handling
+    this._options.subQueryPlaceholders = this._options.subQueryPlaceholders ?? {}
+    this._options.subQueryTokenNextId = this._options.subQueryTokenNextId ?? 0
+
+    const existingConditions = (this._options.where?.conditions ?? []) as string[]
+    const existingParams = (this._options.where?.params ?? []) as Primitive[]
+
+    const currentInputConditions = Array.isArray(conditions) ? conditions : [conditions]
+    const currentInputParams = params === undefined ? [] : Array.isArray(params) ? params : [params]
+
+    const processedNewConditions: string[] = []
+    const collectedPrimitiveParams: Primitive[] = []
+    let paramIndex = 0
+
+    for (const conditionStr of currentInputConditions) {
+      if (!conditionStr.includes('?')) {
+        processedNewConditions.push(conditionStr)
+        continue
+      }
+
+      const conditionParts = conditionStr.split('?')
+      let builtCondition = conditionParts[0]
+
+      for (let j = 0; j < conditionParts.length - 1; j++) {
+        if (paramIndex >= currentInputParams.length) {
+          throw new Error('Mismatch between "?" placeholders and parameters in where clause.')
+        }
+        const currentParam = currentInputParams[paramIndex++]
+
+        // Check if currentParam is a SelectAll object (subquery)
+        // It should be an object, not null, have a 'tableName' property, and not be a 'Raw' object.
+        const isSubQuery =
+          typeof currentParam === 'object' &&
+          currentParam !== null &&
+          'tableName' in currentParam &&
+          !currentParam.hasOwnProperty('_raw')
+
+        if (isSubQuery) {
+          const token = `__SUBQUERY_TOKEN_${this._options.subQueryTokenNextId++}__`
+          this._options.subQueryPlaceholders[token] = currentParam as SelectAll
+          builtCondition += `(${token})`
+        } else {
+          builtCondition += '?'
+          collectedPrimitiveParams.push(currentParam)
+        }
+        builtCondition += conditionParts[j + 1]
+      }
+      processedNewConditions.push(builtCondition)
     }
 
-    if ((this._options.where as any)?.conditions) {
-      conditions = (this._options.where as any).conditions.concat(conditions)
-    }
-
-    if ((this._options.where as any)?.params) {
-      params = (this._options.where as any).params.concat(params)
+    if (paramIndex < currentInputParams.length) {
+      throw new Error('Too many parameters provided for the given "?" placeholders in where clause.')
     }
 
     return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
       {
-        ...this._options,
+        ...this._options, // subQueryPlaceholders and subQueryTokenNextId are already updated on _options
         where: {
-          conditions: conditions,
-          params: params,
+          conditions: existingConditions.concat(processedNewConditions),
+          params: existingParams.concat(collectedPrimitiveParams),
         },
       },
       this._fetchAll,
