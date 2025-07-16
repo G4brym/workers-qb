@@ -15,7 +15,14 @@ export type QueryBuilderOptions<IsAsync extends boolean = true> = {
 export type DefaultObject = Record<string, Primitive>
 export type DefaultReturnObject = Record<string, null | string | number | boolean | bigint>
 
-export type Where =
+export type WhereClause = {
+  conditions: Array<string>
+  params: Array<Primitive>
+}
+
+// The Where type for individual calls can still be flexible,
+// but internally SelectOne and SelectAll will use WhereClause.
+export type WhereInput =
   | {
       conditions: string | Array<string>
       // TODO: enable named parameters with DefaultObject
@@ -34,7 +41,7 @@ export type Join = {
 export type SelectOne = {
   tableName: string
   fields?: string | Array<string>
-  where?: Where
+  where?: WhereClause // Changed from Where to WhereClause
   join?: Join | Array<Join>
   groupBy?: string | Array<string>
   having?: string | Array<string>
@@ -66,7 +73,7 @@ export type SelectAll = SelectOne & {
 export type ConflictUpsert = {
   column: string | Array<string>
   data: DefaultObject
-  where?: Where
+  where?: WhereInput
 }
 
 export type Insert = {
@@ -93,7 +100,7 @@ export type test<I extends Insert = Insert> = I
 export type Update = {
   tableName: string
   data: DefaultObject
-  where?: Where
+  where?: WhereInput
   returning?: string | Array<string>
   onConflict?: string | ConflictTypes
 }
@@ -105,7 +112,7 @@ export type UpdateWithoutReturning = Omit<Update, 'returning'>
 
 export type Delete = {
   tableName: string
-  where: Where // This field is optional, but is kept required in type to warn users of delete without where
+  where: WhereInput // This field is optional, but is kept required in type to warn users of delete without where
   returning?: string | Array<string>
   orderBy?: string | Array<string> | Record<string, string | OrderTypes>
   limit?: number

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { JoinTypes, OrderTypes } from '../../src/enums'
+import { json } from '../../src/tools'
 import { QuerybuilderTest } from '../utils'
 
 describe('Select Builder', () => {
@@ -49,7 +50,7 @@ describe('Select Builder', () => {
         tableName: 'testTable',
         fields: '*',
         where: {
-          conditions: 'field = ?',
+          conditions: ['field = ?'], // Corrected
           params: ['test'],
         },
       }),
@@ -66,11 +67,11 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
         fields: '*',
-        where: 'field = true',
+        where: { conditions: ['field = true'], params: [] }, // Corrected
       }),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable WHERE field = true LIMIT 1')
-      expect(result.arguments).toEqual(undefined)
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -85,7 +86,7 @@ describe('Select Builder', () => {
       }),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable LIMIT 1')
-      expect(result.arguments).toEqual(undefined)
+      expect(result.arguments).toBeUndefined()
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -95,7 +96,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // This is already correct
           conditions: [],
           params: [],
         },
@@ -113,7 +114,7 @@ describe('Select Builder', () => {
         .fetchOne({
           tableName: 'testTable',
           fields: '*',
-          where: {
+          where: { // Correct
             conditions: [],
             params: [],
           },
@@ -132,7 +133,7 @@ describe('Select Builder', () => {
         .fetchOne({
           tableName: 'testTable',
           fields: '*',
-          where: {
+          where: { // Correct
             conditions: [],
             params: [],
           },
@@ -152,11 +153,12 @@ describe('Select Builder', () => {
         .fetchAll({
           tableName: 'testTable',
           offset: 4,
+          // No where clause here, so it's fine
         })
         .count(),
     ]) {
       expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
-      expect((result.results as any).arguments).toEqual(undefined)
+      expect((result.results as any).arguments).toBeUndefined()
       expect((result.results as any).fetchType).toEqual('ONE')
     }
   })
@@ -168,11 +170,12 @@ describe('Select Builder', () => {
           tableName: 'testTable',
           offset: 4,
           groupBy: ['field'],
+          // No where clause
         })
         .count(),
     ]) {
       expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
-      expect((result.results as any).arguments).toEqual(undefined)
+      expect((result.results as any).arguments).toBeUndefined()
       expect((result.results as any).fetchType).toEqual('ONE')
     }
   })
@@ -182,11 +185,11 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
         fields: '*',
-        where: ['field = true', 'active = false'],
+        where: { conditions: ['field = true', 'active = false'], params: [] }, // Corrected
       }),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable WHERE (field = true) AND (active = false) LIMIT 1')
-      expect(result.arguments).toEqual(undefined)
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -196,8 +199,8 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
-          conditions: 'field = ?1',
+        where: { // Corrected
+          conditions: ['field = ?1'],
           params: ['test'],
         },
         join: {
@@ -226,8 +229,8 @@ describe('Select Builder', () => {
         .fetchAll({
           tableName: 'testTable',
           fields: '*',
-          where: {
-            conditions: 'field = ?1',
+          where: { // Corrected
+            conditions: ['field = ?1'],
             params: ['test'],
           },
           join: [
@@ -267,8 +270,8 @@ describe('Select Builder', () => {
         .fetchAll({
           tableName: 'testTable',
           fields: '*',
-          where: {
-            conditions: 'field = ?1',
+          where: { // Corrected
+            conditions: ['field = ?1'],
             params: ['test'],
           },
           join: [
@@ -307,8 +310,8 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: ['id', 'name'],
-        where: {
-          conditions: 'field = ?1',
+        where: { // Corrected
+          conditions: ['field = ?1'],
           params: ['test'],
         },
         join: {
@@ -337,8 +340,8 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
-          conditions: 'field = ?1',
+        where: { // Corrected
+          conditions: ['field = ?1'],
           params: ['test'],
         },
         join: {
@@ -382,8 +385,8 @@ describe('Select Builder', () => {
         .fetchAll({
           tableName: 'testTable',
           fields: '*',
-          where: {
-            conditions: 'field = ?1',
+          where: { // Corrected
+            conditions: ['field = ?1'],
             params: ['test'],
           },
           join: {
@@ -427,8 +430,8 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
-          conditions: 'field = ?1',
+        where: { // Corrected
+          conditions: ['field = ?1'],
           params: ['test'],
         },
         join: {
@@ -499,13 +502,14 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchOne({
         tableName: 'testTable',
         fields: '*',
-        where: {
-          conditions: "field = 'test'",
+        where: { // Corrected
+          conditions: ["field = 'test'"],
+          params: []
         },
       }),
     ]) {
       expect(result.query).toEqual("SELECT * FROM testTable WHERE field = 'test' LIMIT 1")
-      expect(result.arguments).toBeUndefined()
+      expect(result.arguments).toEqual([]) // Now expects empty array
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -515,7 +519,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?', 'test = ?'],
           params: ['test', 123],
         },
@@ -538,7 +542,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -563,7 +567,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -589,7 +593,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -618,7 +622,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -648,7 +652,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -677,7 +681,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -707,7 +711,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -740,7 +744,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1', 'test = ?2'],
           params: ['test', 123],
         },
@@ -771,7 +775,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().fetchAll({
         tableName: 'testTable',
         fields: '*',
-        where: {
+        where: { // Correct
           conditions: ['field = ?1 OR test = ?2', 'test = ?3 OR field = ?4'],
           params: ['test', 123, 456, 'test'],
         },
@@ -893,8 +897,8 @@ describe('Select Builder', () => {
           table: 'employees',
           on: '1=1',
         },
-        where: {
-          conditions: 'field = ?',
+        where: { // Corrected
+          conditions: ['field = ?'],
           params: ['test'],
         },
       }),
@@ -932,5 +936,133 @@ describe('Select Builder', () => {
       expect(result.arguments).toBeUndefined()
       expect(result.fetchType).toEqual('ALL')
     }
+  })
+
+  describe('JSON Functions in WHERE clause', () => {
+    it('select with json_extract', () => {
+      const result = new QuerybuilderTest()
+        .select('dataTable')
+        .where(json("json_extract(data, '$.name')"), '=', 'John Doe')
+        .getQueryAll()
+
+      expect(result.query).toEqual("SELECT * FROM dataTable WHERE json_extract(data, '$.name') = ?")
+      expect(result.arguments).toEqual(['John Doe'])
+      expect(result.fetchType).toEqual('ALL')
+    })
+
+    it('select with json_extract and path binding', () => {
+      const result = new QuerybuilderTest()
+        .select('dataTable')
+        .where(json('json_extract(data, ?)', '$.name'), '=', 'Jane Doe')
+        .getQueryAll()
+
+      expect(result.query).toEqual('SELECT * FROM dataTable WHERE json_extract(data, ?) = ?')
+      expect(result.arguments).toEqual(['$.name', 'Jane Doe'])
+      expect(result.fetchType).toEqual('ALL')
+    })
+
+    it('select with json_extract and multiple path bindings', () => {
+      const result = new QuerybuilderTest()
+        .select('dataTable')
+        .where(json('json_extract(data, ? || ?)', '$.users[', 0), '=', 'First User')
+        .getQueryAll()
+
+      expect(result.query).toEqual('SELECT * FROM dataTable WHERE json_extract(data, ? || ?) = ?')
+      expect(result.arguments).toEqual(['$.users[', 0, 'First User'])
+      expect(result.fetchType).toEqual('ALL')
+    })
+
+    it('select with json_array_length', () => {
+      const result = new QuerybuilderTest()
+        .select('dataTable')
+        .where(json("json_array_length(logins, '$.history')"), '>', 5)
+        .getQueryAll()
+
+      expect(result.query).toEqual("SELECT * FROM dataTable WHERE json_array_length(logins, '$.history') > ?")
+      expect(result.arguments).toEqual([5])
+      expect(result.fetchType).toEqual('ALL')
+    })
+
+    it('select with json_type and path binding', () => {
+        const result = new QuerybuilderTest()
+          .select('dataTable')
+          .where(json('json_type(attributes, ?)', '$.settings.theme'), '=', 'dark')
+          .getQueryAll()
+
+        expect(result.query).toEqual('SELECT * FROM dataTable WHERE json_type(attributes, ?) = ?')
+        expect(result.arguments).toEqual(['$.settings.theme', 'dark'])
+        expect(result.fetchType).toEqual('ALL')
+      })
+
+    it('select with chained where clauses including JSON functions', () => {
+      const result = new QuerybuilderTest()
+        .select('dataTable')
+        .where('processed = ?', true)
+        .where(json('json_extract(data, ?)', '$.status'), '=', 'active')
+        .where('retries', '<', 3)
+        .getQueryAll()
+
+      expect(result.query).toEqual(
+        'SELECT * FROM dataTable WHERE (processed = ?) AND (json_extract(data, ?) = ?) AND (retries < ?)'
+      )
+      expect(result.arguments).toEqual([true, '$.status', 'active', 3])
+      expect(result.fetchType).toEqual('ALL')
+    })
+
+    it('select one with json_extract', () => {
+        const result = new QuerybuilderTest()
+          .select('dataTable')
+          .where(json("json_extract(data, '$.name')"), '=', 'John Doe')
+          .getQueryOne()
+
+        expect(result.query).toEqual("SELECT * FROM dataTable WHERE json_extract(data, '$.name') = ? LIMIT 1")
+        expect(result.arguments).toEqual(['John Doe'])
+        expect(result.fetchType).toEqual('ONE')
+      })
+
+    it('select with json function in where and regular field condition', () => {
+        const qb = new QuerybuilderTest().select('myTable');
+        const result = qb
+            .where(json('JSON_EXTRACT(meta, ?)', '$.isAdmin'), '=', 1)
+            .where('age', '>', 30)
+            .getQueryAll();
+
+        expect(result.query).toBe('SELECT * FROM myTable WHERE (JSON_EXTRACT(meta, ?) = ?) AND (age > ?)');
+        expect(result.arguments).toEqual(['$.isAdmin', 1, 30]);
+    });
+
+    it('select with regular field condition then json function in where', () => {
+        const qb = new QuerybuilderTest().select('myTable');
+        const result = qb
+            .where('age', '>', 30)
+            .where(json('JSON_EXTRACT(meta, ?)', '$.isAdmin'), '=', 1)
+            .getQueryAll();
+
+        expect(result.query).toBe('SELECT * FROM myTable WHERE (age > ?) AND (JSON_EXTRACT(meta, ?) = ?)');
+        expect(result.arguments).toEqual([30, '$.isAdmin', 1]);
+    });
+
+    it('select with multiple json functions in where', () => {
+        const qb = new QuerybuilderTest().select('myTable');
+        const result = qb
+            .where(json('JSON_EXTRACT(meta, ?)', '$.isAdmin'), '=', 1)
+            .where(json('JSON_TYPE(meta, ?)', '$.tags'), '=', 'array')
+            .getQueryAll();
+
+        expect(result.query).toBe('SELECT * FROM myTable WHERE (JSON_EXTRACT(meta, ?) = ?) AND (JSON_TYPE(meta, ?) = ?)');
+        expect(result.arguments).toEqual(['$.isAdmin', 1, '$.tags', 'array']);
+    });
+
+    it('select with json function using direct path and another with bound path', () => {
+        const qb = new QuerybuilderTest().select('myTable');
+        const result = qb
+            .where(json("JSON_EXTRACT(meta, '$.config.enabled')"), '=', true)
+            .where(json('JSON_EXTRACT(meta, ?)', '$.user.id'), '=', 'uuid-123')
+            .getQueryAll();
+
+        expect(result.query).toBe("SELECT * FROM myTable WHERE (JSON_EXTRACT(meta, '$.config.enabled') = ?) AND (JSON_EXTRACT(meta, ?) = ?)");
+        expect(result.arguments).toEqual([true, '$.user.id', 'uuid-123']);
+    });
+
   })
 })
