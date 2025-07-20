@@ -1,8 +1,9 @@
 import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from './enums'
+import { SelectBuilder } from './modularBuilder'
 import { Raw } from './tools'
 import { Merge } from './typefest'
 
-export type Primitive = null | string | number | boolean | bigint | Raw | SelectAll
+export type Primitive = null | string | number | boolean | bigint | Raw | SelectAll | SelectBuilder<any, any, any>
 
 export type QueryLoggerMeta = {
   duration?: number
@@ -26,7 +27,7 @@ export type Where =
 
 export type Join = {
   type?: string | JoinTypes
-  table: string | SelectAll
+  table: string | SelectAll | SelectBuilder<any, any, any>
   on: string
   alias?: string
 }

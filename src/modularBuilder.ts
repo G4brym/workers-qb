@@ -92,17 +92,20 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
         const currentParam = currentInputParams[paramIndex++]
 
         const isSubQuery =
-          typeof currentParam === 'object' &&
-          currentParam !== null &&
-          ('tableName' in currentParam || 'getOptions' in currentParam) &&
-          !currentParam.hasOwnProperty('_raw')
+          (typeof currentParam === 'object' &&
+            currentParam !== null &&
+            ('tableName' in currentParam || 'getOptions' in currentParam) &&
+            !currentParam.hasOwnProperty('_raw')) ||
+          currentParam instanceof SelectBuilder
 
         if (isSubQuery) {
           const token = `__SUBQUERY_TOKEN_${subQueryTokenNextId++}__`
           subQueryPlaceholders[token] =
-            'getOptions' in currentParam && typeof currentParam.getOptions === 'function'
-              ? (currentParam.getOptions() as SelectAll)
-              : (currentParam as SelectAll)
+            currentParam instanceof SelectBuilder
+              ? currentParam.getOptions()
+              : 'getOptions' in currentParam && typeof currentParam.getOptions === 'function'
+                ? (currentParam.getOptions() as SelectAll)
+                : (currentParam as SelectAll)
           builtCondition += token
         } else {
           builtCondition += '?'
@@ -180,7 +183,16 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
   }
 
   join(join: SelectAll['join']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
-    return this._parseArray('join', this._options.join, join)
+    const joins = Array.isArray(join) ? join : [join]
+    const processedJoins = joins.map((j) => {
+      if (j && typeof j.table === 'object') {
+        if (j.table instanceof SelectBuilder) {
+          return { ...j, table: j.table.getOptions() }
+        }
+      }
+      return j
+    })
+    return this._parseArray('join', this._options.join, processedJoins)
   }
 
   groupBy(groupBy: SelectAll['groupBy']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
@@ -228,17 +240,20 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
         }
         const currentParam = currentInputParams[paramIndex++]
         const isSubQuery =
-          typeof currentParam === 'object' &&
-          currentParam !== null &&
-          ('tableName' in currentParam || 'getOptions' in currentParam) &&
-          !currentParam.hasOwnProperty('_raw')
+          (typeof currentParam === 'object' &&
+            currentParam !== null &&
+            ('tableName' in currentParam || 'getOptions' in currentParam) &&
+            !currentParam.hasOwnProperty('_raw')) ||
+          currentParam instanceof SelectBuilder
 
         if (isSubQuery) {
           const token = `__SUBQUERY_TOKEN_${subQueryTokenNextId++}__`
           subQueryPlaceholders[token] =
-            'getOptions' in currentParam && typeof currentParam.getOptions === 'function'
-              ? (currentParam.getOptions() as SelectAll)
-              : (currentParam as SelectAll)
+            currentParam instanceof SelectBuilder
+              ? currentParam.getOptions()
+              : 'getOptions' in currentParam && typeof currentParam.getOptions === 'function'
+                ? (currentParam.getOptions() as SelectAll)
+                : (currentParam as SelectAll)
           builtCondition += token
         } else {
           builtCondition += '?'

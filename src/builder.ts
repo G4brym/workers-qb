@@ -574,6 +574,8 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
       let tableSql: string
       if (typeof item.table === 'string') {
         tableSql = item.table
+      } else if (item.table instanceof SelectBuilder) {
+        tableSql = `(${context.toSQLCompiler(item.table.getOptions(), context.queryArgs)})`
       } else {
         // Subquery in JOIN. item.table is SelectAll in this case.
         // The toSQLCompiler (this._select) will handle any '?' or tokens within this subquery,
