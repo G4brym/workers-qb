@@ -12,7 +12,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().select('testTable').fields('*').getQueryAll(),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable')
-      expect(result.arguments).toBeUndefined()
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ALL')
     }
   })
@@ -25,7 +25,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().select('testTable').getQueryAll(),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable')
-      expect(result.arguments).toBeUndefined()
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ALL')
     }
   })
@@ -38,7 +38,7 @@ describe('Select Builder', () => {
       new QuerybuilderTest().select('testTable').getQueryOne(),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable LIMIT 1')
-      expect(result.arguments).toBeUndefined()
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -70,7 +70,7 @@ describe('Select Builder', () => {
       }),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable WHERE field = true LIMIT 1')
-      expect(result.arguments).toEqual(undefined)
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -85,7 +85,7 @@ describe('Select Builder', () => {
       }),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable LIMIT 1')
-      expect(result.arguments).toEqual(undefined)
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -156,7 +156,7 @@ describe('Select Builder', () => {
         .count(),
     ]) {
       expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
-      expect((result.results as any).arguments).toEqual(undefined)
+      expect((result.results as any).arguments).toEqual([])
       expect((result.results as any).fetchType).toEqual('ONE')
     }
   })
@@ -172,7 +172,7 @@ describe('Select Builder', () => {
         .count(),
     ]) {
       expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
-      expect((result.results as any).arguments).toEqual(undefined)
+      expect((result.results as any).arguments).toEqual([])
       expect((result.results as any).fetchType).toEqual('ONE')
     }
   })
@@ -186,7 +186,7 @@ describe('Select Builder', () => {
       }),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable WHERE (field = true) AND (active = false) LIMIT 1')
-      expect(result.arguments).toEqual(undefined)
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -505,7 +505,7 @@ describe('Select Builder', () => {
       }),
     ]) {
       expect(result.query).toEqual("SELECT * FROM testTable WHERE field = 'test' LIMIT 1")
-      expect(result.arguments).toBeUndefined()
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ONE')
     }
   })
@@ -878,7 +878,7 @@ describe('Select Builder', () => {
         .getQueryAll(),
     ]) {
       expect(result.query).toEqual('SELECT * FROM testTable CROSS JOIN employees ON 1=1')
-      expect(result.arguments).toBeUndefined()
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ALL')
     }
   })
@@ -929,7 +929,7 @@ describe('Select Builder', () => {
         .getQueryAll(),
     ]) {
       expect(result.query).toEqual('SELECT id, name FROM testTable CROSS JOIN employees ON 1=1')
-      expect(result.arguments).toBeUndefined()
+      expect(result.arguments).toEqual([])
       expect(result.fetchType).toEqual('ALL')
     }
   })
@@ -1047,7 +1047,7 @@ describe('Subqueries in SELECT statements', () => {
       .select('orders')
       .fields('customer_id')
       .groupBy('customer_id')
-      .having('SUM(total) > ?', [1000]) // `having` uses `Where` type, so params are array
+      .having('SUM(total) > ?', [1000])
 
     // Main query to get customer details for those identified by subquery
     const q = new QuerybuilderTest()

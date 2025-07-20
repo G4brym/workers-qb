@@ -470,7 +470,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
 
   protected _where(
     value: Where | undefined,
-    context: {
+    context?: {
       subQueryPlaceholders?: Record<string, SelectAll>
       queryArgs: any[]
       // Allow toSQLCompiler to be undefined for calls not originating from _select, though practically it should always be provided.
@@ -478,6 +478,9 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     }
   ): string {
     if (!value) return ''
+
+    // Ensure context is initialized for standalone _where calls (e.g., in _delete, _update)
+    const currentContext = context ?? { queryArgs: [] }
 
     let conditionStrings: string[]
     let primitiveParams: any[] = []
@@ -511,25 +514,24 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
               'SQL generation error: Not enough primitive parameters for "?" placeholders in WHERE clause.'
             )
           }
-          context.queryArgs.push(primitiveParams[primitiveParamIndex++])
+          currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
           builtCondition += '?'
         } else if (part.startsWith('__SUBQUERY_TOKEN_') && part.endsWith('__')) {
-          if (!context.subQueryPlaceholders || !context.toSQLCompiler) {
+          if (!currentContext.subQueryPlaceholders || !currentContext.toSQLCompiler) {
             throw new Error('SQL generation error: Subquery context not provided for token processing.')
           }
-          const subQueryParams = context.subQueryPlaceholders[part]
+          const subQueryParams = currentContext.subQueryPlaceholders[part]
           if (!subQueryParams) {
             throw new Error(`SQL generation error: Subquery token ${part} not found in placeholders.`)
           }
-          builtCondition += context.toSQLCompiler(subQueryParams, context.queryArgs)
+          // The subquery's SQL is generated, and its arguments are added to the main query's argument list.
+          const subQuerySql = currentContext.toSQLCompiler(subQueryParams, currentContext.queryArgs)
+          builtCondition += `(${subQuerySql})`
         } else {
           builtCondition += part
         }
       }
-      // Wrap each individual condition processed this way, as SelectBuilder.where() might send multiple conditions.
-      // The original logic for multiple conditions was: `WHERE (${(conditions as Array<string>).join(') AND (')})`
-      // So, we wrap each one and then join by AND.
-      processedConditions.push(`(${builtCondition})`)
+      processedConditions.push(builtCondition)
     }
 
     if (primitiveParamIndex < primitiveParams.length && primitiveParams.length > 0) {
@@ -540,7 +542,10 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     }
 
     if (processedConditions.length === 0) return ''
-    return ` WHERE ${processedConditions.join(' AND ')}`
+    if (processedConditions.length === 1) {
+      return ` WHERE ${processedConditions[0]}`
+    }
+    return ` WHERE (${processedConditions.join(') AND (')})`
   }
 
   protected _join(
@@ -598,16 +603,73 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
   ): string {
     if (!value) return ''
 
-    // Re-use the _where logic for building HAVING clause structure.
-    // The _where method already handles token/param processing and populates context.queryArgs.
-    const whereEquivalentString = this._where(value, context)
+    // Ensure context is initialized for standalone _where calls (e.g., in _delete, _update)
+    const currentContext = context ?? { queryArgs: [] }
 
-    if (whereEquivalentString.startsWith(' WHERE ')) {
-      return ` HAVING ${whereEquivalentString.substring(' WHERE '.length)}`
+    let conditionStrings: string[]
+    let primitiveParams: any[] = []
+
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      conditionStrings = Array.isArray(value.conditions) ? value.conditions : [value.conditions]
+      if (value.params) {
+        primitiveParams = Array.isArray(value.params) ? value.params : [value.params]
+      }
+    } else if (Array.isArray(value)) {
+      conditionStrings = value
+    } else {
+      // Assuming value is a single string condition
+      conditionStrings = [value as string]
     }
-    // If _where returned empty (e.g., no conditions) or an unexpected format,
-    курорт // return an empty string for HAVING as well.
-    return ''
+
+    if (conditionStrings.length === 0) return ''
+
+    let primitiveParamIndex = 0
+    const processedConditions: string[] = []
+
+    for (const conditionStr of conditionStrings) {
+      // Regex to split by token or by '?'
+      const parts = conditionStr.split(/(__SUBQUERY_TOKEN_\d+__|\?)/g).filter(Boolean)
+      let builtCondition = ''
+
+      for (const part of parts) {
+        if (part === '?') {
+          if (primitiveParamIndex >= primitiveParams.length) {
+            throw new Error(
+              'SQL generation error: Not enough primitive parameters for "?" placeholders in HAVING clause.'
+            )
+          }
+          currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
+          builtCondition += '?'
+        } else if (part.startsWith('__SUBQUERY_TOKEN_') && part.endsWith('__')) {
+          if (!currentContext.subQueryPlaceholders || !currentContext.toSQLCompiler) {
+            throw new Error('SQL generation error: Subquery context not provided for token processing.')
+          }
+          const subQueryParams = currentContext.subQueryPlaceholders[part]
+          if (!subQueryParams) {
+            throw new Error(`SQL generation error: Subquery token ${part} not found in placeholders.`)
+          }
+          // The subquery's SQL is generated, and its arguments are added to the main query's argument list.
+          const subQuerySql = currentContext.toSQLCompiler(subQueryParams, currentContext.queryArgs)
+          builtCondition += `(${subQuerySql})`
+        } else {
+          builtCondition += part
+        }
+      }
+      processedConditions.push(builtCondition)
+    }
+
+    if (primitiveParamIndex < primitiveParams.length && primitiveParams.length > 0) {
+      // Check primitiveParams.length to avoid error if no params were expected
+      throw new Error(
+        'SQL generation error: Too many primitive parameters provided for "?" placeholders in HAVING clause.'
+      )
+    }
+
+    if (processedConditions.length === 0) return ''
+    if (processedConditions.length === 1) {
+      return ` HAVING ${processedConditions[0]}`
+    }
+    return ` HAVING (${processedConditions.join(') AND (')})`
   }
 
   protected _orderBy(value?: string | Array<string> | Record<string, string | OrderTypes>): string {

@@ -4,3 +4,4 @@ dist
 docs/site
 src/**/*.js
 docs/.vitepress/cache
+.env
