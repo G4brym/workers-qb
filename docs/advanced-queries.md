@@ -87,6 +87,115 @@ const userProductCombinations = await qb.fetchAll<UserAndProduct>({
 console.log('User and product combinations:', userProductCombinations.results);
 ```
 
+## Subqueries
+
+`workers-qb` supports using subqueries within your `WHERE` and `HAVING` clauses, allowing for more complex and powerful queries. You can construct a subquery using the same modular `select()` builder and then pass its configuration to the main query.
+
+To pass a subquery as a parameter, you build it and then call `.getOptions()` on the `SelectBuilder` instance.
+
+### `IN` with a Subquery
+
+Use a subquery to filter results based on a dynamic set of values.
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+// Subquery: Get IDs of all active projects
+const activeProjectsSubquery = qb
+  .select('projects')
+  .fields('id')
+  .where('status = ?', 'active');
+
+// Main query: Get tasks that belong to active projects
+const tasksInActiveProjects = await qb
+  .select('tasks')
+  .where('project_id IN ?', [activeProjectsSubquery.getOptions()])
+  .execute();
+
+console.log(tasksInActiveProjects.results);
+// SQL: SELECT * FROM tasks WHERE project_id IN (SELECT id FROM projects WHERE status = 'active')
+```
+
+### `EXISTS` with a Subquery
+
+Check for the existence of rows in a subquery. This is useful for conditional filtering.
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+// Subquery: Check if a user has the 'edit' permission for a document
+const hasEditPermissionSubquery = qb
+  .select('permissions')
+  .where('user_id = ?', 100)
+  .where('action = ?', 'edit');
+
+// Main query: Select documents where the user has 'edit' permission
+const editableDocuments = await qb
+  .select('documents')
+  .where('EXISTS ?', [hasEditPermissionSubquery.getOptions()])
+  .execute();
+
+console.log(editableDocuments.results);
+// SQL: SELECT * FROM documents WHERE EXISTS (SELECT * FROM permissions WHERE user_id = 100 AND action = 'edit')
+```
+
+### Scalar Subquery
+
+Use a subquery that returns a single value (a scalar) to compare against a column.
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+// Subquery: Get the default role ID from a settings table
+const defaultRoleSubquery = qb
+  .select('settings')
+  .fields('value')
+  .where('key = ?', 'default_role')
+  .limit(1);
+
+// Main query: Find all users who have the default role
+const usersWithDefaultRole = await qb
+  .select('users')
+  .where('role_id = ?', [defaultRoleSubquery.getOptions()])
+  .execute();
+
+console.log(usersWithDefaultRole.results);
+// SQL: SELECT * FROM users WHERE role_id = (SELECT value FROM settings WHERE key = 'default_role' LIMIT 1)
+```
+
+### Subqueries in `HAVING` Clauses
+
+You can also use subqueries within a `HAVING` clause to filter grouped results.
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+// Subquery: Get IDs of customers with total order value over 1000
+const highValueCustomersSubquery = qb
+  .select('orders')
+  .fields('customer_id')
+  .groupBy('customer_id')
+  .having('SUM(total) > ?', 1000);
+
+// Main query: Get customer details for high-value customers
+const customerDetails = await qb
+  .select('customers')
+  .fields(['id', 'name'])
+  .having('id IN ?', [highValueCustomersSubquery.getOptions()])
+  .execute();
+
+console.log(customerDetails.results);
+// SQL: SELECT id, name FROM customers HAVING id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING SUM(total) > 1000)
+```
+
 ## Modular Select Queries
 
 `workers-qb` provides a modular `select()` builder for constructing SELECT queries in a chainable and readable manner.

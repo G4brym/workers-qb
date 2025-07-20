@@ -54,6 +54,7 @@ workers-qb is a lightweight query builder designed specifically for Cloudflare W
 - CRUD operations (insert/update/select/delete)
 - Bulk inserts
 - JOIN queries
+- Subqueries
 - Modular SELECT queries
 - ON CONFLICT handling
 - UPSERT support
