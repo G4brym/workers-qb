@@ -4,7 +4,7 @@ import { QuerybuilderTest } from '../utils'
 describe('Subqueries using SelectBuilder instance', () => {
   it('column IN (subquery) - passing SelectBuilder directly', () => {
     const sub = new QuerybuilderTest().select('allowed_ids').fields('id')
-    const q = new QuerybuilderTest().select('users').where('id IN ?', [sub]).getQueryAll()
+    const q = new QuerybuilderTest().select('users').where('id IN ?', sub).getQueryAll()
 
     expect(q.query).toEqual('SELECT * FROM users WHERE id IN (SELECT id FROM allowed_ids)')
     expect(q.arguments).toEqual([])
@@ -12,7 +12,7 @@ describe('Subqueries using SelectBuilder instance', () => {
 
   it('column IN (subquery) - subquery with parameters', () => {
     const sub = new QuerybuilderTest().select('projects').fields('id').where('status = ?', 'active')
-    const q = new QuerybuilderTest().select('tasks').where('project_id IN ?', [sub]).getQueryAll()
+    const q = new QuerybuilderTest().select('tasks').where('project_id IN ?', sub).getQueryAll()
 
     expect(q.query).toEqual('SELECT * FROM tasks WHERE project_id IN (SELECT id FROM projects WHERE status = ?)')
     expect(q.arguments).toEqual(['active'])

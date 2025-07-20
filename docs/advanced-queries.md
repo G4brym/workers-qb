@@ -89,13 +89,17 @@ console.log('User and product combinations:', userProductCombinations.results);
 
 ## Subqueries
 
-`workers-qb` supports using subqueries within your `WHERE` and `HAVING` clauses, allowing for more complex and powerful queries. You can construct a subquery using the same modular `select()` builder and then pass its configuration to the main query.
+`workers-qb` supports using subqueries within your `WHERE`, `HAVING` and `JOIN` clauses, allowing for more complex and powerful queries. 
+You can construct a subquery in two main ways:
 
-To pass a subquery as a parameter, you build it and then call `.getOptions()` on the `SelectBuilder` instance.
+1.  **Passing a `SelectBuilder` instance**: Useful when you want to build a subquery and reuse it in multiple places.
+2.  **Using an inline function**: A concise way to define a subquery directly within the main query.
 
 ### `IN` with a Subquery
 
 Use a subquery to filter results based on a dynamic set of values.
+
+#### Using a `SelectBuilder` instance
 
 ```typescript
 import { D1QB } from 'workers-qb';
@@ -111,7 +115,24 @@ const activeProjectsSubquery = qb
 // Main query: Get tasks that belong to active projects
 const tasksInActiveProjects = await qb
   .select('tasks')
-  .where('project_id IN ?', [activeProjectsSubquery.getOptions()])
+  .where('project_id IN ?', activeProjectsSubquery)
+  .execute();
+
+console.log(tasksInActiveProjects.results);
+// SQL: SELECT * FROM tasks WHERE project_id IN (SELECT id FROM projects WHERE status = 'active')
+```
+
+#### Using an inline function
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+// Main query: Get tasks that belong to active projects
+const tasksInActiveProjects = await qb
+  .select('tasks')
+  .where('project_id IN ?', (qb) => qb.select('projects').fields('id').where('status = ?', 'active'))
   .execute();
 
 console.log(tasksInActiveProjects.results);
@@ -136,7 +157,7 @@ const hasEditPermissionSubquery = qb
 // Main query: Select documents where the user has 'edit' permission
 const editableDocuments = await qb
   .select('documents')
-  .where('EXISTS ?', [hasEditPermissionSubquery.getOptions()])
+  .where('EXISTS ?', hasEditPermissionSubquery)
   .execute();
 
 console.log(editableDocuments.results);
@@ -162,7 +183,7 @@ const defaultRoleSubquery = qb
 // Main query: Find all users who have the default role
 const usersWithDefaultRole = await qb
   .select('users')
-  .where('role_id = ?', [defaultRoleSubquery.getOptions()])
+  .where('role_id = ?', defaultRoleSubquery)
   .execute();
 
 console.log(usersWithDefaultRole.results);
@@ -189,11 +210,39 @@ const highValueCustomersSubquery = qb
 const customerDetails = await qb
   .select('customers')
   .fields(['id', 'name'])
-  .having('id IN ?', [highValueCustomersSubquery.getOptions()])
+  .having('id IN ?', highValueCustomersSubquery)
   .execute();
 
 console.log(customerDetails.results);
 // SQL: SELECT id, name FROM customers HAVING id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING SUM(total) > 1000)
+```
+
+### Subqueries in `JOIN` Clauses
+
+You can use a subquery as a derived table in a `JOIN` clause. This is useful for complex aggregations or when you need to join against a pre-filtered or pre-aggregated set of data.
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+// Main query: Get customer details along with their total order count
+const customerOrderCounts = await qb
+  .select('customers')
+  .fields(['customers.name', 'oc.order_count'])
+  .join({
+    table: (qb) =>
+      qb
+        .select('orders')
+        .fields(['customer_id', 'COUNT(id) as order_count'])
+        .groupBy('customer_id'),
+    alias: 'oc',
+    on: 'customers.id = oc.customer_id',
+  })
+  .execute();
+
+console.log(customerOrderCounts.results);
+// SQL: SELECT customers.name, oc.order_count FROM customers JOIN (SELECT customer_id, COUNT(id) as order_count FROM orders GROUP BY customer_id) AS oc ON customers.id = oc.customer_id
 ```
 
 ## Modular Select Queries
