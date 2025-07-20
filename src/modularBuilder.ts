@@ -58,9 +58,16 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     let subQueryTokenNextId = this._options.subQueryTokenNextId ?? 0
 
     const existingConditions =
-      this._options.where && 'conditions' in this._options.where ? (this._options.where.conditions as string[]) : []
+      this._options.where && typeof this._options.where === 'object' && 'conditions' in this._options.where
+        ? (this._options.where.conditions as string[])
+        : []
     const existingParams =
-      this._options.where && 'params' in this._options.where ? (this._options.where.params as Primitive[]) : []
+      this._options.where &&
+      typeof this._options.where === 'object' &&
+      'params' in this._options.where &&
+      this._options.where.params
+        ? (this._options.where.params as Primitive[])
+        : []
 
     const currentInputConditions = Array.isArray(conditions) ? conditions : [conditions]
     const currentInputParams = params === undefined ? [] : Array.isArray(params) ? params : [params]
@@ -76,7 +83,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
       }
 
       const conditionParts = conditionStr.split('?')
-      let builtCondition = conditionParts[0]
+      let builtCondition = conditionParts[0] ?? ''
 
       for (let j = 0; j < conditionParts.length - 1; j++) {
         if (paramIndex >= currentInputParams.length) {
@@ -84,8 +91,6 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
         }
         const currentParam = currentInputParams[paramIndex++]
 
-        // Check if currentParam is a SelectAll object (subquery)
-        // It should be an object, not null, have a 'tableName' property, and not be a 'Raw' object.
         const isSubQuery =
           typeof currentParam === 'object' &&
           currentParam !== null &&
@@ -95,13 +100,17 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
         if (isSubQuery) {
           const token = `__SUBQUERY_TOKEN_${subQueryTokenNextId++}__`
           subQueryPlaceholders[token] =
-            'getOptions' in currentParam ? (currentParam.getOptions() as SelectAll) : (currentParam as SelectAll)
+            'getOptions' in currentParam && typeof currentParam.getOptions === 'function'
+              ? (currentParam.getOptions() as SelectAll)
+              : (currentParam as SelectAll)
           builtCondition += token
         } else {
           builtCondition += '?'
-          collectedPrimitiveParams.push(currentParam)
+          if (currentParam !== undefined) {
+            collectedPrimitiveParams.push(currentParam)
+          }
         }
-        builtCondition += conditionParts[j + 1]
+        builtCondition += conditionParts[j + 1] ?? ''
       }
       processedNewConditions.push(builtCondition)
     }
@@ -186,9 +195,16 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     let subQueryTokenNextId = this._options.subQueryTokenNextId ?? 0
 
     const existingConditions =
-      this._options.having && 'conditions' in this._options.having ? (this._options.having.conditions as string[]) : []
+      this._options.having && typeof this._options.having === 'object' && 'conditions' in this._options.having
+        ? (this._options.having.conditions as string[])
+        : []
     const existingParams =
-      this._options.having && 'params' in this._options.having ? (this._options.having.params as Primitive[]) : []
+      this._options.having &&
+      typeof this._options.having === 'object' &&
+      'params' in this._options.having &&
+      this._options.having.params
+        ? (this._options.having.params as Primitive[])
+        : []
 
     const currentInputConditions = Array.isArray(conditions) ? conditions : [conditions]
     const currentInputParams = params === undefined ? [] : Array.isArray(params) ? params : [params]
@@ -204,7 +220,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
       }
 
       const conditionParts = conditionStr.split('?')
-      let builtCondition = conditionParts[0]
+      let builtCondition = conditionParts[0] ?? ''
 
       for (let j = 0; j < conditionParts.length - 1; j++) {
         if (paramIndex >= currentInputParams.length) {
@@ -220,13 +236,17 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
         if (isSubQuery) {
           const token = `__SUBQUERY_TOKEN_${subQueryTokenNextId++}__`
           subQueryPlaceholders[token] =
-            'getOptions' in currentParam ? (currentParam.getOptions() as SelectAll) : (currentParam as SelectAll)
+            'getOptions' in currentParam && typeof currentParam.getOptions === 'function'
+              ? (currentParam.getOptions() as SelectAll)
+              : (currentParam as SelectAll)
           builtCondition += token
         } else {
           builtCondition += '?'
-          collectedPrimitiveParams.push(currentParam)
+          if (currentParam !== undefined) {
+            collectedPrimitiveParams.push(currentParam)
+          }
         }
-        builtCondition += conditionParts[j + 1]
+        builtCondition += conditionParts[j + 1] ?? ''
       }
       processedNewConditions.push(builtCondition)
     }
@@ -340,7 +360,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     return this._fetchOne(this._options as SelectOne).count()
   }
 
-  getOptions(): Partial<SelectAll> {
-    return this._options
+  getOptions(): SelectAll {
+    return this._options as SelectAll
   }
 }

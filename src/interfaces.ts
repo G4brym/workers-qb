@@ -37,10 +37,11 @@ export type SelectOne = {
   where?: Where
   join?: Join | Array<Join>
   groupBy?: string | Array<string>
-  having?: string | Array<string>
+  having?: Where
   orderBy?: string | Array<string> | Record<string, string | OrderTypes>
   offset?: number
   subQueryPlaceholders?: Record<string, SelectAll>
+  subQueryTokenNextId?: number
 }
 
 export type RawQuery = {

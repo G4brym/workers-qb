@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest'
 import { JoinTypes, OrderTypes } from '../../src/enums'
 import { QuerybuilderTest } from '../utils'
 
+type TestQueryResult = {
+  results: {
+    query: string
+    arguments: any[]
+    fetchType: string
+  }
+}
+
 describe('Select Builder', () => {
   it('select simple', async () => {
     for (const result of [
@@ -109,7 +117,7 @@ describe('Select Builder', () => {
 
   it('count with empty where 2', async () => {
     for (const result of [
-      await new QuerybuilderTest()
+      (await new QuerybuilderTest()
         .fetchOne({
           tableName: 'testTable',
           fields: '*',
@@ -118,17 +126,17 @@ describe('Select Builder', () => {
             params: [],
           },
         })
-        .count(),
+        .count()) as unknown as TestQueryResult,
     ]) {
-      expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
-      expect((result.results as any).arguments).toEqual([])
-      expect((result.results as any).fetchType).toEqual('ONE')
+      expect(result.results.query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
+      expect(result.results.arguments).toEqual([])
+      expect(result.results.fetchType).toEqual('ONE')
     }
   })
 
   it('count from fetchOne with offset defined', async () => {
     for (const result of [
-      await new QuerybuilderTest()
+      (await new QuerybuilderTest()
         .fetchOne({
           tableName: 'testTable',
           fields: '*',
@@ -138,42 +146,42 @@ describe('Select Builder', () => {
           },
           offset: 3,
         })
-        .count(),
+        .count()) as unknown as TestQueryResult,
     ]) {
-      expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
-      expect((result.results as any).arguments).toEqual([])
-      expect((result.results as any).fetchType).toEqual('ONE')
+      expect(result.results.query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
+      expect(result.results.arguments).toEqual([])
+      expect(result.results.fetchType).toEqual('ONE')
     }
   })
 
   it('count from fetchAll with offset defined', async () => {
     for (const result of [
-      await new QuerybuilderTest()
+      (await new QuerybuilderTest()
         .fetchAll({
           tableName: 'testTable',
           offset: 4,
         })
-        .count(),
+        .count()) as unknown as TestQueryResult,
     ]) {
-      expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
-      expect((result.results as any).arguments).toEqual([])
-      expect((result.results as any).fetchType).toEqual('ONE')
+      expect(result.results.query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
+      expect(result.results.arguments).toEqual([])
+      expect(result.results.fetchType).toEqual('ONE')
     }
   })
 
   it('count should remove group by', async () => {
     for (const result of [
-      await new QuerybuilderTest()
+      (await new QuerybuilderTest()
         .fetchAll({
           tableName: 'testTable',
           offset: 4,
           groupBy: ['field'],
         })
-        .count(),
+        .count()) as unknown as TestQueryResult,
     ]) {
-      expect((result.results as any).query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
-      expect((result.results as any).arguments).toEqual([])
-      expect((result.results as any).fetchType).toEqual('ONE')
+      expect(result.results.query).toEqual('SELECT count(*) as total FROM testTable LIMIT 1')
+      expect(result.results.arguments).toEqual([])
+      expect(result.results.fetchType).toEqual('ONE')
     }
   })
 
@@ -222,7 +230,7 @@ describe('Select Builder', () => {
 
   it('select with multiple joins', async () => {
     for (const result of [
-      await new QuerybuilderTest()
+      (await new QuerybuilderTest()
         .fetchAll({
           tableName: 'testTable',
           fields: '*',
@@ -241,29 +249,29 @@ describe('Select Builder', () => {
             },
           ],
         })
-        .execute(),
-      await new QuerybuilderTest()
+        .execute()) as unknown as TestQueryResult,
+      (await new QuerybuilderTest()
         .select('testTable')
         .fields('*')
         .where('field = ?1', 'test')
         .join({ table: 'employees', on: 'testTable.employee_id = employees.id' })
         .join({ table: 'offices', on: 'testTable.office_id = offices.id' })
-        .execute(),
+        .execute()) as unknown as TestQueryResult,
     ]) {
-      expect((result.results as any).query).toEqual(
+      expect(result.results.query).toEqual(
         'SELECT * FROM testTable' +
           ' JOIN employees ON testTable.employee_id = employees.id' +
           ' JOIN offices ON testTable.office_id = offices.id' +
           ' WHERE field = ?1'
       )
-      expect((result.results as any).arguments).toEqual(['test'])
-      expect((result.results as any).fetchType).toEqual('ALL')
+      expect(result.results.arguments).toEqual(['test'])
+      expect(result.results.fetchType).toEqual('ALL')
     }
   })
 
   it('count with multiple joins', async () => {
     for (const result of [
-      await new QuerybuilderTest()
+      (await new QuerybuilderTest()
         .fetchAll({
           tableName: 'testTable',
           fields: '*',
@@ -282,23 +290,23 @@ describe('Select Builder', () => {
             },
           ],
         })
-        .count(),
-      await new QuerybuilderTest()
+        .count()) as unknown as TestQueryResult,
+      (await new QuerybuilderTest()
         .select('testTable')
         .fields('*')
         .where('field = ?1', 'test')
         .join({ table: 'employees', on: 'testTable.employee_id = employees.id' })
         .join({ table: 'offices', on: 'testTable.office_id = offices.id' })
-        .count(),
+        .count()) as unknown as TestQueryResult,
     ]) {
-      expect((result.results as any).query).toEqual(
+      expect(result.results.query).toEqual(
         'SELECT count(*) as total FROM testTable' +
           ' JOIN employees ON testTable.employee_id = employees.id' +
           ' JOIN offices ON testTable.office_id = offices.id' +
           ' WHERE field = ?1 LIMIT 1'
       )
-      expect((result.results as any).arguments).toEqual(['test'])
-      expect((result.results as any).fetchType).toEqual('ONE')
+      expect(result.results.arguments).toEqual(['test'])
+      expect(result.results.fetchType).toEqual('ONE')
     }
   })
 
@@ -378,7 +386,7 @@ describe('Select Builder', () => {
 
   it('count with subquery join', async () => {
     for (const result of [
-      await new QuerybuilderTest()
+      (await new QuerybuilderTest()
         .fetchAll({
           tableName: 'testTable',
           fields: '*',
@@ -396,8 +404,8 @@ describe('Select Builder', () => {
             alias: 'otherTableGrouped',
           },
         })
-        .count(),
-      await new QuerybuilderTest()
+        .count()) as unknown as TestQueryResult,
+      (await new QuerybuilderTest()
         .select('testTable')
         .fields('*')
         .where('field = ?1', 'test')
@@ -410,15 +418,15 @@ describe('Select Builder', () => {
           on: 'testTable.id = otherTableGrouped.test_table_id',
           alias: 'otherTableGrouped',
         })
-        .count(),
+        .count()) as unknown as TestQueryResult,
     ]) {
-      expect((result.results as any).query).toEqual(
+      expect(result.results.query).toEqual(
         'SELECT count(*) as total FROM testTable JOIN (SELECT test_table_id, GROUP_CONCAT(attribute) ' +
           'AS attributes FROM otherTable GROUP BY test_table_id) AS otherTableGrouped ON testTable.id = otherTableGrouped.' +
           'test_table_id WHERE field = ?1 LIMIT 1'
       )
-      expect((result.results as any).arguments).toEqual(['test'])
-      expect((result.results as any).fetchType).toEqual('ONE')
+      expect(result.results.arguments).toEqual(['test'])
+      expect(result.results.fetchType).toEqual('ONE')
     }
   })
 
@@ -636,7 +644,7 @@ describe('Select Builder', () => {
         .getQueryAll(),
     ]) {
       expect(result.query).toEqual(
-        'SELECT * FROM testTable WHERE (field = ?1) AND (test = ?2) GROUP BY type HAVING COUNT(trackid) > 15 AND COUNT(trackid) < 30'
+        'SELECT * FROM testTable WHERE (field = ?1) AND (test = ?2) GROUP BY type HAVING (COUNT(trackid) > 15) AND (COUNT(trackid) < 30)'
       )
       expect(result.arguments).toEqual(['test', 123])
       expect(result.fetchType).toEqual('ALL')
@@ -813,7 +821,7 @@ describe('Select Builder', () => {
       )
       .getQueryAll()
 
-    expect(result.query).toEqual('SELECT * FROM testTable WHERE (field, test) IN (VALUES (?, ?), (?, ?))')
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE (field, test) IN (VALUES (?, ?), (?, ?), (?, ?), (?, ?))')
     expect(result.arguments).toEqual(['somebody', 1, 'once', 2, 'told', 3, 'me', 4])
     expect(result.fetchType).toEqual('ALL')
   })
@@ -834,7 +842,7 @@ describe('Select Builder', () => {
       .getQueryAll()
 
     expect(result.query).toEqual(
-      'SELECT * FROM testTable WHERE (commited = ?) AND ((field, test) IN (VALUES (?, ?), (?, ?)))'
+      'SELECT * FROM testTable WHERE (commited = ?) AND ((field, test) IN (VALUES (?, ?), (?, ?), (?, ?), (?, ?)))'
     )
     expect(result.arguments).toEqual([1, 'somebody', 1, 'once', 2, 'told', 3, 'me', 4])
     expect(result.fetchType).toEqual('ALL')
@@ -854,7 +862,7 @@ describe('Select Builder', () => {
       .getQueryAll()
 
     expect(result2.query).toEqual(
-      'SELECT * FROM testTable WHERE ((field, test) IN (VALUES (?, ?), (?, ?))) AND (commited = ?)'
+      'SELECT * FROM testTable WHERE ((field, test) IN (VALUES (?, ?), (?, ?), (?, ?), (?, ?))) AND (commited = ?)'
     )
     expect(result2.arguments).toEqual(['somebody', 1, 'once', 2, 'told', 3, 'me', 4, 1])
     expect(result2.fetchType).toEqual('ALL')
@@ -940,7 +948,7 @@ describe('Subqueries in SELECT statements', () => {
     const sub = new QuerybuilderTest().select('allowed_ids').fields('id')
     const q = new QuerybuilderTest().select('users').where('id IN ?', [sub.getOptions()]).getQueryAll()
 
-    expect(q.query).toEqual('SELECT * FROM users WHERE (id IN (SELECT id FROM allowed_ids))')
+    expect(q.query).toEqual('SELECT * FROM users WHERE id IN (SELECT id FROM allowed_ids)')
     expect(q.arguments).toEqual([])
   })
 
@@ -948,7 +956,7 @@ describe('Subqueries in SELECT statements', () => {
     const sub = new QuerybuilderTest().select('projects').fields('id').where('status = ?', ['active'])
     const q = new QuerybuilderTest().select('tasks').where('project_id IN ?', [sub.getOptions()]).getQueryAll()
 
-    expect(q.query).toEqual('SELECT * FROM tasks WHERE (project_id IN (SELECT id FROM projects WHERE (status = ?)))')
+    expect(q.query).toEqual('SELECT * FROM tasks WHERE project_id IN (SELECT id FROM projects WHERE status = ?)')
     expect(q.arguments).toEqual(['active'])
   })
 
@@ -961,7 +969,7 @@ describe('Subqueries in SELECT statements', () => {
       .getQueryAll()
 
     expect(q.query).toEqual(
-      'SELECT * FROM tasks WHERE (user_id = ?) AND (project_id IN (SELECT id FROM projects WHERE (status = ?)))'
+      'SELECT * FROM tasks WHERE (user_id = ?) AND (project_id IN (SELECT id FROM projects WHERE status = ?))'
     )
     expect(q.arguments).toEqual([10, 'active'])
 
@@ -973,7 +981,7 @@ describe('Subqueries in SELECT statements', () => {
       .getQueryAll()
 
     expect(q2.query).toEqual(
-      'SELECT * FROM tasks WHERE (project_id IN (SELECT id FROM projects WHERE (status = ?))) AND (user_id = ?)'
+      'SELECT * FROM tasks WHERE (project_id IN (SELECT id FROM projects WHERE status = ?)) AND (user_id = ?)'
     )
     expect(q2.arguments).toEqual(['active', 10])
   })
@@ -1013,7 +1021,7 @@ describe('Subqueries in SELECT statements', () => {
     // So the subquery SQL is `SELECT id FROM permissions WHERE (user_id = ? AND action = ?)`
     // The outer query is `WHERE (EXISTS (SELECT id FROM permissions WHERE (user_id = ? AND action = ?)))`
     expect(q.query).toEqual(
-      'SELECT * FROM documents WHERE (EXISTS (SELECT id FROM permissions WHERE (user_id = ? AND action = ?)))'
+      'SELECT * FROM documents WHERE EXISTS (SELECT id FROM permissions WHERE user_id = ? AND action = ?)'
     )
     expect(q.arguments).toEqual([100, 'edit'])
   })
@@ -1022,7 +1030,7 @@ describe('Subqueries in SELECT statements', () => {
     const sub = new QuerybuilderTest().select('settings').fields('value').where('key = ?', ['default_role']).limit(1) // limit is important for scalar subquery
     const q = new QuerybuilderTest().select('users').where('role = ?', [sub.getOptions()]).getQueryAll()
 
-    expect(q.query).toEqual('SELECT * FROM users WHERE (role = (SELECT value FROM settings WHERE (key = ?) LIMIT 1))')
+    expect(q.query).toEqual('SELECT * FROM users WHERE role = (SELECT value FROM settings WHERE key = ? LIMIT 1)')
     expect(q.arguments).toEqual(['default_role'])
   })
 
@@ -1036,7 +1044,7 @@ describe('Subqueries in SELECT statements', () => {
       .getQueryAll()
 
     expect(q.query).toEqual(
-      'SELECT * FROM users WHERE (id IN (SELECT user_id FROM group_members WHERE (group_id = ?))) AND (id NOT IN (SELECT user_id FROM banned_users WHERE (reason = ?)))'
+      'SELECT * FROM users WHERE (id IN (SELECT user_id FROM group_members WHERE group_id = ?)) AND (id NOT IN (SELECT user_id FROM banned_users WHERE reason = ?))'
     )
     expect(q.arguments).toEqual([1, 'spam'])
   })
@@ -1068,7 +1076,7 @@ describe('Subqueries in SELECT statements', () => {
       'SELECT id, name, COUNT(orders.id) as order_count FROM customers' +
         ' JOIN orders ON customers.id = orders.customer_id' +
         ' GROUP BY customers.id, customers.name' +
-        ' HAVING (id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING (SUM(total) > ?)))'
+        ' HAVING id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING SUM(total) > ?)'
     )
     expect(q.arguments).toEqual([1000])
   })
