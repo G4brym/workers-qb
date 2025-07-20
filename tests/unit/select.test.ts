@@ -821,7 +821,9 @@ describe('Select Builder', () => {
       )
       .getQueryAll()
 
-    expect(result.query).toEqual('SELECT * FROM testTable WHERE (field, test) IN (VALUES (?, ?), (?, ?), (?, ?), (?, ?))')
+    expect(result.query).toEqual(
+      'SELECT * FROM testTable WHERE (field, test) IN (VALUES (?, ?), (?, ?), (?, ?), (?, ?))'
+    )
     expect(result.arguments).toEqual(['somebody', 1, 'once', 2, 'told', 3, 'me', 4])
     expect(result.fetchType).toEqual('ALL')
   })
