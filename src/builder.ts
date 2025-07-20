@@ -122,9 +122,8 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
       limit: 1,
     }
     if (params.subQueryPlaceholders) {
-      selectParamsForCount.subQueryPlaceholders = params.subQueryPlaceholders;
+      selectParamsForCount.subQueryPlaceholders = params.subQueryPlaceholders
     }
-
 
     const mainSql = this._select({ ...params, limit: 1 } as SelectAll, queryArgs)
     const countSql = this._select(selectParamsForCount, countQueryArgs)
@@ -162,7 +161,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
       lazy: undefined,
     }
     if (params.subQueryPlaceholders) {
-      countQueryParams.subQueryPlaceholders = params.subQueryPlaceholders;
+      countQueryParams.subQueryPlaceholders = params.subQueryPlaceholders
     }
 
     const mainSql = this._select(mainQueryParams, queryArgs)
@@ -508,7 +507,9 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
       for (const part of parts) {
         if (part === '?') {
           if (primitiveParamIndex >= primitiveParams.length) {
-            throw new Error('SQL generation error: Not enough primitive parameters for "?" placeholders in WHERE clause.')
+            throw new Error(
+              'SQL generation error: Not enough primitive parameters for "?" placeholders in WHERE clause.'
+            )
           }
           context.queryArgs.push(primitiveParams[primitiveParamIndex++])
           builtCondition += '?'
@@ -531,8 +532,11 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
       processedConditions.push(`(${builtCondition})`)
     }
 
-    if (primitiveParamIndex < primitiveParams.length && primitiveParams.length > 0) { // Check primitiveParams.length to avoid error if no params were expected
-        throw new Error('SQL generation error: Too many primitive parameters provided for "?" placeholders in WHERE clause.')
+    if (primitiveParamIndex < primitiveParams.length && primitiveParams.length > 0) {
+      // Check primitiveParams.length to avoid error if no params were expected
+      throw new Error(
+        'SQL generation error: Too many primitive parameters provided for "?" placeholders in WHERE clause.'
+      )
     }
 
     if (processedConditions.length === 0) return ''
@@ -602,7 +606,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
       return ` HAVING ${whereEquivalentString.substring(' WHERE '.length)}`
     }
     // If _where returned empty (e.g., no conditions) or an unexpected format,
- курорт // return an empty string for HAVING as well.
+    курорт // return an empty string for HAVING as well.
     return ''
   }
 

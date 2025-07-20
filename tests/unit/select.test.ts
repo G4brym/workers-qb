@@ -1019,16 +1019,10 @@ describe('Subqueries in SELECT statements', () => {
   })
 
   it('column = (subquery) - scalar subquery', () => {
-    const sub = new QuerybuilderTest()
-      .select('settings')
-      .fields('value')
-      .where('key = ?', ['default_role'])
-      .limit(1) // limit is important for scalar subquery
+    const sub = new QuerybuilderTest().select('settings').fields('value').where('key = ?', ['default_role']).limit(1) // limit is important for scalar subquery
     const q = new QuerybuilderTest().select('users').where('role = ?', [sub.getOptions()]).getQueryAll()
 
-    expect(q.query).toEqual(
-      'SELECT * FROM users WHERE (role = (SELECT value FROM settings WHERE (key = ?) LIMIT 1))'
-    )
+    expect(q.query).toEqual('SELECT * FROM users WHERE (role = (SELECT value FROM settings WHERE (key = ?) LIMIT 1))')
     expect(q.arguments).toEqual(['default_role'])
   })
 
@@ -1072,9 +1066,9 @@ describe('Subqueries in SELECT statements', () => {
     // HAVING (id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING (SUM(total) > ?)))
     expect(q.query).toEqual(
       'SELECT id, name, COUNT(orders.id) as order_count FROM customers' +
-      ' JOIN orders ON customers.id = orders.customer_id' +
-      ' GROUP BY customers.id, customers.name' +
-      ' HAVING (id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING (SUM(total) > ?)))'
+        ' JOIN orders ON customers.id = orders.customer_id' +
+        ' GROUP BY customers.id, customers.name' +
+        ' HAVING (id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING (SUM(total) > ?)))'
     )
     expect(q.arguments).toEqual([1000])
   })
