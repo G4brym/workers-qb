@@ -87,6 +87,143 @@ const userProductCombinations = await qb.fetchAll<UserAndProduct>({
 console.log('User and product combinations:', userProductCombinations.results);
 ```
 
+## Subqueries
+
+`workers-qb` supports using subqueries within your `WHERE`, `HAVING` and `JOIN` clauses, allowing for more complex and powerful queries.
+
+### `IN` with a Subquery
+
+Use a subquery to filter results based on a dynamic set of values.
+
+#### Using a `SelectBuilder` instance
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+// Subquery: Get IDs of all active projects
+const activeProjectsSubquery = qb
+  .select('projects')
+  .fields('id')
+  .where('status = ?', 'active');
+
+// Main query: Get tasks that belong to active projects
+const tasksInActiveProjects = await qb
+  .select('tasks')
+  .where('project_id IN ?', activeProjectsSubquery)
+  .execute();
+
+console.log(tasksInActiveProjects.results);
+// SQL: SELECT * FROM tasks WHERE project_id IN (SELECT id FROM projects WHERE status = 'active')
+```
+
+### `EXISTS` with a Subquery
+
+Check for the existence of rows in a subquery. This is useful for conditional filtering.
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+// Subquery: Check if a user has the 'edit' permission for a document
+const hasEditPermissionSubquery = qb
+  .select('permissions')
+  .where('user_id = ?', 100)
+  .where('action = ?', 'edit');
+
+// Main query: Select documents where the user has 'edit' permission
+const editableDocuments = await qb
+  .select('documents')
+  .where('EXISTS ?', hasEditPermissionSubquery)
+  .execute();
+
+console.log(editableDocuments.results);
+// SQL: SELECT * FROM documents WHERE EXISTS (SELECT * FROM permissions WHERE user_id = 100 AND action = 'edit')
+```
+
+### Scalar Subquery
+
+Use a subquery that returns a single value (a scalar) to compare against a column.
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+// Subquery: Get the default role ID from a settings table
+const defaultRoleSubquery = qb
+  .select('settings')
+  .fields('value')
+  .where('key = ?', 'default_role')
+  .limit(1);
+
+// Main query: Find all users who have the default role
+const usersWithDefaultRole = await qb
+  .select('users')
+  .where('role_id = ?', defaultRoleSubquery)
+  .execute();
+
+console.log(usersWithDefaultRole.results);
+// SQL: SELECT * FROM users WHERE role_id = (SELECT value FROM settings WHERE key = 'default_role' LIMIT 1)
+```
+
+### Subqueries in `HAVING` Clauses
+
+You can also use subqueries within a `HAVING` clause to filter grouped results.
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+// Subquery: Get IDs of customers with total order value over 1000
+const highValueCustomersSubquery = qb
+  .select('orders')
+  .fields('customer_id')
+  .groupBy('customer_id')
+  .having('SUM(total) > ?', 1000);
+
+// Main query: Get customer details for high-value customers
+const customerDetails = await qb
+  .select('customers')
+  .fields(['id', 'name'])
+  .having('id IN ?', highValueCustomersSubquery)
+  .execute();
+
+console.log(customerDetails.results);
+// SQL: SELECT id, name FROM customers HAVING id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING SUM(total) > 1000)
+```
+
+### Subqueries in `JOIN` Clauses
+
+You can use a subquery as a derived table in a `JOIN` clause. This is useful for complex aggregations or when you need to join against a pre-filtered or pre-aggregated set of data.
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+// Main query: Get customer details along with their total order count
+const customerOrderCounts = await qb
+  .select('customers')
+  .fields(['customers.name', 'oc.order_count'])
+  .join({
+    table: (qb) =>
+      qb
+        .select('orders')
+        .fields(['customer_id', 'COUNT(id) as order_count'])
+        .groupBy('customer_id'),
+    alias: 'oc',
+    on: 'customers.id = oc.customer_id',
+  })
+  .execute();
+
+console.log(customerOrderCounts.results);
+// SQL: SELECT customers.name, oc.order_count FROM customers JOIN (SELECT customer_id, COUNT(id) as order_count FROM orders GROUP BY customer_id) AS oc ON customers.id = oc.customer_id
+```
+
 ## Modular Select Queries
 
 `workers-qb` provides a modular `select()` builder for constructing SELECT queries in a chainable and readable manner.

@@ -53,28 +53,83 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     conditions: string | Array<string>,
     params?: Primitive | Primitive[]
   ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
-    if (!Array.isArray(conditions)) {
-      conditions = [conditions]
-    }
-    if (params === undefined) params = []
-    if (!Array.isArray(params)) {
-      params = [params]
+    // Ensure _options has the necessary fields for subquery handling
+    const subQueryPlaceholders = this._options.subQueryPlaceholders ?? {}
+    let subQueryTokenNextId = this._options.subQueryTokenNextId ?? 0
+
+    const existingConditions =
+      this._options.where && typeof this._options.where === 'object' && 'conditions' in this._options.where
+        ? (this._options.where.conditions as string[])
+        : []
+    const existingParams =
+      this._options.where &&
+      typeof this._options.where === 'object' &&
+      'params' in this._options.where &&
+      this._options.where.params
+        ? (this._options.where.params as Primitive[])
+        : []
+
+    const currentInputConditions = Array.isArray(conditions) ? conditions : [conditions]
+    const currentInputParams = params === undefined ? [] : Array.isArray(params) ? params : [params]
+
+    const processedNewConditions: string[] = []
+    const collectedPrimitiveParams: Primitive[] = []
+    let paramIndex = 0
+
+    for (const conditionStr of currentInputConditions) {
+      if (!conditionStr.includes('?')) {
+        processedNewConditions.push(conditionStr)
+        continue
+      }
+
+      const conditionParts = conditionStr.split('?')
+      let builtCondition = conditionParts[0] ?? ''
+
+      for (let j = 0; j < conditionParts.length - 1; j++) {
+        if (paramIndex >= currentInputParams.length) {
+          throw new Error('Mismatch between "?" placeholders and parameters in where clause.')
+        }
+        const currentParam = currentInputParams[paramIndex++]
+
+        const isSubQuery =
+          (typeof currentParam === 'object' &&
+            currentParam !== null &&
+            ('tableName' in currentParam || 'getOptions' in currentParam) &&
+            !currentParam.hasOwnProperty('_raw')) ||
+          currentParam instanceof SelectBuilder
+
+        if (isSubQuery) {
+          const token = `__SUBQUERY_TOKEN_${subQueryTokenNextId++}__`
+          subQueryPlaceholders[token] =
+            currentParam instanceof SelectBuilder
+              ? currentParam.getOptions()
+              : 'getOptions' in currentParam && typeof currentParam.getOptions === 'function'
+                ? (currentParam.getOptions() as SelectAll)
+                : (currentParam as SelectAll)
+          builtCondition += token
+        } else {
+          builtCondition += '?'
+          if (currentParam !== undefined) {
+            collectedPrimitiveParams.push(currentParam)
+          }
+        }
+        builtCondition += conditionParts[j + 1] ?? ''
+      }
+      processedNewConditions.push(builtCondition)
     }
 
-    if ((this._options.where as any)?.conditions) {
-      conditions = (this._options.where as any).conditions.concat(conditions)
-    }
-
-    if ((this._options.where as any)?.params) {
-      params = (this._options.where as any).params.concat(params)
+    if (paramIndex < currentInputParams.length) {
+      throw new Error('Too many parameters provided for the given "?" placeholders in where clause.')
     }
 
     return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
       {
         ...this._options,
+        subQueryPlaceholders,
+        subQueryTokenNextId,
         where: {
-          conditions: conditions,
-          params: params,
+          conditions: existingConditions.concat(processedNewConditions),
+          params: existingParams.concat(collectedPrimitiveParams),
         },
       },
       this._fetchAll,
@@ -118,45 +173,116 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
 
       const valuesString = `(${[...new Array(fieldLength).keys()].map(() => '?').reduce(seperateWithComma)})`
 
-      whereInCondition += [...new Array(fieldLength).keys()].map(() => valuesString).reduce(seperateWithComma)
+      whereInCondition += [...new Array(values.length).keys()].map(() => valuesString).reduce(seperateWithComma)
       whereInCondition += ')'
       // finally, flatten the list since the whereInParams are in a single list
       whereInParams = values.flat()
     }
 
-    let conditions: string | Array<string> = [whereInCondition]
-    let params: Primitive[] = whereInParams
-    if ((this._options.where as any)?.conditions) {
-      conditions = (this._options.where as any)?.conditions.concat(conditions)
-    }
-
-    if ((this._options.where as any)?.params) {
-      params = (this._options.where as any)?.params.concat(params)
-    }
-
-    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
-      {
-        ...this._options,
-        where: {
-          conditions: conditions,
-          params: params,
-        },
-      },
-      this._fetchAll,
-      this._fetchOne
-    )
+    return this.where(whereInCondition, whereInParams)
   }
 
   join(join: SelectAll['join']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
-    return this._parseArray('join', this._options.join, join)
+    const joins = Array.isArray(join) ? join : [join]
+    const processedJoins = joins.map((j) => {
+      if (j && typeof j.table === 'object') {
+        if (j.table instanceof SelectBuilder) {
+          return { ...j, table: j.table.getOptions() }
+        }
+      }
+      return j
+    })
+    return this._parseArray('join', this._options.join, processedJoins)
   }
 
   groupBy(groupBy: SelectAll['groupBy']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
     return this._parseArray('groupBy', this._options.groupBy, groupBy)
   }
 
-  having(having: SelectAll['having']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
-    return this._parseArray('having', this._options.having, having)
+  having(
+    conditions: string | Array<string>,
+    params?: Primitive | Primitive[]
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+    const subQueryPlaceholders = this._options.subQueryPlaceholders ?? {}
+    let subQueryTokenNextId = this._options.subQueryTokenNextId ?? 0
+
+    const existingConditions =
+      this._options.having && typeof this._options.having === 'object' && 'conditions' in this._options.having
+        ? (this._options.having.conditions as string[])
+        : []
+    const existingParams =
+      this._options.having &&
+      typeof this._options.having === 'object' &&
+      'params' in this._options.having &&
+      this._options.having.params
+        ? (this._options.having.params as Primitive[])
+        : []
+
+    const currentInputConditions = Array.isArray(conditions) ? conditions : [conditions]
+    const currentInputParams = params === undefined ? [] : Array.isArray(params) ? params : [params]
+
+    const processedNewConditions: string[] = []
+    const collectedPrimitiveParams: Primitive[] = []
+    let paramIndex = 0
+
+    for (const conditionStr of currentInputConditions) {
+      if (!conditionStr.includes('?')) {
+        processedNewConditions.push(conditionStr)
+        continue
+      }
+
+      const conditionParts = conditionStr.split('?')
+      let builtCondition = conditionParts[0] ?? ''
+
+      for (let j = 0; j < conditionParts.length - 1; j++) {
+        if (paramIndex >= currentInputParams.length) {
+          throw new Error('Mismatch between "?" placeholders and parameters in having clause.')
+        }
+        const currentParam = currentInputParams[paramIndex++]
+        const isSubQuery =
+          (typeof currentParam === 'object' &&
+            currentParam !== null &&
+            ('tableName' in currentParam || 'getOptions' in currentParam) &&
+            !currentParam.hasOwnProperty('_raw')) ||
+          currentParam instanceof SelectBuilder
+
+        if (isSubQuery) {
+          const token = `__SUBQUERY_TOKEN_${subQueryTokenNextId++}__`
+          subQueryPlaceholders[token] =
+            currentParam instanceof SelectBuilder
+              ? currentParam.getOptions()
+              : 'getOptions' in currentParam && typeof currentParam.getOptions === 'function'
+                ? (currentParam.getOptions() as SelectAll)
+                : (currentParam as SelectAll)
+          builtCondition += token
+        } else {
+          builtCondition += '?'
+          if (currentParam !== undefined) {
+            collectedPrimitiveParams.push(currentParam)
+          }
+        }
+        builtCondition += conditionParts[j + 1] ?? ''
+      }
+      processedNewConditions.push(builtCondition)
+    }
+
+    if (paramIndex < currentInputParams.length) {
+      throw new Error('Too many parameters provided for the given "?" placeholders in having clause.')
+    }
+
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+      {
+        ...this._options,
+        subQueryPlaceholders,
+        subQueryTokenNextId,
+        having: {
+          conditions: existingConditions.concat(processedNewConditions),
+          params: existingParams.concat(collectedPrimitiveParams),
+        },
+      },
+      this._fetchAll,
+      this._fetchOne
+    )
   }
 
   orderBy(orderBy: SelectAll['orderBy']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
@@ -247,5 +373,9 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
 
   count(): MaybeAsync<IsAsync, CountResult<GenericResultWrapper>> {
     return this._fetchOne(this._options as SelectOne).count()
+  }
+
+  getOptions(): SelectAll {
+    return this._options as SelectAll
   }
 }
