@@ -89,11 +89,7 @@ console.log('User and product combinations:', userProductCombinations.results);
 
 ## Subqueries
 
-`workers-qb` supports using subqueries within your `WHERE`, `HAVING` and `JOIN` clauses, allowing for more complex and powerful queries. 
-You can construct a subquery in two main ways:
-
-1.  **Passing a `SelectBuilder` instance**: Useful when you want to build a subquery and reuse it in multiple places.
-2.  **Using an inline function**: A concise way to define a subquery directly within the main query.
+`workers-qb` supports using subqueries within your `WHERE`, `HAVING` and `JOIN` clauses, allowing for more complex and powerful queries.
 
 ### `IN` with a Subquery
 
@@ -116,23 +112,6 @@ const activeProjectsSubquery = qb
 const tasksInActiveProjects = await qb
   .select('tasks')
   .where('project_id IN ?', activeProjectsSubquery)
-  .execute();
-
-console.log(tasksInActiveProjects.results);
-// SQL: SELECT * FROM tasks WHERE project_id IN (SELECT id FROM projects WHERE status = 'active')
-```
-
-#### Using an inline function
-
-```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
-// Main query: Get tasks that belong to active projects
-const tasksInActiveProjects = await qb
-  .select('tasks')
-  .where('project_id IN ?', (qb) => qb.select('projects').fields('id').where('status = ?', 'active'))
   .execute();
 
 console.log(tasksInActiveProjects.results);

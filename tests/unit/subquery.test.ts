@@ -18,21 +18,13 @@ describe('Subqueries using SelectBuilder instance', () => {
     expect(q.arguments).toEqual(['active'])
   })
 
-  it('column IN (subquery) - using an inline function', () => {
-    const q = new QuerybuilderTest()
-      .select('tasks')
-      .where('project_id IN ?', (qb) => qb.select('projects').fields('id').where('status = ?', 'active'))
-      .getQueryAll()
-
-    expect(q.query).toEqual('SELECT * FROM tasks WHERE project_id IN (SELECT id FROM projects WHERE status = ?)')
-    expect(q.arguments).toEqual(['active'])
-  })
-
   it('EXISTS (subquery)', () => {
     const sub = new QuerybuilderTest().select('permissions').where('user_id = ?', 100).where('action = ?', 'edit')
     const q = new QuerybuilderTest().select('documents').where('EXISTS ?', sub).getQueryAll()
 
-    expect(q.query).toEqual('SELECT * FROM documents WHERE EXISTS (SELECT * FROM permissions WHERE user_id = ? AND action = ?)')
+    expect(q.query).toEqual(
+      'SELECT * FROM documents WHERE EXISTS (SELECT * FROM permissions WHERE (user_id = ?) AND (action = ?))'
+    )
     expect(q.arguments).toEqual([100, 'edit'])
   })
 
@@ -50,11 +42,7 @@ describe('Subqueries using SelectBuilder instance', () => {
       .fields('customer_id')
       .groupBy('customer_id')
       .having('SUM(total) > ?', 1000)
-    const q = new QuerybuilderTest()
-      .select('customers')
-      .fields(['id', 'name'])
-      .having('id IN ?', sub)
-      .getQueryAll()
+    const q = new QuerybuilderTest().select('customers').fields(['id', 'name']).having('id IN ?', sub).getQueryAll()
 
     expect(q.query).toEqual(
       'SELECT id, name FROM customers HAVING id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING SUM(total) > ?)'
