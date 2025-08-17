@@ -1,12 +1,12 @@
 import {
   ArrayResult,
-  CountResult,
+  CountResult, DatabaseSchema,
   DefaultReturnObject,
   MaybeAsync,
   OneResult,
   Primitive,
   SelectAll,
-  SelectOne,
+  SelectOne, TableNameType,
 } from './interfaces'
 import { Query, QueryWithExtra } from './tools'
 
@@ -14,16 +14,22 @@ export interface SelectExecuteOptions {
   lazy?: boolean
 }
 
-export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnObject, IsAsync extends boolean = true> {
+export class SelectBuilder<
+  GenericResultWrapper,
+  GenericResult = DefaultReturnObject,
+  IsAsync extends boolean = true,
+  Schema extends DatabaseSchema = {},
+  TableName extends TableNameType<Schema> = string,
+> {
   _debugger = false
-  _options: Partial<SelectAll> = {}
-  _fetchAll: (params: SelectAll) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
-  _fetchOne: (params: SelectOne) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
+  _options: Partial<SelectAll<Schema>> = {}
+  _fetchAll: (params: SelectAll<Schema>) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
+  _fetchOne: (params: SelectOne<Schema>) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
 
   constructor(
-    options: Partial<SelectAll>,
-    fetchAll: (params: SelectAll) => QueryWithExtra<GenericResultWrapper, any, IsAsync>,
-    fetchOne: (params: SelectOne) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
+    options: Partial<SelectAll<Schema>>,
+    fetchAll: (params: SelectAll<Schema>) => QueryWithExtra<GenericResultWrapper, any, IsAsync>,
+    fetchOne: (params: SelectOne<Schema>) => QueryWithExtra<GenericResultWrapper, any, IsAsync>
   ) {
     this._options = options
     this._fetchAll = fetchAll
@@ -34,8 +40,10 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     this._debugger = state
   }
 
-  tableName(tableName: SelectAll['tableName']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
-    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+  tableName(
+    tableName: SelectAll<Schema>['tableName']
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName>(
       {
         ...this._options,
         tableName: tableName,
@@ -45,14 +53,16 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  fields(fields: SelectAll['fields']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+  fields(
+    fields: SelectAll<Schema>['fields']
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
     return this._parseArray('fields', this._options.fields, fields)
   }
 
   where(
     conditions: string | Array<string>,
     params?: Primitive | Primitive[]
-  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
     // Ensure _options has the necessary fields for subquery handling
     const subQueryPlaceholders = this._options.subQueryPlaceholders ?? {}
     let subQueryTokenNextId = this._options.subQueryTokenNextId ?? 0
@@ -102,10 +112,10 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
           const token = `__SUBQUERY_TOKEN_${subQueryTokenNextId++}__`
           subQueryPlaceholders[token] =
             currentParam instanceof SelectBuilder
-              ? currentParam.getOptions()
+              ? (currentParam.getOptions() as SelectAll<Schema>)
               : 'getOptions' in currentParam && typeof currentParam.getOptions === 'function'
-                ? (currentParam.getOptions() as SelectAll)
-                : (currentParam as SelectAll)
+                ? (currentParam.getOptions() as SelectAll<Schema>)
+                : (currentParam as SelectAll<Schema>)
           builtCondition += token
         } else {
           builtCondition += '?'
@@ -122,7 +132,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
       throw new Error('Too many parameters provided for the given "?" placeholders in where clause.')
     }
 
-    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName>(
       {
         ...this._options,
         subQueryPlaceholders,
@@ -140,7 +150,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
   whereIn<T extends string | Array<string>, P extends T extends Array<string> ? Primitive[][] : Primitive[]>(
     fields: T,
     values: P
-  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
     let whereInCondition: string
     let whereInParams: Primitive[]
 
@@ -148,7 +158,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
 
     // if we have no values, we no-op
     if (values.length === 0) {
-      return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+      return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName>(
         {
           ...this._options,
         },
@@ -182,7 +192,9 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     return this.where(whereInCondition, whereInParams)
   }
 
-  join(join: SelectAll['join']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+  join(
+    join: SelectAll<Schema>['join']
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
     const joins = Array.isArray(join) ? join : [join]
     const processedJoins = joins.map((j) => {
       if (j && typeof j.table === 'object') {
@@ -195,14 +207,16 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     return this._parseArray('join', this._options.join, processedJoins)
   }
 
-  groupBy(groupBy: SelectAll['groupBy']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+  groupBy(
+    groupBy: SelectAll<Schema>['groupBy']
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
     return this._parseArray('groupBy', this._options.groupBy, groupBy)
   }
 
   having(
     conditions: string | Array<string>,
     params?: Primitive | Primitive[]
-  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
     const subQueryPlaceholders = this._options.subQueryPlaceholders ?? {}
     let subQueryTokenNextId = this._options.subQueryTokenNextId ?? 0
 
@@ -250,10 +264,10 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
           const token = `__SUBQUERY_TOKEN_${subQueryTokenNextId++}__`
           subQueryPlaceholders[token] =
             currentParam instanceof SelectBuilder
-              ? currentParam.getOptions()
+              ? (currentParam.getOptions() as SelectAll<Schema>)
               : 'getOptions' in currentParam && typeof currentParam.getOptions === 'function'
-                ? (currentParam.getOptions() as SelectAll)
-                : (currentParam as SelectAll)
+                ? (currentParam.getOptions() as SelectAll<Schema>)
+                : (currentParam as SelectAll<Schema>)
           builtCondition += token
         } else {
           builtCondition += '?'
@@ -270,7 +284,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
       throw new Error('Too many parameters provided for the given "?" placeholders in having clause.')
     }
 
-    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName>(
       {
         ...this._options,
         subQueryPlaceholders,
@@ -285,12 +299,16 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  orderBy(orderBy: SelectAll['orderBy']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+  orderBy(
+    orderBy: SelectAll<Schema>['orderBy']
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
     return this._parseArray('orderBy', this._options.orderBy, orderBy)
   }
 
-  offset(offset: SelectAll['offset']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
-    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+  offset(
+    offset: SelectAll<Schema>['offset']
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName>(
       {
         ...this._options,
         offset: offset,
@@ -300,8 +318,10 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  limit(limit: SelectAll['limit']): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
-    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+  limit(
+    limit: SelectAll<Schema>['limit']
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName>(
       {
         ...this._options,
         limit: limit,
@@ -311,7 +331,11 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     )
   }
 
-  _parseArray(fieldName: string, option: any, value: any): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
+  _parseArray(
+    fieldName: string,
+    option: any,
+    value: any
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
     let val = []
     if (!Array.isArray(value)) {
       val.push(value)
@@ -323,7 +347,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
       val = [...option, ...val]
     }
 
-    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName>(
       {
         ...this._options,
         [fieldName]: val as Array<string>,
@@ -342,11 +366,11 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     return this._fetchAll({
       ...this._options,
       ...options,
-    } as SelectAll)
+    } as SelectAll<Schema>)
   }
 
   getQueryOne(): Query<OneResult<GenericResultWrapper, GenericResult>, IsAsync> {
-    return this._fetchOne(this._options as SelectAll)
+    return this._fetchOne(this._options as SelectAll<Schema>)
   }
 
   execute<P extends SelectExecuteOptions = SelectExecuteOptions>(
@@ -355,7 +379,7 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     return this._fetchAll({
       ...this._options,
       ...options,
-    } as SelectAll).execute()
+    } as SelectAll<Schema>).execute()
   }
 
   all<P extends SelectExecuteOptions = SelectExecuteOptions>(
@@ -364,18 +388,18 @@ export class SelectBuilder<GenericResultWrapper, GenericResult = DefaultReturnOb
     return this._fetchAll({
       ...this._options,
       ...options,
-    } as SelectAll).execute()
+    } as SelectAll<Schema>).execute()
   }
 
   one(): MaybeAsync<IsAsync, OneResult<GenericResultWrapper, GenericResult>> {
-    return this._fetchOne(this._options as SelectOne).execute()
+    return this._fetchOne(this._options as SelectOne<Schema>).execute()
   }
 
   count(): MaybeAsync<IsAsync, CountResult<GenericResultWrapper>> {
-    return this._fetchOne(this._options as SelectOne).count()
+    return this._fetchOne(this._options as SelectOne<Schema>).count()
   }
 
-  getOptions(): SelectAll {
-    return this._options as SelectAll
+  getOptions(): SelectAll<Schema> {
+    return this._options as SelectAll<Schema>
   }
 }

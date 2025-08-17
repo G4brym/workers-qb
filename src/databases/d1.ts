@@ -1,10 +1,10 @@
 import { QueryBuilder } from '../builder'
 import { FetchTypes } from '../enums'
-import { D1Result, QueryBuilderOptions } from '../interfaces'
+import {D1Result, DatabaseSchema, QueryBuilderOptions} from '../interfaces'
 import { MigrationOptions, asyncMigrationsBuilder } from '../migrations'
 import { Query } from '../tools'
 
-export class D1QB extends QueryBuilder<D1Result> {
+export class D1QB<Schema extends DatabaseSchema> extends QueryBuilder<D1Result, true, Schema> {
   public db: any
   constructor(db: any, options?: QueryBuilderOptions) {
     super(options)

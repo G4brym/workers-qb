@@ -342,9 +342,8 @@ describe('Select Builder', () => {
 
   it('select with subquery join', async () => {
     for (const result of [
-      new QuerybuilderTest().fetchAll({
-        tableName: 'testTable',
-        fields: '*',
+      new QuerybuilderTest<{users: {id: number, name: string}}>().fetchAll({
+        tableName: 'us',
         where: {
           conditions: 'field = ?1',
           params: ['test'],

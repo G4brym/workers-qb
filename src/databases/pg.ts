@@ -4,7 +4,7 @@ import { PGResult, QueryBuilderOptions } from '../interfaces'
 import { MigrationOptions, asyncMigrationsBuilder } from '../migrations'
 import { Query } from '../tools'
 
-export class PGQB extends QueryBuilder<PGResult> {
+export class PGQB<Schema extends DatabaseSchema> extends QueryBuilder<PGResult, true, Schema> {
   public db: any
   _migrationsBuilder = asyncMigrationsBuilder
 

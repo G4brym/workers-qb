@@ -1,9 +1,9 @@
-import { syncLoggerWrapper } from '../src'
+import {DatabaseSchema, syncLoggerWrapper} from '../src'
 import { QueryBuilder } from '../src/builder'
 import { D1Result } from '../src/interfaces'
 import { Query } from '../src/tools'
 
-export class QuerybuilderTest extends QueryBuilder<{}> {
+export class QuerybuilderTest<Schema extends DatabaseSchema> extends QueryBuilder<{}, true, Schema> {
   async execute(query: Query): Promise<Query<any>> {
     return this.loggerWrapper(query, this.options.logger, async () => {
       return {
@@ -28,7 +28,7 @@ export class QuerybuilderTest extends QueryBuilder<{}> {
   }
 }
 
-export class QuerybuilderTestSync extends QueryBuilder<{}, false> {
+export class QuerybuilderTestSync<Schema extends DatabaseSchema> extends QueryBuilder<{}, false, Schema> {
   loggerWrapper = syncLoggerWrapper
 
   execute(query: Query<any, false>) {
@@ -55,7 +55,7 @@ export class QuerybuilderTestSync extends QueryBuilder<{}, false> {
   }
 }
 
-export class QuerybuilderExceptionTest extends QueryBuilder<{}> {
+export class QuerybuilderExceptionTest<Schema extends DatabaseSchema> extends QueryBuilder<{}, true, Schema> {
   async execute(query: Query): Promise<Query<any>> {
     return this.loggerWrapper(query, this.options.logger, async () => {
       await new Promise((r) => setTimeout(r, 50))
