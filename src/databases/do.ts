@@ -5,7 +5,7 @@ import { syncLoggerWrapper } from '../logger'
 import { MigrationOptions, syncMigrationsBuilder } from '../migrations'
 import { Query } from '../tools'
 
-export class DOQB extends QueryBuilder<{}, false> {
+export class DOQB<Schema extends DatabaseSchema> extends QueryBuilder<{}, false, Schema> {
   public db: any
   loggerWrapper = syncLoggerWrapper
 

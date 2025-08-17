@@ -1,7 +1,7 @@
 import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
 import {
   ArrayResult,
-  ConflictUpsert,
+  ConflictUpsert, DatabaseSchema,
   DefaultObject,
   DefaultReturnObject,
   Delete,
@@ -21,7 +21,7 @@ import {
   RawQueryFetchOne,
   RawQueryWithoutFetching,
   SelectAll,
-  SelectOne,
+  SelectOne, TableNameType,
   Update,
   UpdateReturning,
   UpdateWithoutReturning,
@@ -32,7 +32,11 @@ import { MigrationOptions, asyncMigrationsBuilder } from './migrations'
 import { SelectBuilder } from './modularBuilder'
 import { Query, QueryWithExtra, Raw } from './tools'
 
-export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> {
+export class QueryBuilder<
+  GenericResultWrapper,
+  IsAsync extends boolean = true,
+  Schema extends DatabaseSchema = {},
+> {
   protected options: QueryBuilderOptions<IsAsync>
   loggerWrapper = asyncLoggerWrapper
 
@@ -66,7 +70,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
   }
 
   createTable<GenericResult = undefined>(params: {
-    tableName: string
+    tableName: TableNameType<Schema>
     schema: string
     ifNotExists?: boolean
   }): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync> {
@@ -74,49 +78,49 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
       (q) => {
         return this.execute(q)
       },
-      `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName}
+      `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName as string}
       ( ${params.schema})`
     )
   }
 
   dropTable<GenericResult = undefined>(params: {
-    tableName: string
+    tableName: TableNameType<Schema>
     ifExists?: boolean
   }): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync> {
     return new Query(
       (q) => {
         return this.execute(q)
       },
-      `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`
+      `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName as string}`
     )
   }
 
-  select<GenericResult = DefaultReturnObject>(
-    tableName: string
-  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
-    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+  select<GenericResult = DefaultReturnObject, TableName extends TableNameType<Schema> = string>(
+    tableName: TableName
+  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName> {
+    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync, Schema, TableName>(
       {
         tableName: tableName,
       },
-      (params: SelectAll) => {
+      (params: SelectAll<Schema>) => {
         return this.fetchAll<GenericResult>(params)
       },
-      (params: SelectOne) => {
+      (params: SelectOne<Schema>) => {
         return this.fetchOne<GenericResult>(params)
       }
     )
   }
 
   fetchOne<GenericResult = DefaultReturnObject>(
-    params: SelectOne
+    params: SelectOne<Schema>
   ): QueryWithExtra<GenericResultWrapper, OneResult<GenericResultWrapper, GenericResult>, IsAsync> {
     const queryArgs: any[] = []
     const countQueryArgs: any[] = [] // Separate args for count query
 
     // Ensure subQueryPlaceholders are passed to the count query as well, if they exist on params
-    const selectParamsForCount: SelectAll = {
+    const selectParamsForCount: SelectAll<Schema> = {
       ...params,
-      fields: 'count(*) as total',
+      fields: ['count(*) as total'],
       offset: undefined,
       groupBy: undefined,
       limit: 1,
@@ -125,7 +129,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
       selectParamsForCount.subQueryPlaceholders = params.subQueryPlaceholders
     }
 
-    const mainSql = this._select({ ...params, limit: 1 } as SelectAll, queryArgs)
+    const mainSql = this._select({ ...params, limit: 1 } as SelectAll<Schema>, queryArgs)
     const countSql = this._select(selectParamsForCount, countQueryArgs)
 
     return new QueryWithExtra(
@@ -139,7 +143,10 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  fetchAll<GenericResult = DefaultReturnObject, P extends SelectAll = SelectAll>(
+  fetchAll<
+    GenericResult = DefaultReturnObject,
+    P extends SelectAll<Schema> = SelectAll<Schema>,
+  >(
     params: P
   ): QueryWithExtra<
     GenericResultWrapper,
@@ -152,9 +159,9 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     const mainQueryParams = { ...params, lazy: undefined }
 
     // Ensure subQueryPlaceholders are passed to the count query as well
-    const countQueryParams: SelectAll = {
+    const countQueryParams: SelectAll<Schema> = {
       ...params,
-      fields: 'count(*) as total',
+      fields: ['count(*) as total'],
       offset: undefined,
       groupBy: undefined,
       limit: 1,
@@ -201,14 +208,18 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  insert<GenericResult = DefaultReturnObject>(
-    params: InsertOne
+  insert<GenericResult = DefaultReturnObject, TableName extends TableNameType<Schema> = string>(
+    params: InsertOne<Schema, TableName>
   ): Query<OneResult<GenericResultWrapper, GenericResult>, IsAsync>
-  insert<GenericResult = DefaultReturnObject>(
-    params: InsertMultiple
+  insert<GenericResult = DefaultReturnObject, TableName extends TableNameType<Schema> = string>(
+    params: InsertMultiple<Schema, TableName>
   ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync>
-  insert<GenericResult = DefaultReturnObject>(params: InsertWithoutReturning): Query<GenericResultWrapper, IsAsync>
-  insert<GenericResult = DefaultReturnObject>(params: Insert): unknown {
+  insert<GenericResult = DefaultReturnObject, TableName extends TableNameType<Schema> = string>(
+    params: InsertWithoutReturning<Schema, TableName>
+  ): Query<GenericResultWrapper, IsAsync>
+  insert<GenericResult = DefaultReturnObject, TableName extends TableNameType<Schema> = string>(
+    params: Insert<Schema, TableName>
+  ): unknown {
     let args: any[] = []
 
     if (typeof params.onConflict === 'object') {
@@ -248,11 +259,15 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  update<GenericResult = DefaultReturnObject>(
-    params: UpdateReturning
+  update<GenericResult = DefaultReturnObject, TableName extends TableNameType<Schema> = string>(
+    params: UpdateReturning<Schema, TableName>
   ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync>
-  update<GenericResult = DefaultReturnObject>(params: UpdateWithoutReturning): Query<GenericResultWrapper, IsAsync>
-  update<GenericResult = DefaultReturnObject>(params: Update): unknown {
+  update<GenericResult = DefaultReturnObject, TableName extends TableNameType<Schema> = string>(
+    params: UpdateWithoutReturning<Schema, TableName>
+  ): Query<GenericResultWrapper, IsAsync>
+  update<GenericResult = DefaultReturnObject, TableName extends TableNameType<Schema> = string>(
+    params: Update<Schema, TableName>
+  ): unknown {
     let args = this._parse_arguments(params.data)
 
     if (typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params) {
@@ -273,11 +288,15 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
-  delete<GenericResult = DefaultReturnObject>(
-    params: DeleteReturning
+  delete<GenericResult = DefaultReturnObject, TableName extends TableNameType<Schema> = string>(
+    params: DeleteReturning<Schema, TableName>
   ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync>
-  delete<GenericResult = DefaultReturnObject>(params: DeleteWithoutReturning): Query<GenericResultWrapper, IsAsync>
-  delete<GenericResult = DefaultReturnObject>(params: Delete): unknown {
+  delete<GenericResult = DefaultReturnObject, TableName extends TableNameType<Schema> = string>(
+    params: DeleteWithoutReturning<Schema, TableName>
+  ): Query<GenericResultWrapper, IsAsync>
+  delete<GenericResult = DefaultReturnObject, TableName extends TableNameType<Schema> = string>(
+    params: Delete<Schema, TableName>
+  ): unknown {
     return new Query<any, IsAsync>(
       (q) => {
         return this.execute(q)
@@ -300,7 +319,9 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     })
   }
 
-  protected _onConflict(resolution?: string | ConflictTypes | ConflictUpsert): string {
+  protected _onConflict<TableName extends TableNameType<Schema> = string>(
+    resolution?: string | ConflictTypes | ConflictUpsert<Schema, TableName>
+  ): string {
     if (resolution) {
       if (typeof resolution === 'object') {
         if (!Array.isArray(resolution.column)) {
@@ -313,7 +334,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
           where: resolution.where,
         }).query.replace(' _REPLACE_', '') // Replace here is to lint the query
 
-        return ` ON CONFLICT (${resolution.column.join(', ')}) DO ${_update_query}`
+        return ` ON CONFLICT (${(resolution.column as string[]).join(', ')}) DO ${_update_query}`
       }
 
       return `OR ${resolution} `
@@ -321,7 +342,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     return ''
   }
 
-  protected _insert(params: Insert): string {
+  protected _insert<TableName extends TableNameType<Schema> = string>(params: Insert<Schema, TableName>): string {
     const rows = []
 
     let data: Array<DefaultObject>
@@ -378,14 +399,14 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     }
 
     return (
-      `INSERT ${orConflict} INTO ${params.tableName} (${columns})` +
+      `INSERT ${orConflict} INTO ${params.tableName as string} (${columns})` +
       ` VALUES ${rows.join(', ')}` +
       onConflict +
-      this._returning(params.returning)
+      this._returning(params.returning as string[])
     )
   }
 
-  protected _update(params: Update): string {
+  protected _update<TableName extends TableNameType<Schema> = string>(params: Update<Schema, TableName>): string {
     const whereParamsLength: number =
       typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
         ? Array.isArray(params.where?.params)
@@ -404,7 +425,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     const set: Array<string> = []
     let index = 1
     for (const [key, value] of Object.entries(params.data)) {
-      if (value instanceof Raw) {
+      if ((value as any) instanceof Raw) {
         // Raw parameters should not increase the index, as they are not a real parameter
         set.push(`${key} = ${value.content}`)
       } else {
@@ -414,26 +435,29 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     }
 
     return (
-      `UPDATE ${this._onConflict(params.onConflict)}${params.tableName}
+      `UPDATE ${this._onConflict(params.onConflict)}${params.tableName as string}
        SET ${set.join(', ')}` +
       whereString +
-      this._returning(params.returning)
+      this._returning(params.returning as string[])
     )
   }
 
-  protected _delete(params: Delete): string {
+  protected _delete<TableName extends TableNameType<Schema> = string>(params: Delete<Schema, TableName>): string {
     return (
       `DELETE
-            FROM ${params.tableName}` +
+            FROM ${params.tableName as string}` +
       this._where(params.where) +
-      this._returning(params.returning) +
+      this._returning(params.returning as string[]) +
       this._orderBy(params.orderBy) +
       this._limit(params.limit) +
       this._offset(params.offset)
     )
   }
 
-  protected _select(params: SelectAll, queryArgs?: any[]): string {
+  protected _select<TableName extends TableNameType<Schema> = string>(
+    params: SelectAll<Schema, TableName>,
+    queryArgs?: any[]
+  ): string {
     const isTopLevelCall = queryArgs === undefined
     if (isTopLevelCall) {
       queryArgs = []
@@ -449,11 +473,11 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     }
 
     return (
-      `SELECT ${this._fields(params.fields)}
-       FROM ${params.tableName}` +
+      `SELECT ${this._fields(params.fields as string[])}
+       FROM ${params.tableName as string}` +
       this._join(params.join, context) +
       this._where(params.where, context) +
-      this._groupBy(params.groupBy) +
+      this._groupBy(params.groupBy as string[]) +
       this._having(params.having, context) +
       this._orderBy(params.orderBy) +
       this._limit(params.limit) +
@@ -471,10 +495,10 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
   protected _where(
     value: Where | undefined,
     context?: {
-      subQueryPlaceholders?: Record<string, SelectAll>
+      subQueryPlaceholders?: Record<string, SelectAll<Schema, any>>
       queryArgs: any[]
       // Allow toSQLCompiler to be undefined for calls not originating from _select, though practically it should always be provided.
-      toSQLCompiler?: (params: SelectAll, queryArgs: any[]) => string
+      toSQLCompiler?: (params: SelectAll<Schema, any>, queryArgs: any[]) => string
     }
   ): string {
     if (!value) return ''
@@ -549,19 +573,19 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
   }
 
   protected _join(
-    value: Join | Array<Join> | undefined,
+    value: Join<Schema> | Array<Join<Schema>> | undefined,
     context: {
       // subQueryPlaceholders are not directly used by _join for its own structure,
       // but toSQLCompiler will need them if item.table is a SelectAll object
       // that itself has subQueryPlaceholders.
-      subQueryPlaceholders?: Record<string, SelectAll>
+      subQueryPlaceholders?: Record<string, SelectAll<Schema, any>>
       queryArgs: any[]
-      toSQLCompiler: (params: SelectAll, queryArgs: any[]) => string
+      toSQLCompiler: (params: SelectAll<Schema, any>, queryArgs: any[]) => string
     }
   ): string {
     if (!value) return ''
 
-    let joinArray: Join[]
+    let joinArray: Join<Schema>[]
     if (!Array.isArray(value)) {
       joinArray = [value]
     } else {
@@ -569,7 +593,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     }
 
     const joinQuery: Array<string> = []
-    joinArray.forEach((item: Join) => {
+    joinArray.forEach((item: Join<Schema>) => {
       const type = item.type ? `${item.type} ` : ''
       let tableSql: string
       if (typeof item.table === 'string') {
@@ -580,7 +604,7 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
         // Subquery in JOIN. item.table is SelectAll in this case.
         // The toSQLCompiler (this._select) will handle any '?' or tokens within this subquery,
         // and push its arguments to context.queryArgs.
-        tableSql = `(${context.toSQLCompiler(item.table, context.queryArgs)})`
+        tableSql = `(${context.toSQLCompiler(item.table as SelectAll<Schema, any>, context.queryArgs)})`
       }
       joinQuery.push(`${type}JOIN ${tableSql}${item.alias ? ` AS ${item.alias}` : ''} ON ${item.on}`)
     })
@@ -598,9 +622,9 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
   protected _having(
     value: Where | undefined, // Using Where type as Having structure is similar for conditions/params
     context: {
-      subQueryPlaceholders?: Record<string, SelectAll>
+      subQueryPlaceholders?: Record<string, SelectAll<Schema, any>>
       queryArgs: any[]
-      toSQLCompiler?: (params: SelectAll, queryArgs: any[]) => string
+      toSQLCompiler?: (params: SelectAll<Schema, any>, queryArgs: any[]) => string
     }
   ): string {
     if (!value) return ''
