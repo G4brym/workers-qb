@@ -5,11 +5,17 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
-  "files": ["dist", "LICENSE", "README.md", "docs/**/*.md"],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md",
+    "docs/**/*.md"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "lint": "npx @biomejs/biome check src/ tests/ || (npx @biomejs/biome check --write src/ tests/; exit 1)",
-    "test": "vitest run --root tests",
+    "test": "tsc && vitest run --root tests",
+    "test:types": "tsc --noEmit --project tests/tsconfig.json",
     "build-docs": "npm run docs:build && cp docs/_redirects docs/.vitepress/dist/_redirects",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
@@ -56,11 +62,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
-    "@cloudflare/vitest-pool-workers": "^0.8.38",
-    "@cloudflare/workers-types": "^4.20250614.0",
+    "@cloudflare/vitest-pool-workers": "^0.8.64",
+    "@cloudflare/workers-types": "^4.20250816.0",
     "tsup": "^8.5.0",
-    "typescript": "^5.8.3",
-    "vitepress": "^1.6.3",
-    "wrangler": "^4.20.0"
+    "typescript": "^5.9.2",
+    "vitepress": "^1.6.4",
+    "vitest": "^3.2.4",
+    "wrangler": "^4.30.0"
   }
 }
