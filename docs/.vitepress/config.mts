@@ -30,6 +30,7 @@ export default defineConfig({
           { text: 'Introduction', link: '/introduction' },
           { text: 'Basic Queries', link: '/basic-queries' },
           { text: 'Advanced Queries', link: '/advanced-queries' },
+          { text: 'Background Writes', link: '/background-writes' },
           { text: 'Migrations', link: '/migrations' },
           { text: 'Type Checking', link: '/type-check' },
         ],
