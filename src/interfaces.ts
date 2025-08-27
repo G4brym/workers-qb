@@ -137,9 +137,16 @@ export type D1Result = {
   duration: number
   last_row_id?: string | number
   served_by: string
+  rowsRead?: number
+  rowsWritten?: number
 
   meta?: D1Meta
   success: boolean
+}
+
+export type DOResult = {
+  rowsRead: number
+  rowsWritten: number
 }
 
 export type PGResult = {
