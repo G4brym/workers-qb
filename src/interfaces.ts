@@ -11,6 +11,7 @@ export type QueryLoggerMeta = {
 
 export type QueryBuilderOptions<IsAsync extends boolean = true> = {
   logger?: (query: RawQuery, meta: QueryLoggerMeta) => MaybeAsync<IsAsync, void>
+  wrapper?: Array<(callback: CallableFunction) => CallableFunction> | ((callback: CallableFunction) => CallableFunction)
 }
 
 export type DefaultObject = Record<string, Primitive>
@@ -18,10 +19,10 @@ export type DefaultReturnObject = Record<string, null | string | number | boolea
 
 export type Where =
   | {
-      conditions: string | Array<string>
-      // TODO: enable named parameters with DefaultObject
-      params?: Primitive | Primitive[]
-    }
+    conditions: string | Array<string>
+    // TODO: enable named parameters with DefaultObject
+    params?: Primitive | Primitive[]
+  }
   | string
   | Array<string>
 

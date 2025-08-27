@@ -14,42 +14,61 @@ export class DOQB extends QueryBuilder<{}, false> {
     this.db = db
   }
 
+  wrappedFunctions(func: CallableFunction) {
+    const wrapper = this.options?.wrapper
+    if (!wrapper) {
+      return func
+    }
+
+    if (Array.isArray(wrapper)) {
+      return wrapper.reduce((acc, currentWrapper) => {
+        return currentWrapper(acc);
+      }, func);
+    }
+
+    return wrapper(func);
+  }
+
   migrations(options: MigrationOptions) {
     return new syncMigrationsBuilder<{}>(options, this)
   }
 
   execute(query: Query<any, false>) {
     return this.loggerWrapper(query, this.options.logger, () => {
-      let cursor
-      if (query.arguments) {
-        cursor = this.db.exec(query.query, ...query.arguments)
-      } else {
-        cursor = this.db.exec(query.query)
-      }
-
-      const result = cursor.toArray()
-
-      if (query.fetchType == FetchTypes.ONE) {
-        return {
-          results: result.length > 0 ? result[0] : undefined,
+      return this.wrappedFunctions(() => {
+        let cursor
+        if (query.arguments) {
+          cursor = this.db.exec(query.query, ...query.arguments)
+        } else {
+          cursor = this.db.exec(query.query)
         }
-      }
 
-      return {
-        results: result,
-      }
+        const result = cursor.toArray()
+
+        if (query.fetchType == FetchTypes.ONE) {
+          return {
+            results: result.length > 0 ? result[0] : undefined,
+          }
+        }
+
+        return {
+          results: result,
+        }
+      });
     })
   }
 
   lazyExecute(query: Query<any, false>): Iterable<any> {
     return this.loggerWrapper(query, this.options.logger, () => {
-      let cursor
-      if (query.arguments) {
-        cursor = this.db.exec(query.query, ...query.arguments)
-      } else {
-        cursor = this.db.exec(query.query)
-      }
-      return cursor
+      return this.wrappedFunctions(() => {
+        let cursor
+        if (query.arguments) {
+          cursor = this.db.exec(query.query, ...query.arguments)
+        } else {
+          cursor = this.db.exec(query.query)
+        }
+        return cursor
+      });
     })
   }
 }

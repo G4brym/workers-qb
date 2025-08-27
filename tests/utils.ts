@@ -4,16 +4,32 @@ import { D1Result } from '../src/interfaces'
 import { Query } from '../src/tools'
 
 export class QuerybuilderTest extends QueryBuilder<{}> {
+  wrappedFunctions(func: CallableFunction) {
+    const wrapper = this.options?.wrapper
+    if (!wrapper) {
+      return func
+    }
+
+    if (Array.isArray(wrapper)) {
+      return wrapper.reduce((acc, currentWrapper) => {
+        return currentWrapper(acc);
+      }, func);
+    }
+    return wrapper(func);
+  }
+
   async execute(query: Query): Promise<Query<any>> {
     return this.loggerWrapper(query, this.options.logger, async () => {
-      return {
-        // @ts-ignore
-        results: {
-          query: query.query,
-          arguments: query.arguments,
-          fetchType: query.fetchType,
-        },
-      }
+      return this.wrappedFunctions(() => {
+        return {
+          results: {
+            query: query.query,
+            arguments: query.arguments,
+            fetchType: query.fetchType,
+          },
+        }
+      })
+      
     })
   }
 
