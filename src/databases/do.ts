@@ -1,6 +1,6 @@
 import { QueryBuilder } from '../builder'
 import { FetchTypes } from '../enums'
-import { QueryBuilderOptions } from '../interfaces'
+import { DOResult, QueryBuilderOptions } from '../interfaces'
 import { syncLoggerWrapper } from '../logger'
 import { MigrationOptions, syncMigrationsBuilder } from '../migrations'
 import { Query } from '../tools'
@@ -12,7 +12,7 @@ export interface SqlStorage {
   Statement: any
 }
 
-export class DOQB extends QueryBuilder<{}, false> {
+export class DOQB extends QueryBuilder<DOResult, false> {
   public db: SqlStorage
   loggerWrapper = syncLoggerWrapper
 
@@ -22,7 +22,7 @@ export class DOQB extends QueryBuilder<{}, false> {
   }
 
   migrations(options: MigrationOptions) {
-    return new syncMigrationsBuilder<{}>(options, this)
+    return new syncMigrationsBuilder<DOResult>(options, this)
   }
 
   execute(query: Query<any, false>) {
@@ -35,15 +35,21 @@ export class DOQB extends QueryBuilder<{}, false> {
       }
 
       const result = cursor.toArray()
+      const rowsRead = cursor.rowsRead
+      const rowsWritten = cursor.rowsWritten
 
       if (query.fetchType == FetchTypes.ONE) {
         return {
           results: result.length > 0 ? result[0] : undefined,
+          rowsRead,
+          rowsWritten,
         }
       }
 
       return {
         results: result,
+        rowsRead,
+        rowsWritten,
       }
     })
   }
