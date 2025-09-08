@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { QuerybuilderTest } from '../utils'
-
 import { FetchTypes } from '../../src/enums'
+import { QuerybuilderTest } from '../utils'
 
 describe('Raw Query Tests', () => {
   it('raw SELECT query with fetchType ALL', async () => {

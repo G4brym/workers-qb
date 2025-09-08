@@ -132,7 +132,7 @@ describe('JSON operations', () => {
       .fetchAll({
         tableName: 'json_test',
         where: {
-          conditions: `id IN (SELECT value FROM json_each(?))`,
+          conditions: 'id IN (SELECT value FROM json_each(?))',
           params: [JSON.stringify(userIds)],
         },
       })

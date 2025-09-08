@@ -5,7 +5,7 @@ export default defineConfig({
   title: 'workers-qb',
   description: 'Zero dependencies Query Builder for Cloudflare Workers',
   sitemap: {
-    hostname: 'https://workers-qb.massadas.com'
+    hostname: 'https://workers-qb.massadas.com',
   },
   lastUpdated: true,
   cleanUrls: true,

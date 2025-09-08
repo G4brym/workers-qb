@@ -28,7 +28,6 @@ import {
   Where,
 } from './interfaces'
 import { asyncLoggerWrapper, defaultLogger } from './logger'
-import { MigrationOptions, asyncMigrationsBuilder } from './migrations'
 import { SelectBuilder } from './modularBuilder'
 import { Query, QueryWithExtra, Raw } from './tools'
 
@@ -338,8 +337,8 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     const columns = Object.keys(data[0]).join(', ')
     let index = 1
 
-    let orConflict = '',
-      onConflict = ''
+    let orConflict = ''
+    let onConflict = ''
     if (params.onConflict && typeof params.onConflict === 'object') {
       onConflict = this._onConflict(params.onConflict)
 
@@ -434,13 +433,14 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
   }
 
   protected _select(params: SelectAll, queryArgs?: any[]): string {
+    let newQueryArgs = queryArgs
     const isTopLevelCall = queryArgs === undefined
     if (isTopLevelCall) {
-      queryArgs = []
+      newQueryArgs = []
     }
 
-    // This assertion tells TypeScript that queryArgs is definitely assigned after the block above.
-    const currentQueryArgs = queryArgs!
+    // This assertion tells TypeScript that newQueryArgs is definitely assigned after the block above.
+    const currentQueryArgs = newQueryArgs!
 
     const context = {
       subQueryPlaceholders: params.subQueryPlaceholders,
@@ -695,9 +695,8 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
           objs.push(`${key} ${item}`)
         })
         return objs.join(', ')
-      } else {
-        return obj
       }
+      return obj
     })
 
     return ` ORDER BY ${result.join(', ')}`
