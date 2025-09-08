@@ -35,10 +35,10 @@ workers-qb is a lightweight query builder designed specifically for Cloudflare W
 
 ## Supported Databases
 
-- ☁️ [Cloudflare D1](https://workers-qb.massadas.com/databases/cloudflare-d1/)
-- 💾 [Cloudflare Durable Objects](https://workers-qb.massadas.com/databases/cloudflare-do/)
+- ☁️ [Cloudflare D1](https://workers-qb.massadas.com/databases/d1/)
+- 💾 [Cloudflare Durable Objects](https://workers-qb.massadas.com/databases/do/)
 - 🐘 [PostgreSQL (via node-postgres)](https://workers-qb.massadas.com/databases/postgresql/)
-- 🔌 [Bring Your Own Database](https://workers-qb.massadas.com/databases/bring-your-own-database/)
+- 🔌 [Bring Your Own Database](https://workers-qb.massadas.com/databases/byodb/)
 
 ## Features
 
