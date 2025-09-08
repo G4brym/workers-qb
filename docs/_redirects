@@ -12,3 +12,6 @@
 /advanced-queries/onConflict /basic-queries/#on-conflict-ignore 302
 /advanced-queries/upsert /basic-queries/#on-conflict-upsert-update 302
 /advanced-queries/raw-sql /advanced-queries/#raw-queries 302
+/databases/cloudflare-do/ /databases/do 302
+/databases/cloudflare-d1/ /databases/d1 302
+/databases/bring-your-own-database/ /databases/byodb 302
