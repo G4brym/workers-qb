@@ -61,7 +61,7 @@
     "url": "https://github.com/G4brym/workers-qb/issues"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.2.3",
     "@cloudflare/vitest-pool-workers": "^0.8.64",
     "@cloudflare/workers-types": "^4.20250816.0",
     "tsup": "^8.5.0",
