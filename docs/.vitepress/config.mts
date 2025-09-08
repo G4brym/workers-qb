@@ -3,7 +3,11 @@ import { defineConfig } from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: 'workers-qb',
-  text: 'Zero dependencies Query Builder for Cloudflare Workers',
+  description: 'Zero dependencies Query Builder for Cloudflare Workers',
+  sitemap: {
+    hostname: 'https://workers-qb.massadas.com'
+  },
+  lastUpdated: true,
   cleanUrls: true,
   head: [
     [
@@ -34,6 +38,7 @@ export default defineConfig({
           { text: 'Background Writes', link: '/background-writes' },
           { text: 'Migrations', link: '/migrations' },
           { text: 'Type Checking', link: '/type-check' },
+          { text: 'Logger', link: '/logger' },
         ],
       },
       {
