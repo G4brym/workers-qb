@@ -5,11 +5,18 @@ import { syncLoggerWrapper } from '../logger'
 import { MigrationOptions, syncMigrationsBuilder } from '../migrations'
 import { Query } from '../tools'
 
+export interface SqlStorage {
+  exec: any
+  prepare: any
+  Cursor: any
+  Statement: any
+}
+
 export class DOQB extends QueryBuilder<{}, false> {
-  public db: any
+  public db: SqlStorage
   loggerWrapper = syncLoggerWrapper
 
-  constructor(db: any, options?: QueryBuilderOptions<false>) {
+  constructor(db: SqlStorage, options?: QueryBuilderOptions<false>) {
     super(options)
     this.db = db
   }
