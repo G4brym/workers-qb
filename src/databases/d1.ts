@@ -4,9 +4,15 @@ import { D1Result, QueryBuilderOptions } from '../interfaces'
 import { MigrationOptions, asyncMigrationsBuilder } from '../migrations'
 import { Query } from '../tools'
 
+interface D1Database {
+  prepare: any
+  batch: any
+  exec: any
+}
+
 export class D1QB extends QueryBuilder<D1Result> {
   public db: any
-  constructor(db: any, options?: QueryBuilderOptions) {
+  constructor(db: D1Database, options?: QueryBuilderOptions) {
     super(options)
     this.db = db
   }

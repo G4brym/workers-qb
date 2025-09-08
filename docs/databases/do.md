@@ -201,3 +201,66 @@ export class MyDurableObject extends DurableObject {
 In this example, `fetchAll` is called with `lazy: true` and the generic type specified as `<Item, true>`. The `execute()` method returns a result object where `results` is an `AsyncIterable<Item>`. You can then use an `for await...of` loop to iterate through the results asynchronously, processing items one by one as they are fetched from the database.
 
 **Note:** Lazy queries are particularly useful in Durable Objects to avoid blocking the event loop for extended periods when dealing with large datasets. However, keep in mind that each iteration still involves synchronous storage operations. Optimize your processing logic within the loop to maintain responsiveness.
+
+## Execution Metrics
+
+When you execute a query with `DOQB`, the returned result object contains metrics about the database operation. This includes `rowsRead` and `rowsWritten`, which provide insight into the impact of your query.
+
+-   `rowsRead`: The number of rows read from the database to execute the query.
+-   `rowsWritten`: The number of rows written (inserted, updated, or deleted) to the database.
+
+These metrics can be useful for monitoring and optimizing your database queries within your Durable Object.
+
+**Example: Accessing Execution Metrics**
+
+```typescript
+import { DOQB } from 'workers-qb';
+
+export class MyDurableObject extends DurableObject {
+  #qb: DOQB;
+
+  constructor(state: DurableObjectState, env: Env) {
+    super(state, env);
+    this.#qb = new DOQB(this.storage.sql);
+    // ... table creation ...
+  }
+
+  async fetch(request: Request): Promise<Response> {
+    type Item = {
+      id: number;
+      name: string;
+    };
+
+    // Example of an insert operation
+    const insertResult = this.#qb.insert<Item>({
+      tableName: 'items',
+      data: { name: 'Durable Item' },
+      returning: ['id', 'name'],
+    }).execute();
+
+    console.log(`Rows written: ${insertResult.rowsWritten}`); // e.g., "Rows written: 1"
+
+    // Example of a select operation
+    const selectResult = this.#qb.fetchAll<Item>({
+      tableName: 'items',
+    }).execute();
+
+    console.log(`Rows read: ${selectResult.rowsRead}`); // e.g., "Rows read: 3"
+
+    return Response.json({
+      insertedItem: insertResult.results,
+      allItems: selectResult.results,
+      metrics: {
+        insert: {
+          rowsWritten: insertResult.rowsWritten,
+          rowsRead: insertResult.rowsRead,
+        },
+        select: {
+          rowsWritten: selectResult.rowsWritten,
+          rowsRead: selectResult.rowsRead,
+        },
+      },
+    });
+  }
+}
+```

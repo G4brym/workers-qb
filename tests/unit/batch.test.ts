@@ -17,6 +17,9 @@ describe('Batch Builder', () => {
       batch: (stmts: any) => {
         return Promise.resolve(stmts.map((stmt: any) => stmt.all()))
       },
+      exec: () => {
+        throw new Error('not implemented')
+      },
     }
 
     const qb = new D1QB(dbMock)

@@ -5,7 +5,7 @@ import { syncLoggerWrapper } from '../logger'
 import { MigrationOptions, syncMigrationsBuilder } from '../migrations'
 import { Query } from '../tools'
 
-export interface SqlStorage {
+interface SqlStorage {
   exec: any
   prepare: any
   Cursor: any
