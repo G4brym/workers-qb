@@ -26,11 +26,14 @@ export class D1QB extends QueryBuilder<D1Result> {
       if (query.fetchType === FetchTypes.ONE || query.fetchType === FetchTypes.ALL) {
         const resp = await stmt.all()
 
+        const meta = resp.meta as any
         return {
-          changes: resp.meta?.changes,
-          duration: resp.meta?.duration,
-          last_row_id: resp.meta?.last_row_id,
-          served_by: resp.meta?.served_by,
+          changes: meta?.changes,
+          duration: meta?.duration,
+          last_row_id: meta?.last_row_id,
+          served_by: meta?.served_by,
+          rowsRead: meta?.rows_read,
+          rowsWritten: meta?.rows_written,
           meta: resp.meta,
           success: resp.success,
           results: query.fetchType === FetchTypes.ONE ? resp.results[0] : resp.results,
@@ -63,6 +66,8 @@ export class D1QB extends QueryBuilder<D1Result> {
               changes: any
               last_row_id: any
               served_by: any
+              rows_read: any
+              rows_written: any
             }
           },
           i: number
@@ -73,6 +78,8 @@ export class D1QB extends QueryBuilder<D1Result> {
               duration: resp.meta?.duration,
               last_row_id: resp.meta?.last_row_id,
               served_by: resp.meta?.served_by,
+              rowsRead: resp.meta?.rows_read,
+              rowsWritten: resp.meta?.rows_written,
               meta: resp.meta,
               success: resp.success,
               results: queryArray[i]?.fetchType === FetchTypes.ONE ? resp.results?.[0] : resp.results,
@@ -83,6 +90,8 @@ export class D1QB extends QueryBuilder<D1Result> {
               duration: resp.meta?.duration,
               last_row_id: resp.meta?.last_row_id,
               served_by: resp.meta?.served_by,
+              rowsRead: resp.meta?.rows_read,
+              rowsWritten: resp.meta?.rows_written,
               meta: resp.meta,
               success: resp.success,
             }
