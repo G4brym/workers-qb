@@ -1,7 +1,7 @@
 import { QueryBuilder } from '../builder'
 import { FetchTypes } from '../enums'
 import { PGResult, QueryBuilderOptions } from '../interfaces'
-import { MigrationOptions, asyncMigrationsBuilder } from '../migrations'
+import { asyncMigrationsBuilder, MigrationOptions } from '../migrations'
 import { Query } from '../tools'
 
 export class PGQB extends QueryBuilder<PGResult> {

@@ -1,7 +1,7 @@
 import { QueryBuilder } from '../builder'
 import { FetchTypes } from '../enums'
 import { D1Result, QueryBuilderOptions } from '../interfaces'
-import { MigrationOptions, asyncMigrationsBuilder } from '../migrations'
+import { asyncMigrationsBuilder, MigrationOptions } from '../migrations'
 import { Query } from '../tools'
 
 interface D1Database {
@@ -90,17 +90,16 @@ export class D1QB extends QueryBuilder<D1Result> {
               success: resp.success,
               results: queryArray[i]?.fetchType === FetchTypes.ONE ? resp.results?.[0] : resp.results,
             }
-          } else {
-            return {
-              changes: resp.meta?.changes,
-              duration: resp.meta?.duration,
-              last_row_id: resp.meta?.last_row_id,
-              served_by: resp.meta?.served_by,
-              rowsRead: resp.meta?.rows_read,
-              rowsWritten: resp.meta?.rows_written,
-              meta: resp.meta,
-              success: resp.success,
-            }
+          }
+          return {
+            changes: resp.meta?.changes,
+            duration: resp.meta?.duration,
+            last_row_id: resp.meta?.last_row_id,
+            served_by: resp.meta?.served_by,
+            rowsRead: resp.meta?.rows_read,
+            rowsWritten: resp.meta?.rows_written,
+            meta: resp.meta,
+            success: resp.success,
           }
         }
       )
