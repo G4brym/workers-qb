@@ -7,7 +7,7 @@ import { Query } from '../tools'
 
 interface SqlStorage {
   exec: any
-  prepare: any
+  get databaseSize(): number
   Cursor: any
   Statement: any
 }
