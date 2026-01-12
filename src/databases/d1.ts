@@ -2,6 +2,7 @@ import { QueryBuilder } from '../builder'
 import { FetchTypes } from '../enums'
 import { D1Result, QueryBuilderOptions } from '../interfaces'
 import { asyncMigrationsBuilder, MigrationOptions } from '../migrations'
+import { TableSchema } from '../schema'
 import { Query } from '../tools'
 
 interface D1Database {
@@ -10,7 +11,7 @@ interface D1Database {
   exec: any
 }
 
-export class D1QB extends QueryBuilder<D1Result> {
+export class D1QB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, D1Result, true> {
   public db: any
   constructor(db: D1Database, options?: QueryBuilderOptions) {
     super(options)

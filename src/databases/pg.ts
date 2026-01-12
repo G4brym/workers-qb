@@ -2,9 +2,10 @@ import { QueryBuilder } from '../builder'
 import { FetchTypes } from '../enums'
 import { PGResult, QueryBuilderOptions } from '../interfaces'
 import { asyncMigrationsBuilder, MigrationOptions } from '../migrations'
+import { TableSchema } from '../schema'
 import { Query } from '../tools'
 
-export class PGQB extends QueryBuilder<PGResult> {
+export class PGQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, PGResult, true> {
   public db: any
   _migrationsBuilder = asyncMigrationsBuilder
 

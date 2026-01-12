@@ -3,7 +3,8 @@ import { QueryBuilder } from '../src/builder'
 import { D1Result } from '../src/interfaces'
 import { Query } from '../src/tools'
 
-export class QuerybuilderTest extends QueryBuilder<{}> {
+// Schema={}, ResultWrapper={}, IsAsync=true (default)
+export class QuerybuilderTest extends QueryBuilder<{}, {}, true> {
   async execute(query: Query): Promise<Query<any>> {
     return this.loggerWrapper(query, this.options.logger, async () => {
       return {
@@ -28,7 +29,8 @@ export class QuerybuilderTest extends QueryBuilder<{}> {
   }
 }
 
-export class QuerybuilderTestSync extends QueryBuilder<{}, false> {
+// Schema={}, ResultWrapper={}, IsAsync=false (sync)
+export class QuerybuilderTestSync extends QueryBuilder<{}, {}, false> {
   loggerWrapper = syncLoggerWrapper
 
   execute(query: Query<any, false>) {
@@ -55,7 +57,8 @@ export class QuerybuilderTestSync extends QueryBuilder<{}, false> {
   }
 }
 
-export class QuerybuilderExceptionTest extends QueryBuilder<{}> {
+// Schema={}, ResultWrapper={}, IsAsync=true (default)
+export class QuerybuilderExceptionTest extends QueryBuilder<{}, {}, true> {
   async execute(query: Query): Promise<Query<any>> {
     return this.loggerWrapper(query, this.options.logger, async () => {
       await new Promise((r) => setTimeout(r, 50))
