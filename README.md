@@ -117,39 +117,6 @@ export default {
 }
 ```
 
-### Schema-Aware Type Inference
-
-Define your database schema once and get autocomplete for table names, column names, and automatic result type inference:
-
-```typescript
-import { D1QB } from 'workers-qb'
-
-// Define your schema
-type Schema = {
-  employees: {
-    id: number
-    name: string
-    role: string
-    active: boolean
-  }
-}
-
-// Initialize with schema type
-const qb = new D1QB<Schema>(env.DB)
-
-// Get full autocomplete and type inference
-const employees = await qb.fetchAll({
-  tableName: 'employees',     // Autocomplete: 'employees'
-  fields: ['id', 'name'],     // Autocomplete: 'id' | 'name' | 'role' | 'active'
-  orderBy: { name: 'ASC' },   // Keys autocomplete to column names
-}).execute()
-
-// Result type is automatically inferred as { id: number; name: string }[]
-employees.results?.forEach(emp => {
-  console.log(emp.id, emp.name)  // Fully typed!
-})
-```
-
 ### Cloudflare Durable Objects
 
 ```typescript
