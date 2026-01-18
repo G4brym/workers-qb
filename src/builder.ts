@@ -7,6 +7,7 @@ import {
   Delete,
   DeleteReturning,
   DeleteWithoutReturning,
+  InferResult,
   Insert,
   InsertMultiple,
   InsertOne,
@@ -22,6 +23,11 @@ import {
   RawQueryWithoutFetching,
   SelectAll,
   SelectOne,
+  TypedDelete,
+  TypedInsert,
+  TypedSelectAll,
+  TypedSelectOne,
+  TypedUpdate,
   Update,
   UpdateReturning,
   UpdateWithoutReturning,
@@ -29,9 +35,14 @@ import {
 } from './interfaces'
 import { asyncLoggerWrapper, defaultLogger } from './logger'
 import { SelectBuilder } from './modularBuilder'
+import { ColumnName, TableName, TableSchema } from './schema'
 import { Query, QueryWithExtra, Raw } from './tools'
 
-export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> {
+export class QueryBuilder<
+  Schema extends TableSchema = {},
+  GenericResultWrapper = unknown,
+  IsAsync extends boolean = true,
+> {
   protected options: QueryBuilderOptions<IsAsync>
   loggerWrapper = asyncLoggerWrapper
 
@@ -90,10 +101,16 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
+  // Schema-aware overload: when Schema is defined, tableName is restricted to table names
+  select<T extends TableName<Schema>>(tableName: T): SelectBuilder<Schema, GenericResultWrapper, Schema[T], IsAsync>
+  // Fallback overload: when Schema is empty or explicit result type is provided
   select<GenericResult = DefaultReturnObject>(
     tableName: string
-  ): SelectBuilder<GenericResultWrapper, GenericResult, IsAsync> {
-    return new SelectBuilder<GenericResultWrapper, GenericResult, IsAsync>(
+  ): SelectBuilder<{}, GenericResultWrapper, GenericResult, IsAsync>
+  select<T extends string, GenericResult = DefaultReturnObject>(
+    tableName: T
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
       {
         tableName: tableName,
       },
@@ -106,9 +123,21 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
+  // Schema-aware overload: when Schema is defined
+  fetchOne<T extends TableName<Schema>, F extends ColumnName<Schema, T> = ColumnName<Schema, T>>(
+    params: TypedSelectOne<Schema, T, F>
+  ): QueryWithExtra<
+    GenericResultWrapper,
+    OneResult<GenericResultWrapper, InferResult<Schema, T, F[] | undefined>>,
+    IsAsync
+  >
+  // Fallback overload: when Schema is empty or explicit result type is provided
   fetchOne<GenericResult = DefaultReturnObject>(
     params: SelectOne
-  ): QueryWithExtra<GenericResultWrapper, OneResult<GenericResultWrapper, GenericResult>, IsAsync> {
+  ): QueryWithExtra<GenericResultWrapper, OneResult<GenericResultWrapper, GenericResult>, IsAsync>
+  // Implementation signature - uses any for compatibility with both overloads
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fetchOne(params: any): QueryWithExtra<GenericResultWrapper, any, IsAsync> {
     const queryArgs: any[] = []
     const countQueryArgs: any[] = [] // Separate args for count query
 
@@ -120,8 +149,8 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
       groupBy: undefined,
       limit: 1,
     }
-    if (params.subQueryPlaceholders) {
-      selectParamsForCount.subQueryPlaceholders = params.subQueryPlaceholders
+    if ((params as SelectAll).subQueryPlaceholders) {
+      selectParamsForCount.subQueryPlaceholders = (params as SelectAll).subQueryPlaceholders
     }
 
     const mainSql = this._select({ ...params, limit: 1 } as SelectAll, queryArgs)
@@ -138,8 +167,35 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
+  // Schema-aware overload: when Schema is defined
+  fetchAll<
+    T extends TableName<Schema>,
+    F extends ColumnName<Schema, T> = ColumnName<Schema, T>,
+    P extends TypedSelectAll<Schema, T, F> = TypedSelectAll<Schema, T, F>,
+  >(
+    params: P
+  ): QueryWithExtra<
+    GenericResultWrapper,
+    ArrayResult<
+      GenericResultWrapper,
+      InferResult<Schema, T, F[] | undefined>,
+      IsAsync,
+      P extends { lazy: true } ? true : false
+    >,
+    IsAsync
+  >
+  // Fallback overload: when Schema is empty or explicit result type is provided
   fetchAll<GenericResult = DefaultReturnObject, P extends SelectAll = SelectAll>(
     params: P
+  ): QueryWithExtra<
+    GenericResultWrapper,
+    ArrayResult<GenericResultWrapper, GenericResult, IsAsync, P extends { lazy: true } ? true : false>,
+    IsAsync
+  >
+  // Implementation signature - accepts any object with tableName
+  fetchAll<GenericResult = DefaultReturnObject, P extends SelectAll = SelectAll>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    params: any
   ): QueryWithExtra<
     GenericResultWrapper,
     ArrayResult<GenericResultWrapper, GenericResult, IsAsync, P extends { lazy: true } ? true : false>,
@@ -159,19 +215,19 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
       limit: 1,
       lazy: undefined,
     }
-    if (params.subQueryPlaceholders) {
-      countQueryParams.subQueryPlaceholders = params.subQueryPlaceholders
+    if ((params as SelectAll).subQueryPlaceholders) {
+      countQueryParams.subQueryPlaceholders = (params as SelectAll).subQueryPlaceholders
     }
 
-    const mainSql = this._select(mainQueryParams, queryArgs)
+    const mainSql = this._select(mainQueryParams as SelectAll, queryArgs)
     const countSql = this._select(countQueryParams, countQueryArgs)
 
     return new QueryWithExtra(
       (q) => {
-        return params.lazy
+        return (params as SelectAll).lazy
           ? (this.lazyExecute(q) as unknown as MaybeAsync<
               IsAsync,
-              ArrayResult<GenericResultWrapper, GenericResult, IsAsync, P extends { lazy: true } ? true : false>
+              ArrayResult<GenericResultWrapper, any, IsAsync, P extends { lazy: true } ? true : false>
             >)
           : this.execute(q)
       },
@@ -200,6 +256,9 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
+  // Schema-aware overload: when Schema is defined
+  insert<T extends TableName<Schema>>(params: TypedInsert<Schema, T>): Query<GenericResultWrapper, IsAsync>
+  // Legacy overloads for backwards compatibility
   insert<GenericResult = DefaultReturnObject>(
     params: InsertOne
   ): Query<OneResult<GenericResultWrapper, GenericResult>, IsAsync>
@@ -207,7 +266,9 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     params: InsertMultiple
   ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync>
   insert<GenericResult = DefaultReturnObject>(params: InsertWithoutReturning): Query<GenericResultWrapper, IsAsync>
-  insert<GenericResult = DefaultReturnObject>(params: Insert): unknown {
+  // Implementation signature - accepts any object with tableName
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  insert<GenericResult = DefaultReturnObject>(params: any): Query<any, IsAsync> {
     let args: any[] = []
 
     if (typeof params.onConflict === 'object') {
@@ -247,11 +308,16 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
+  // Schema-aware overload: when Schema is defined
+  update<T extends TableName<Schema>>(params: TypedUpdate<Schema, T>): Query<GenericResultWrapper, IsAsync>
+  // Legacy overloads for backwards compatibility
   update<GenericResult = DefaultReturnObject>(
     params: UpdateReturning
   ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync>
   update<GenericResult = DefaultReturnObject>(params: UpdateWithoutReturning): Query<GenericResultWrapper, IsAsync>
-  update<GenericResult = DefaultReturnObject>(params: Update): unknown {
+  // Implementation signature - accepts any object with tableName
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  update<GenericResult = DefaultReturnObject>(params: any): Query<any, IsAsync> {
     let args = this._parse_arguments(params.data)
 
     if (typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params) {
@@ -272,11 +338,16 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     )
   }
 
+  // Schema-aware overload: when Schema is defined
+  delete<T extends TableName<Schema>>(params: TypedDelete<Schema, T>): Query<GenericResultWrapper, IsAsync>
+  // Legacy overloads for backwards compatibility
   delete<GenericResult = DefaultReturnObject>(
     params: DeleteReturning
   ): Query<ArrayResult<GenericResultWrapper, GenericResult, IsAsync>, IsAsync>
   delete<GenericResult = DefaultReturnObject>(params: DeleteWithoutReturning): Query<GenericResultWrapper, IsAsync>
-  delete<GenericResult = DefaultReturnObject>(params: Delete): unknown {
+  // Implementation signature - accepts any object with tableName
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete<GenericResult = DefaultReturnObject>(params: any): Query<any, IsAsync> {
     return new Query<any, IsAsync>(
       (q) => {
         return this.execute(q)

@@ -1,5 +1,6 @@
 import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from './enums'
 import { SelectBuilder } from './modularBuilder'
+import { ColumnName, TableName, TableSchema } from './schema'
 import { Raw } from './tools'
 import { Merge } from './typefest'
 
@@ -91,8 +92,6 @@ export type InsertMultiple = Omit<Insert, 'data' | 'returning'> & {
 
 export type InsertWithoutReturning = Omit<Insert, 'returning'>
 
-export type test<I extends Insert = Insert> = I
-
 export type Update = {
   tableName: string
   data: DefaultObject
@@ -179,3 +178,84 @@ export type CountResult<GenericResultWrapper> = OneResult<GenericResultWrapper, 
 export type AsyncType<T> = Promise<T>
 export type SyncType<T> = T
 export type MaybeAsync<IsAsync extends boolean, T> = IsAsync extends true ? AsyncType<T> : SyncType<T>
+
+// ============================================================================
+// Schema-Aware Types
+// ============================================================================
+
+/**
+ * Schema-aware SELECT parameters.
+ * When a schema is provided, tableName and fields get autocomplete.
+ */
+export type TypedSelectOne<
+  S extends TableSchema,
+  T extends TableName<S>,
+  F extends ColumnName<S, T> = ColumnName<S, T>,
+> = {
+  tableName: T
+  fields?: F[] | F | '*'
+  where?: Where
+  join?: Join | Array<Join>
+  groupBy?: ColumnName<S, T> | ColumnName<S, T>[] | string | string[]
+  having?: Where
+  orderBy?: Partial<Record<ColumnName<S, T>, OrderTypes | string>> | string | string[]
+  offset?: number
+}
+
+/**
+ * Schema-aware SELECT ALL parameters (includes limit and lazy).
+ */
+export type TypedSelectAll<
+  S extends TableSchema,
+  T extends TableName<S>,
+  F extends ColumnName<S, T> = ColumnName<S, T>,
+> = TypedSelectOne<S, T, F> & {
+  limit?: number
+  lazy?: boolean
+}
+
+/**
+ * Schema-aware INSERT parameters.
+ */
+export type TypedInsert<S extends TableSchema, T extends TableName<S>> = {
+  tableName: T
+  data: Partial<S[T]> | Array<Partial<S[T]>>
+  returning?: ColumnName<S, T>[] | ColumnName<S, T> | '*'
+  onConflict?: string | ConflictTypes | ConflictUpsert
+}
+
+/**
+ * Schema-aware UPDATE parameters.
+ */
+export type TypedUpdate<S extends TableSchema, T extends TableName<S>> = {
+  tableName: T
+  data: Partial<S[T]>
+  where?: Where
+  returning?: ColumnName<S, T>[] | ColumnName<S, T> | '*'
+  onConflict?: string | ConflictTypes
+}
+
+/**
+ * Schema-aware DELETE parameters.
+ */
+export type TypedDelete<S extends TableSchema, T extends TableName<S>> = {
+  tableName: T
+  where: Where
+  returning?: ColumnName<S, T>[] | ColumnName<S, T> | '*'
+  orderBy?: Partial<Record<ColumnName<S, T>, OrderTypes | string>> | string | string[]
+  limit?: number
+  offset?: number
+}
+
+/**
+ * Infer the result type based on selected fields.
+ * If fields is '*' or undefined, returns full table type.
+ * If fields is an array, returns Pick of those fields.
+ */
+export type InferResult<S extends TableSchema, T extends TableName<S>, F> = F extends '*'
+  ? S[T]
+  : F extends ColumnName<S, T>[]
+    ? Pick<S[T], F[number]>
+    : F extends ColumnName<S, T>
+      ? Pick<S[T], F>
+      : S[T]

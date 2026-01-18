@@ -3,6 +3,7 @@ import { FetchTypes } from '../enums'
 import { DOResult, QueryBuilderOptions } from '../interfaces'
 import { syncLoggerWrapper } from '../logger'
 import { MigrationOptions, syncMigrationsBuilder } from '../migrations'
+import { TableSchema } from '../schema'
 import { Query } from '../tools'
 
 interface SqlStorage {
@@ -12,7 +13,7 @@ interface SqlStorage {
   Statement: any
 }
 
-export class DOQB extends QueryBuilder<DOResult, false> {
+export class DOQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, DOResult, false> {
   public db: SqlStorage
   loggerWrapper = syncLoggerWrapper
 

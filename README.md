@@ -45,8 +45,8 @@ workers-qb is a lightweight query builder designed specifically for Cloudflare W
 ### Core Features
 - Zero dependencies
 - Full TypeScript support
+- Schema-aware type inference with autocomplete
 - Database schema migrations
-- Type checking for data reads
 - Lazy row loading
 
 ### Query Operations
@@ -108,6 +108,39 @@ export default {
     })
   },
 }
+```
+
+### Schema-Aware Type Inference
+
+Define your database schema once and get autocomplete for table names, column names, and automatic result type inference:
+
+```typescript
+import { D1QB } from 'workers-qb'
+
+// Define your schema
+type Schema = {
+  employees: {
+    id: number
+    name: string
+    role: string
+    active: boolean
+  }
+}
+
+// Initialize with schema type
+const qb = new D1QB<Schema>(env.DB)
+
+// Get full autocomplete and type inference
+const employees = await qb.fetchAll({
+  tableName: 'employees',     // Autocomplete: 'employees'
+  fields: ['id', 'name'],     // Autocomplete: 'id' | 'name' | 'role' | 'active'
+  orderBy: { name: 'ASC' },   // Keys autocomplete to column names
+}).execute()
+
+// Result type is automatically inferred as { id: number; name: string }[]
+employees.results?.forEach(emp => {
+  console.log(emp.id, emp.name)  // Fully typed!
+})
 ```
 
 ### Cloudflare Durable Objects

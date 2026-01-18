@@ -13,8 +13,22 @@ An INNER JOIN returns rows only when there is a match in both tables based on th
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+// Define your database schema
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    role_id: number;
+  };
+  roles: {
+    id: number;
+    name: string;
+  };
+};
 
+const qb = new D1QB<Schema>(env.DB);
+
+// For JOIN queries with custom field aliases, use explicit generic type
 type UserWithRole = {
   userName: string;
   roleName: string;
@@ -40,7 +54,12 @@ A LEFT JOIN (or LEFT OUTER JOIN) returns all rows from the left table and the ma
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+type Schema = {
+  users: { id: number; name: string; role_id: number };
+  roles: { id: number; name: string };
+};
+
+const qb = new D1QB<Schema>(env.DB);
 
 type UserWithOptionalRole = {
   userName: string;
@@ -67,7 +86,12 @@ A CROSS JOIN returns the Cartesian product of rows from the tables in the join. 
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+type Schema = {
+  users: { id: number; name: string };
+  products: { id: number; name: string };
+};
+
+const qb = new D1QB<Schema>(env.DB);
 
 type UserAndProduct = {
   userName: string;
@@ -287,6 +311,9 @@ The `SelectBuilder` provides methods to execute the built query and retrieve res
 *   `.all()`: Explicitly executes as `fetchAll` and returns `ArrayResult`.
 *   `.one()`: Explicitly executes as `fetchOne` and returns `OneResult`.
 *   `.count()`: Executes a `COUNT(*)` query based on the current builder configuration (ignoring fields, limit, offset, orderBy) and returns `CountResult`.
+*   `.getQueryAll()`: Returns the `Query` object for the SELECT query (useful for batch operations).
+*   `.getQueryOne()`: Returns the `Query` object for a single-row SELECT query.
+*   `.getOptions()`: Returns the current query builder options object.
 
 ```typescript
 import { D1QB } from 'workers-qb';
@@ -545,6 +572,84 @@ const usersPage2 = await qb.fetchAll<User>({
 console.log('Users page 2:', usersPage2.results);
 ```
 
+## Lazy Execution
+
+Lazy execution allows you to iterate over query results one row at a time without loading the entire dataset into memory. This is particularly useful when working with large datasets or when you need to process results incrementally.
+
+### Enabling Lazy Execution
+
+To enable lazy execution, set `lazy: true` in your `fetchAll` call:
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+// ... (D1QB initialization) ...
+
+type User = {
+  id: number;
+  name: string;
+  email: string;
+};
+
+// Async database (D1, PostgreSQL) - returns AsyncIterable
+const lazyResult = await qb.fetchAll<User>({
+  tableName: 'users',
+  lazy: true,
+}).execute();
+
+// Iterate over results one at a time
+if (lazyResult.results) {
+  for await (const user of lazyResult.results) {
+    console.log('Processing user:', user.name);
+    // Process each user without loading all into memory
+  }
+}
+```
+
+### Lazy Execution with SelectBuilder
+
+You can also enable lazy execution when using the SelectBuilder by passing `{ lazy: true }` to `.execute()`:
+
+```typescript
+const lazyUsers = await qb.select<User>('users')
+  .where('is_active = ?', true)
+  .execute({ lazy: true });
+
+if (lazyUsers.results) {
+  for await (const user of lazyUsers.results) {
+    console.log('Active user:', user.name);
+  }
+}
+```
+
+### Async vs Sync Lazy Execution
+
+The return type of lazy execution depends on the database type:
+
+| Database | Return Type | Iteration |
+|----------|-------------|-----------|
+| D1QB (Cloudflare D1) | `AsyncIterable<T>` | `for await...of` |
+| PGQB (PostgreSQL) | `AsyncIterable<T>` | `for await...of` |
+| DOQB (Durable Objects) | `Iterable<T>` | `for...of` (synchronous) |
+
+**Example for Durable Objects (synchronous):**
+
+```typescript
+import { DOQB } from 'workers-qb';
+
+// Inside a Durable Object class
+const lazyResult = this.qb.fetchAll<User>({
+  tableName: 'users',
+  lazy: true,
+}).execute(); // No await - DOQB is synchronous
+
+if (lazyResult.results) {
+  for (const user of lazyResult.results) { // Regular for...of, not for await
+    console.log('Processing user:', user.name);
+  }
+}
+```
+
 ## Raw Queries
 
 For scenarios where you need to execute highly specific or complex SQL queries that are not easily constructed using the builder methods, `workers-qb` allows you to execute raw SQL queries.
@@ -571,10 +676,20 @@ console.log('Raw query results:', rawQueryResults.results);
 
 ### Fetching Results from Raw Queries
 
-When using `raw`, you can specify the `fetchType` to indicate whether you expect to fetch one row (`FetchTypes.ONE`) or multiple rows (`FetchTypes.ALL`). If you don't specify `fetchType`, the query will be executed without fetching results (useful for `INSERT`, `UPDATE`, `DELETE` raw queries).
+When using `raw`, you can specify the `fetchType` to indicate whether you expect to fetch one row or multiple rows. If you don't specify `fetchType`, the query will be executed without fetching results (useful for `INSERT`, `UPDATE`, `DELETE` raw queries).
+
+**FetchType Options:**
+
+| Value | Description |
+|-------|-------------|
+| `'ALL'` | Fetch multiple rows (returns an array) |
+| `'ONE'` | Fetch a single row (returns an object or null) |
+| (omitted) | Execute without fetching (for INSERT/UPDATE/DELETE) |
+
+You can use either string literals (`'ALL'`, `'ONE'`) or import the `FetchTypes` enum for type safety:
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB, FetchTypes } from 'workers-qb';
 
 // ... (D1QB initialization) ...
 
@@ -584,18 +699,20 @@ type User = {
   email: string;
 };
 
+// Using string literal
 const rawUsers = await qb.raw<User>({
   query: 'SELECT id, name, email FROM users WHERE is_active = ?',
   args: [true],
-  fetchType: 'ALL', // Specify FetchTypes.ALL to fetch multiple rows
+  fetchType: 'ALL', // String literal works
 }).execute();
 
 console.log('Raw users:', rawUsers.results);
 
+// Using FetchTypes enum (recommended for type safety)
 const rawSingleUser = await qb.raw<User>({
   query: 'SELECT id, name, email FROM users WHERE email = ?',
   args: ['john.doe@example.com'],
-  fetchType: 'ONE', // Specify FetchTypes.ONE to fetch a single row
+  fetchType: FetchTypes.ONE, // Enum value
 }).execute();
 
 console.log('Raw single user:', rawSingleUser.results);

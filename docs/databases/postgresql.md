@@ -55,6 +55,26 @@ To use `PGQB`, create an instance of `PGQB` and pass your configured `pg.Client`
 import { PGQB } from 'workers-qb';
 import { Client } from 'pg';
 
+// Define your database schema for type-safe queries
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    email: string;
+    balance: number;
+  };
+  products: {
+    id: number;
+    name: string;
+    price: number;
+  };
+  orders: {
+    id: number;
+    user_id: number;
+    amount: number;
+  };
+};
+
 export interface Env {
   DB_URL: string; // Database URL environment variable
 }
@@ -64,11 +84,12 @@ export default {
     const dbClient = new Client({
       connectionString: env.DB_URL,
     });
-    const qb = new PGQB(dbClient); // Initialize PGQB with pg.Client
+    // Initialize PGQB with schema for type-safe queries
+    const qb = new PGQB<Schema>(dbClient);
 
     await qb.connect(); // Establish PostgreSQL connection
 
-    // ... your queries using qb ...
+    // ... your queries using qb with full type safety ...
 
     ctx.waitUntil(qb.close()); // Ensure connection closes after response is sent
     return new Response("PostgreSQL queries executed");
@@ -95,20 +116,23 @@ All basic and advanced query operations described in [Basic Queries](../basic-qu
 import { PGQB } from 'workers-qb';
 import { Client } from 'pg';
 
+// Define your database schema
+type Schema = {
+  products: {
+    id: number;
+    name: string;
+    price: number;
+  };
+};
+
 export interface Env {
   DB_URL: string;
 }
 
-type Product = {
-  id: number;
-  name: string;
-  price: number;
-};
-
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const dbClient = new Client({ connectionString: env.DB_URL });
-    const qb = new PGQB(dbClient);
+    const qb = new PGQB<Schema>(dbClient);
     await qb.connect();
 
     try {
@@ -123,23 +147,24 @@ export default {
             `
         }).execute();
 
-        // Insert a product
-        const insertedProduct = await qb.insert<Product>({
-          tableName: 'products',
+        // Insert a product - table name and columns are autocompleted
+        const insertedProduct = await qb.insert({
+          tableName: 'products',  // ✓ Autocomplete: 'products'
           data: {
-            name: 'PostgreSQL Product',
+            name: 'PostgreSQL Product',  // ✓ Only valid columns allowed
             price: 29.99,
           },
-          returning: ['id', 'name', 'price'],
+          returning: ['id', 'name', 'price'],  // ✓ Autocomplete for columns
         }).execute();
 
         console.log('Inserted product:', insertedProduct.results);
 
-        // Fetch all products
-        const allProducts = await qb.fetchAll<Product>({
+        // Fetch all products - result type is automatically inferred
+        const allProducts = await qb.fetchAll({
           tableName: 'products',
         }).execute();
 
+        // allProducts.results is typed as Schema['products'][]
         console.log('All products:', allProducts.results);
 
         return Response.json({
@@ -163,8 +188,22 @@ While `workers-qb` core doesn't provide a dedicated transaction management API, 
 **Example (Conceptual - Transaction Handling Outside `workers-qb` API):**
 
 ```typescript
-import { PGQB, Raw } from 'workers-qb'; // Added Raw import
+import { PGQB, Raw } from 'workers-qb';
 import { Client } from 'pg';
+
+// Define your database schema
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    balance: number;
+  };
+  orders: {
+    id: number;
+    user_id: number;
+    amount: number;
+  };
+};
 
 export interface Env {
   DB_URL: string;
@@ -173,15 +212,23 @@ export interface Env {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const dbClient = new Client({ connectionString: env.DB_URL });
-    const qb = new PGQB(dbClient);
+    const qb = new PGQB<Schema>(dbClient);
     await qb.connect();
 
     try {
       await dbClient.query('BEGIN'); // Start transaction
 
       // ... execute multiple queries using qb within the transaction ...
-      await qb.insert({ tableName: 'orders', data: { user_id: 1, amount: 100 } }).execute();
-      await qb.update({ tableName: 'users', data: { balance: new Raw('balance - 100') }, where: { conditions: 'id = ?', params: 1 } }).execute();
+      await qb.insert({
+        tableName: 'orders',
+        data: { user_id: 1, amount: 100 }
+      }).execute();
+
+      await qb.update({
+        tableName: 'users',
+        data: { balance: new Raw('balance - 100') },
+        where: { conditions: 'id = ?', params: 1 }
+      }).execute();
 
       await dbClient.query('COMMIT'); // Commit transaction
 

@@ -17,11 +17,13 @@ export type MigrationOptions = {
 }
 
 export class syncMigrationsBuilder<GenericResultWrapper> {
-  _builder: QueryBuilder<GenericResultWrapper, false>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  _builder: QueryBuilder<any, GenericResultWrapper, false>
   _migrations: Array<Migration>
   _tableName: string
 
-  constructor(options: MigrationOptions, builder: QueryBuilder<GenericResultWrapper, false>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(options: MigrationOptions, builder: QueryBuilder<any, GenericResultWrapper, false>) {
     this._tableName = options.tableName || 'migrations'
     this._migrations = options.migrations
     this._builder = builder
@@ -89,11 +91,13 @@ export class syncMigrationsBuilder<GenericResultWrapper> {
 }
 
 export class asyncMigrationsBuilder<GenericResultWrapper> {
-  _builder: QueryBuilder<GenericResultWrapper, true>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  _builder: QueryBuilder<any, GenericResultWrapper, true>
   _migrations: Array<Migration>
   _tableName: string
 
-  constructor(options: MigrationOptions, builder: QueryBuilder<GenericResultWrapper, true>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  constructor(options: MigrationOptions, builder: QueryBuilder<any, GenericResultWrapper, true>) {
     this._tableName = options.tableName || 'migrations'
     this._migrations = options.migrations
     this._builder = builder
