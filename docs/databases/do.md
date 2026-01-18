@@ -27,22 +27,33 @@ Within your Durable Object class, you can access the `DurableObjectStorage` inst
 ```typescript
 import { DOQB } from 'workers-qb';
 
-// Define Env if it's used for configuration, otherwise it might not be needed for basic DOQB
+// Define your database schema for type-safe queries
+type Schema = {
+  items: {
+    id: number;
+    name: string;
+    value: string;
+  };
+};
+
 export interface Env {
   // Example: You might have environment variables here for other purposes
 }
 
 export class MyDurableObject extends DurableObject {
-  #qb: DOQB; // Make qb a class member
+  #qb: DOQB<Schema>; // Make qb a class member with schema type
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
-    this.#qb = new DOQB(this.storage.sql); // Initialize DOQB with DurableObjectStorage
+    // Initialize DOQB with schema for type-safe queries
+    this.#qb = new DOQB<Schema>(this.storage.sql);
 
-    // It's common to run schema migrations or table creations in the constructor,
+    // Run schema migrations or table creations in the constructor,
     // wrapped in blockConcurrencyWhile to ensure they complete before other operations.
+    // Note: Although DOQB operations are synchronous, blockConcurrencyWhile expects
+    // a function that returns a Promise, so we use an async wrapper.
     this.ctx.blockConcurrencyWhile(async () => {
-      this.initializeDB();
+      this.initializeDB(); // This runs synchronously inside the async wrapper
     });
   }
 
@@ -50,7 +61,7 @@ export class MyDurableObject extends DurableObject {
     // Example: Create table if it doesn't exist
     // .execute() is synchronous for DOQB.
     this.#qb.createTable({
-        tableName: 'items', // Example table
+        tableName: 'items', // ✓ Autocomplete: 'items'
         ifNotExists: true,
         schema: `
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,10 +72,10 @@ export class MyDurableObject extends DurableObject {
   }
 
   async fetch(request: Request): Promise<Response> {
-    // Now use this.#qb for queries
+    // Now use this.#qb for queries with full type safety
     // ... your queries using this.#qb ...
 
-    // Example: Fetching an item (replace with actual logic)
+    // Example: Fetching items - result type is automatically inferred
     const items = this.#qb.fetchAll({ tableName: 'items' }).execute();
 
     return new Response(`Durable Object queries executed. Items count: ${items.results?.length}`);
@@ -85,15 +96,23 @@ All basic and advanced query operations described in [Basic Queries](../basic-qu
 ```typescript
 import { DOQB } from 'workers-qb';
 
-// Define Env if it's used for configuration
+// Define your database schema
+type Schema = {
+  items: {
+    id: number;
+    name: string;
+    value: string;
+  };
+};
+
 export interface Env { /* ... */ }
 
 export class MyDurableObject extends DurableObject {
-  #qb: DOQB;
+  #qb: DOQB<Schema>;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
-    this.#qb = new DOQB(this.storage.sql);
+    this.#qb = new DOQB<Schema>(this.storage.sql);
 
     this.ctx.blockConcurrencyWhile(async () => {
       // Create table (if not exists) - good practice in constructor
@@ -110,31 +129,24 @@ export class MyDurableObject extends DurableObject {
   }
 
   async fetch(request: Request): Promise<Response> {
-    // qb is now this.#qb
-
-    type Item = {
-      id: number;
-      name: string;
-      value: string;
-    };
-
-    // Insert an item
-    const insertedItem = this.#qb.insert<Item>({
-      tableName: 'items',
+    // Insert an item - table name and columns are autocompleted
+    const insertedItem = this.#qb.insert({
+      tableName: 'items',  // ✓ Autocomplete: 'items'
       data: {
-        name: 'Example Item',
+        name: 'Example Item',  // ✓ Only valid columns allowed
         value: 'Some value',
       },
-      returning: ['id', 'name', 'value'],
+      returning: ['id', 'name', 'value'],  // ✓ Autocomplete for columns
     }).execute();
 
     console.log('Inserted item:', insertedItem.results);
 
-    // Fetch all items
-    const allItems = this.#qb.fetchAll<Item>({
+    // Fetch all items - result type is automatically inferred
+    const allItems = this.#qb.fetchAll({
       tableName: 'items',
     }).execute();
 
+    // allItems.results is typed as Schema['items'][]
     console.log('All items:', allItems.results?.length);
 
     return Response.json({
@@ -154,36 +166,36 @@ export class MyDurableObject extends DurableObject {
 ```typescript
 import { DOQB } from 'workers-qb';
 
-// Define Env if it's used for configuration
+// Define your database schema
+type Schema = {
+  items: {
+    id: number;
+    name: string;
+    value: string;
+  };
+};
+
 export interface Env { /* ... */ }
 
 export class MyDurableObject extends DurableObject {
-  #qb: DOQB;
+  #qb: DOQB<Schema>;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
-    this.#qb = new DOQB(this.storage.sql);
+    this.#qb = new DOQB<Schema>(this.storage.sql);
     // Assuming table 'items' is created in constructor as shown in the previous example
   }
 
   async fetch(request: Request): Promise<Response> {
-    // qb is now this.#qb
-
-    type Item = {
-      id: number;
-      name: string;
-      value: string;
-    };
-
-    // Lazy fetch all items
-    const lazyItemsResult = await this.#qb.fetchAll<Item, true>({ // Note: <Item, true> for lazy fetch
+    // Lazy fetch all items - DOQB is synchronous, so no await needed
+    const lazyItemsResult = this.#qb.fetchAll({
       tableName: 'items',
       lazy: true, // Explicitly set lazy: true
-    }).execute();
+    }).execute(); // No await - DOQB operations are synchronous
 
     let itemCount = 0;
     if (lazyItemsResult.results) {
-      for await (const item of lazyItemsResult.results) { // Async iteration over lazy results
+      for (const item of lazyItemsResult.results) { // Synchronous iteration (not for await)
         itemCount++;
         // Process each item here, e.g., console.log(item.name);
       }
@@ -198,9 +210,9 @@ export class MyDurableObject extends DurableObject {
 }
 ```
 
-In this example, `fetchAll` is called with `lazy: true` and the generic type specified as `<Item, true>`. The `execute()` method returns a result object where `results` is an `AsyncIterable<Item>`. You can then use an `for await...of` loop to iterate through the results asynchronously, processing items one by one as they are fetched from the database.
+In this example, `fetchAll` is called with `lazy: true`. Since DOQB operations are **synchronous**, the `execute()` method returns directly (no `await`) and `results` is an `Iterable<Schema['items']>` (not `AsyncIterable`). You can then use a regular `for...of` loop to iterate through the results synchronously.
 
-**Note:** Lazy queries are particularly useful in Durable Objects to avoid blocking the event loop for extended periods when dealing with large datasets. However, keep in mind that each iteration still involves synchronous storage operations. Optimize your processing logic within the loop to maintain responsiveness.
+**Note:** Lazy queries are useful in Durable Objects when dealing with large datasets, as they avoid loading the entire result set into memory at once. Each iteration retrieves the next row from SQLite on demand.
 
 ## Execution Metrics
 
@@ -216,23 +228,26 @@ These metrics can be useful for monitoring and optimizing your database queries 
 ```typescript
 import { DOQB } from 'workers-qb';
 
+// Define your database schema
+type Schema = {
+  items: {
+    id: number;
+    name: string;
+  };
+};
+
 export class MyDurableObject extends DurableObject {
-  #qb: DOQB;
+  #qb: DOQB<Schema>;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
-    this.#qb = new DOQB(this.storage.sql);
+    this.#qb = new DOQB<Schema>(this.storage.sql);
     // ... table creation ...
   }
 
   async fetch(request: Request): Promise<Response> {
-    type Item = {
-      id: number;
-      name: string;
-    };
-
     // Example of an insert operation
-    const insertResult = this.#qb.insert<Item>({
+    const insertResult = this.#qb.insert({
       tableName: 'items',
       data: { name: 'Durable Item' },
       returning: ['id', 'name'],
@@ -241,7 +256,7 @@ export class MyDurableObject extends DurableObject {
     console.log(`Rows written: ${insertResult.rowsWritten}`); // e.g., "Rows written: 1"
 
     // Example of a select operation
-    const selectResult = this.#qb.fetchAll<Item>({
+    const selectResult = this.#qb.fetchAll({
       tableName: 'items',
     }).execute();
 

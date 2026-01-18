@@ -9,6 +9,29 @@ description: How to query JSON fields in workers-qb.
 
 JSON data is typically stored in a `TEXT` column. You can then use a variety of functions to manipulate and query this data directly in your SQL queries.
 
+## Setup
+
+Define your schema with JSON columns using `Record<string, unknown>` or a specific type:
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    data: Record<string, unknown>;  // JSON column
+  };
+  posts: {
+    id: number;
+    title: string;
+    data: { tags: string[]; metadata: Record<string, unknown> };  // Typed JSON
+  };
+};
+
+const qb = new D1QB<Schema>(env.DB);
+```
+
 ## Extracting Values
 
 You can extract values from a JSON object using `json_extract`, `->`, and `->>`.
@@ -21,8 +44,10 @@ You can extract values from a JSON object using `json_extract`, `->`, and `->>`.
 // Example JSON object stored in a 'data' column:
 // { "name": "John Doe", "age": 30, "is_active": true, "tags": ["a", "b"] }
 
-// Using json_extract
-const user = await qb.fetchOne({
+// Using json_extract - use explicit type for custom fields
+type UserName = { name: string };
+
+const user = await qb.fetchOne<UserName>({
   tableName: 'users',
   fields: ["json_extract(data, '$.name') as name"],
   where: { conditions: 'id = ?', params: 1 },
@@ -30,12 +55,12 @@ const user = await qb.fetchOne({
 // user.results.name will be "John Doe"
 
 // Using ->>
-const user = await qb.fetchOne({
+const user2 = await qb.fetchOne<UserName>({
   tableName: 'users',
   fields: ["data ->> '$.name' as name"],
   where: { conditions: 'id = ?', params: 1 },
 }).execute();
-// user.results.name will be "John Doe"
+// user2.results.name will be "John Doe"
 ```
 
 ## Array Operations
@@ -46,8 +71,9 @@ Use `json_array_length` to get the number of elements in a JSON array.
 
 ```typescript
 // data column: { "tags": ["a", "b", "c"] }
+type TagCount = { count: number };
 
-const tagCount = await qb.fetchOne({
+const tagCount = await qb.fetchOne<TagCount>({
   tableName: 'posts',
   fields: ["json_array_length(data, '$.tags') as count"],
   where: { conditions: 'id = ?', params: 1 },
@@ -79,7 +105,16 @@ const users = await qb.fetchAll({
 - `json_set(json, path, value)`: Sets a value at a given path, overwriting if it exists or creating if it does not.
 
 ```typescript
-import { Raw } from 'workers-qb';
+import { D1QB, Raw } from 'workers-qb';
+
+type Schema = {
+  users: {
+    id: number;
+    data: Record<string, unknown>;
+  };
+};
+
+const qb = new D1QB<Schema>(env.DB);
 
 // data column: { "name": "John Doe" }
 
@@ -103,7 +138,9 @@ You can create JSON objects and arrays directly in your queries.
 - `json_array(value1, value2, ...)`: Creates a JSON array.
 
 ```typescript
-const result = await qb.fetchOne({
+type JsonResult = { json_data: Record<string, unknown> };
+
+const result = await qb.fetchOne<JsonResult>({
   tableName: 'users', // This can be any table
   fields: ["json_object('name', 'John', 'age', 30) as json_data"],
 }).execute();
@@ -118,7 +155,9 @@ const result = await qb.fetchOne({
 
 ```typescript
 // json_type
-const user = await qb.fetchOne({
+type AgeType = { ageType: string };
+
+const user = await qb.fetchOne<AgeType>({
   tableName: 'users',
   fields: ["json_type(data, '$.age') as ageType"],
   where: { conditions: 'id = ?', params: 1 },
@@ -126,17 +165,20 @@ const user = await qb.fetchOne({
 // user.results.ageType will be 'integer'
 
 // json_valid
-const result = await qb.fetchOne({
+type ValidResult = { isValid: number };
+
+const result = await qb.fetchOne<ValidResult>({
   tableName: 'users', // This can be any table
   fields: ["json_valid('{\"a\":1}') as isValid"],
 }).execute();
 // result.results.isValid will be 1 (true)
 
 // json_quote
-const result = await qb.fetchOne({
+type JsonString = { json_string: string };
+
+const result2 = await qb.fetchOne<JsonString>({
   tableName: 'users', // This can be any table
   fields: ["json_quote('[1, 2, 3]') as json_string"],
 }).execute();
-// result.results.json_string will be "[1,2,3]"
-
-
+// result2.results.json_string will be "[1,2,3]"
+```

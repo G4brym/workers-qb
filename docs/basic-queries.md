@@ -4,7 +4,7 @@ This section covers the fundamental query operations in `workers-qb`, including 
 
 ## Connecting to Databases
 
-Before you can start querying your database, you need to establish a connection using the appropriate `workers-qb` class for your database.
+Before you can start querying your database, you need to establish a connection using the appropriate `workers-qb` class for your database. Define your schema type for full type safety and autocomplete.
 
 ### Cloudflare D1
 
@@ -13,14 +13,26 @@ For Cloudflare D1, you'll use the `D1QB` class, passing your D1 database binding
 ```typescript
 import { D1QB } from 'workers-qb';
 
+// Define your database schema for type-safe queries
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    email: string;
+    created_at: string;
+    login_count: number;
+    last_login: string;
+  };
+};
+
 export interface Env {
   DB: D1Database;
 }
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const qb = new D1QB(env.DB);
-    // ... your queries using qb ...
+    const qb = new D1QB<Schema>(env.DB);
+    // ... your queries using qb with full type safety ...
   },
 };
 ```
@@ -32,10 +44,25 @@ For Cloudflare Durable Objects storage, use the `DOQB` class, passing the `Durab
 ```typescript
 import { DOQB } from 'workers-qb';
 
+// Define your database schema
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    email: string;
+  };
+};
+
 export class MyDurableObject extends DurableObject {
+  #qb: DOQB<Schema>;
+
+  constructor(state: DurableObjectState, env: Env) {
+    super(state, env);
+    this.#qb = new DOQB<Schema>(this.storage.sql);
+  }
+
   async fetch(request: Request): Promise<Response> {
-    const qb = new DOQB(this.storage.sql);
-    // ... your queries using qb ...
+    // ... your queries using this.#qb ...
   }
 }
 ```
@@ -48,6 +75,15 @@ For PostgreSQL, use the `PGQB` class and instantiate the `pg.Client` with your d
 import { PGQB } from 'workers-qb';
 import { Client } from 'pg';
 
+// Define your database schema
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    email: string;
+  };
+};
+
 export interface Env {
   DB_URL: string;
 }
@@ -55,7 +91,7 @@ export interface Env {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const dbClient = new Client(env.DB_URL);
-    const qb = new PGQB(dbClient);
+    const qb = new PGQB<Schema>(dbClient);
     await qb.connect(); // Connect to PostgreSQL
 
     // ... your queries using qb ...
@@ -74,12 +110,22 @@ export default {
 Use the `createTable` method to define and create a new table. You need to specify the `tableName` and the `schema` as a string defining the table columns and their types.
 
 ```typescript
-import { D1QB, Raw } from 'workers-qb';
+import { D1QB } from 'workers-qb';
+
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    email: string;
+    created_at: string;
+  };
+};
 
 // ... (D1QB initialization) ...
+const qb = new D1QB<Schema>(env.DB);
 
 await qb.createTable({
-  tableName: 'users',
+  tableName: 'users',  // ✓ Autocomplete from schema
   schema: `
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -111,10 +157,6 @@ await qb.createTable({
 Use the `dropTable` method to remove a table from the database. Specify the `tableName` to be dropped.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
 await qb.dropTable({
   tableName: 'users',
 }).execute();
@@ -140,23 +182,27 @@ Use the `insert` method with a single data object to insert a new row into a tab
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
-
-type User = {
-  id: number;
-  name: string;
-  email: string;
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    email: string;
+  };
 };
 
-const newUser = await qb.insert<User>({
-  tableName: 'users',
+// ... (D1QB initialization) ...
+const qb = new D1QB<Schema>(env.DB);
+
+const newUser = await qb.insert({
+  tableName: 'users',  // ✓ Autocomplete from schema
   data: {
-    name: 'John Doe',
+    name: 'John Doe',  // ✓ Only valid columns allowed
     email: 'john.doe@example.com',
   },
-  returning: ['id', 'name', 'email'], // Specify fields to return after insertion
+  returning: ['id', 'name', 'email'],  // ✓ Autocomplete for columns
 }).execute();
 
+// newUser.results is typed based on schema
 console.log('New user inserted:', newUser.results);
 ```
 
@@ -165,17 +211,7 @@ console.log('New user inserted:', newUser.results);
 To insert multiple rows efficiently, provide an array of data objects to the `insert` method.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
-type User = {
-  id: number;
-  name: string;
-  email: string;
-};
-
-const newUsers = await qb.insert<User>({
+const newUsers = await qb.insert({
   tableName: 'users',
   data: [
     { name: 'Jane Doe', email: 'jane.doe@example.com' },
@@ -192,10 +228,6 @@ console.log('New users inserted:', newUsers.results);
 If you don't need to retrieve data after insertion, you can omit the `returning` option for a slightly more performant operation.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
 await qb.insert({
   tableName: 'users',
   data: {
@@ -212,10 +244,6 @@ console.log('User inserted without returning data.');
 Use `onConflict: 'IGNORE'` to skip insertion if a conflict occurs (e.g., due to a unique constraint).
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
 await qb.insert({
   tableName: 'users',
   data: {
@@ -233,10 +261,6 @@ console.log('Insert attempted, conflict ignored if email exists.');
 Use `onConflict: 'REPLACE'` to replace the existing row if a conflict occurs.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
 await qb.insert({
   tableName: 'users',
   data: {
@@ -254,9 +278,19 @@ console.log('Insert attempted, row replaced if email exists.');
 For more complex conflict resolution, you can perform an UPSERT operation, updating specific columns if a conflict occurs. Use `onConflict` with an object to define the columns causing conflict, the data to update, and optional `where` conditions for the update.
 
 ```typescript
-import { D1QB, Raw } from 'workers-qb'; // Ensure Raw is imported here
+import { D1QB, Raw } from 'workers-qb';
 
-// ... (D1QB initialization) ...
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    email: string;
+    login_count: number;
+    updated_at: string;
+  };
+};
+
+const qb = new D1QB<Schema>(env.DB);
 
 await qb.insert({
   tableName: 'users',
@@ -289,18 +323,21 @@ The most basic select operation retrieves all columns and rows from a table.
 ```typescript
 import { D1QB } from 'workers-qb';
 
-// ... (D1QB initialization) ...
-
-type User = {
-  id: number;
-  name: string;
-  email: string;
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    email: string;
+  };
 };
 
-const allUsers = await qb.fetchAll<User>({
+const qb = new D1QB<Schema>(env.DB);
+
+const allUsers = await qb.fetchAll({
   tableName: 'users',
 }).execute();
 
+// allUsers.results is typed as Schema['users'][]
 console.log('All users:', allUsers.results);
 ```
 
@@ -309,20 +346,12 @@ console.log('All users:', allUsers.results);
 To retrieve only specific columns, use the `fields` option with an array of column names or a comma-separated string.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
-type UserNameAndEmail = {
-  name: string;
-  email: string;
-};
-
-const userNamesAndEmails = await qb.fetchAll<UserNameAndEmail>({
+const userNamesAndEmails = await qb.fetchAll({
   tableName: 'users',
-  fields: ['name', 'email'], // Or fields: 'name, email'
+  fields: ['name', 'email'],  // ✓ Autocomplete for column names
 }).execute();
 
+// Result is typed as Pick<Schema['users'], 'name' | 'email'>[]
 console.log('User names and emails:', userNamesAndEmails.results);
 ```
 
@@ -331,17 +360,7 @@ console.log('User names and emails:', userNamesAndEmails.results);
 Use `fetchOne` to retrieve a single row that matches the specified criteria. It's ideal for fetching records by ID or unique identifiers.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
-type User = {
-  id: number;
-  name: string;
-  email: string;
-};
-
-const singleUser = await qb.fetchOne<User>({
+const singleUser = await qb.fetchOne({
   tableName: 'users',
   where: {
     conditions: 'id = ?',
@@ -349,6 +368,7 @@ const singleUser = await qb.fetchOne<User>({
   },
 }).execute();
 
+// singleUser.results is typed as Schema['users']
 console.log('Single user:', singleUser.results);
 ```
 
@@ -357,17 +377,7 @@ console.log('Single user:', singleUser.results);
 `fetchAll` retrieves multiple rows based on your query. It's used for fetching lists of data, potentially with filters and ordering.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
-type User = {
-  id: number;
-  name: string;
-  email: string;
-};
-
-const activeUsers = await qb.fetchAll<User>({
+const activeUsers = await qb.fetchAll({
   tableName: 'users',
   where: {
     conditions: 'created_at > ?',
@@ -386,14 +396,10 @@ console.log('Active users:', activeUsers.results);
 Update rows in a table using the `update` method. Specify the `tableName`, the `data` to update (as an object), and `where` conditions to target specific rows.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
 await qb.update({
   tableName: 'users',
   data: {
-    name: 'Updated Name',
+    name: 'Updated Name',  // ✓ Only valid columns allowed
   },
   where: {
     conditions: 'email = ?',
@@ -409,17 +415,7 @@ console.log('User name updated.');
 To retrieve the updated rows, use the `returning` option.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
-type User = { // Assuming User type includes id, name, email
-  id: number;
-  name: string;
-  email: string;
-};
-
-const updatedUser = await qb.update<User>({
+const updatedUser = await qb.update({
   tableName: 'users',
   data: {
     name: 'Corrected John Doe',
@@ -428,7 +424,7 @@ const updatedUser = await qb.update<User>({
     conditions: 'id = ?',
     params: 1,
   },
-  returning: ['id', 'name', 'email'],
+  returning: ['id', 'name', 'email'],  // ✓ Autocomplete for columns
 }).execute();
 
 console.log('Updated user:', updatedUser.results);
@@ -439,9 +435,7 @@ console.log('Updated user:', updatedUser.results);
 For performance optimization when you don't need the updated rows, omit the `returning` option.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
+import { Raw } from 'workers-qb';
 
 await qb.update({
   tableName: 'users',
@@ -464,10 +458,6 @@ console.log('User last login updated without returning data.');
 Delete rows from a table using the `delete` method. Specify the `tableName` and `where` conditions to target rows for deletion. **Be cautious when using `delete` without `where` conditions as it will delete all rows in the table.**
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
 await qb.delete({
   tableName: 'users',
   where: {
@@ -484,17 +474,7 @@ console.log('Anonymous user deleted.');
 To retrieve the deleted rows, use the `returning` option.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
-type User = { // Assuming User type includes id, name, email
-  id: number;
-  name: string;
-  email: string;
-};
-
-const deletedUser = await qb.delete<User>({
+const deletedUser = await qb.delete({
   tableName: 'users',
   where: {
     conditions: 'id = ?',
@@ -511,10 +491,6 @@ console.log('Deleted user:', deletedUser.results);
 For performance when you don't need the deleted rows, omit the `returning` option.
 
 ```typescript
-import { D1QB } from 'workers-qb';
-
-// ... (D1QB initialization) ...
-
 await qb.delete({
   tableName: 'users',
   where: {

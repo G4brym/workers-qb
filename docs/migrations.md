@@ -58,21 +58,53 @@ const migrations: Migration[] = [
 
 To apply pending migrations, use the `apply()` method on the migrations builder.
 
+### Return Types
+
+The `apply()` method returns an array of applied `Migration` objects:
+
+| Database | Return Type |
+|----------|-------------|
+| D1QB (Cloudflare D1) | `Promise<Migration[]>` |
+| PGQB (PostgreSQL) | `Promise<Migration[]>` |
+| DOQB (Durable Objects) | `Migration[]` (synchronous) |
+
+Each `Migration` object contains:
+- `name`: The unique identifier of the migration
+- `sql`: The SQL that was executed
+
 #### Applying Migrations in D1
 
 ```typescript
-import { D1QB } from 'workers-qb';
+import { D1QB, type Migration } from 'workers-qb';
 
-// ... (D1QB initialization and migrations definition as before) ...
+// Define your database schema (matches your migrations)
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    email: string;
+    role_id: number;
+    created_at: string;
+  };
+};
+
+// Define your migrations
+const migrations: Migration[] = [
+  { name: '0001_create_users_table', sql: `CREATE TABLE IF NOT EXISTS users (...)` },
+  { name: '0002_add_role_to_users', sql: `ALTER TABLE users ADD COLUMN role_id INTEGER` },
+];
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const qb = new D1QB(env.DB);
+    const qb = new D1QB<Schema>(env.DB);
     const migrationBuilder = qb.migrations({ migrations });
 
-    await migrationBuilder.apply(); // Apply pending migrations for D1
+    const appliedMigrations = await migrationBuilder.apply(); // Returns Migration[]
+    console.log(`Applied ${appliedMigrations.length} migrations`);
 
-    // ... your application logic ...
+    // Now use qb with full type safety
+    const users = await qb.fetchAll({ tableName: 'users' }).execute();
+    // ...
   },
 };
 ```
@@ -80,24 +112,39 @@ export default {
 #### Applying Migrations in Durable Objects
 
 ```typescript
-import { DOQB } from 'workers-qb';
+import { DOQB, type Migration } from 'workers-qb';
+
+// Define your database schema
+type Schema = {
+  users: {
+    id: number;
+    name: string;
+    email: string;
+  };
+};
+
+const migrations: Migration[] = [
+  { name: '0001_create_users_table', sql: `CREATE TABLE IF NOT EXISTS users (...)` },
+];
 
 export class MyDurableObject extends DurableObject {
-  #qb: DOQB;
+  #qb: DOQB<Schema>;
 
   constructor(state: DurableObjectState, env: Env) {
     super(state, env);
 
-    this.#qb = new DOQB(this.ctx.storage.sql);
+    this.#qb = new DOQB<Schema>(this.ctx.storage.sql);
+    // Note: blockConcurrencyWhile expects a Promise, so we use async wrapper
+    // even though DOQB operations are synchronous
     void this.ctx.blockConcurrencyWhile(async () => {
-      // Assuming 'migrations' is an array of Migration objects defined elsewhere
       const migrationBuilder = this.#qb.migrations({ migrations });
-      migrationBuilder.apply();
+      const applied = migrationBuilder.apply(); // Synchronous - returns Migration[]
+      console.log(`Applied ${applied.length} migrations`);
     });
   }
 
-  getUsers(): Array<object> {
-    // Example method, ensure migrations are applied before accessing tables
+  getUsers() {
+    // Type-safe query - results is typed as Schema['users'][]
     return this.#qb.select('users').all().results;
   }
 }

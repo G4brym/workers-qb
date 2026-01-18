@@ -265,6 +265,35 @@ const doqb = new DOQB<Schema>(ctx.storage.sql)
 const pgqb = new PGQB<Schema>(client)
 ```
 
+### Schema Type Utilities
+
+`workers-qb` exports several type utilities for advanced use cases:
+
+```typescript
+import {
+  TableSchema,    // Base type for schema definitions
+  TableName,      // Extracts table names from schema as union type
+  ColumnName,     // Extracts column names for a given table
+  InferResult,    // Infers the result type based on table and fields
+} from 'workers-qb'
+
+type Schema = {
+  users: { id: number; name: string; email: string }
+  posts: { id: number; title: string; body: string }
+}
+
+// TableName<Schema> = 'users' | 'posts'
+type Tables = TableName<Schema>
+
+// ColumnName<Schema, 'users'> = 'id' | 'name' | 'email'
+type UserColumns = ColumnName<Schema, 'users'>
+
+// InferResult<Schema, 'users', ['id', 'name']> = { id: number; name: string }
+type PartialUser = InferResult<Schema, 'users', ['id', 'name']>
+```
+
+These utilities are useful when building generic functions or abstractions on top of `workers-qb`.
+
 ### Tips for Schema Definition
 
 1. **Match your actual database schema** - The TypeScript type should reflect your real database structure
@@ -275,6 +304,8 @@ const pgqb = new PGQB<Schema>(client)
 
 4. **Nullable columns** - Use `string | null` for nullable columns
 
+5. **Optional columns** - Use `?` for columns with default values that may be omitted in inserts
+
 ```typescript
 type Schema = {
   users: {
@@ -284,6 +315,7 @@ type Schema = {
     role: 'admin' | 'user'         // Enum column
     created_at: Date               // Date column
     metadata: Record<string, any>  // JSON column
+    bio?: string                   // Optional column (has default)
   }
 }
 ```
