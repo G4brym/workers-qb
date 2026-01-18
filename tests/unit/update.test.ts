@@ -405,4 +405,38 @@ describe('Update Builder', () => {
     expect(result.arguments).toEqual(['test', 'another_test', 345, 'test_update', 123, 'third value'])
     expect(result.fetchType).toEqual('ALL')
   })
+
+  it('update with where numbered param reuse', async () => {
+    const result = new QuerybuilderTest().update({
+      tableName: 'testTable',
+      data: {
+        status: 'processed',
+      },
+      where: {
+        conditions: 'owner_id = ?1 OR assignee_id = ?1',
+        params: ['user456'],
+      },
+    })
+
+    expect(result.query).toEqual('UPDATE testTable SET status = ?2 WHERE owner_id = ?1 OR assignee_id = ?1')
+    expect(result.arguments).toEqual(['user456', 'processed'])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  it('update with multiple conditions reusing numbered params', async () => {
+    const result = new QuerybuilderTest().update({
+      tableName: 'testTable',
+      data: {
+        reviewed: true,
+      },
+      where: {
+        conditions: ['created_by = ?1', 'approved_by = ?1'],
+        params: ['admin_user'],
+      },
+    })
+
+    expect(result.query).toEqual('UPDATE testTable SET reviewed = ?2 WHERE (created_by = ?1) AND (approved_by = ?1)')
+    expect(result.arguments).toEqual(['admin_user', true])
+    expect(result.fetchType).toEqual('ALL')
+  })
 })
