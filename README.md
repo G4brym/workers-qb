@@ -72,24 +72,30 @@ npm install workers-qb --save
 ```typescript
 import { D1QB } from 'workers-qb'
 
+// Define your database schema for full type safety
+type Schema = {
+  employees: {
+    id: number
+    name: string
+    role: string
+    level: number
+    active: boolean
+  }
+}
+
 export interface Env {
   DB: D1Database
 }
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const qb = new D1QB(env.DB)
+    const qb = new D1QB<Schema>(env.DB)
 
-    type Employee = {
-      name: string
-      role: string
-      level: number
-    }
-
-    // Using object syntax
+    // Using object syntax - table names and fields autocomplete!
     const employeeList = await qb
-      .fetchAll<Employee>({
-        tableName: 'employees',
+      .fetchAll({
+        tableName: 'employees',  // ✓ Autocomplete
+        fields: ['name', 'role', 'level'],  // ✓ Autocomplete
         where: {
           conditions: 'active = ?1',
           params: [true],
@@ -99,10 +105,11 @@ export default {
 
     // Using method chaining
     const employeeListModular = await qb
-      .select<Employee>('employees')
+      .select('employees')
       .where('active = ?', true)
-      .execute()
+      .all()
 
+    // Result type is automatically inferred!
     return Response.json({
       activeEmployees: employeeList.results?.length || 0,
     })
@@ -148,13 +155,27 @@ employees.results?.forEach(emp => {
 ```typescript
 import { DOQB } from 'workers-qb'
 
-export class DOSRS extends DurableObject {
+type Schema = {
+  employees: {
+    id: number
+    name: string
+    role: string
+  }
+}
+
+export class MyDurableObject extends DurableObject {
+  #qb: DOQB<Schema>
+
+  constructor(ctx: DurableObjectState, env: Env) {
+    super(ctx, env)
+    this.#qb = new DOQB<Schema>(ctx.storage.sql)
+  }
+
   getEmployees() {
-    const qb = new DOQB(this.ctx.storage.sql)
-    
-    return qb
+    // DOQB operations are synchronous - no await needed!
+    return this.#qb
       .fetchAll({
-        tableName: 'employees',
+        tableName: 'employees',  // ✓ Autocomplete
       })
       .execute()
       .results
@@ -179,18 +200,26 @@ Example usage:
 import { PGQB } from 'workers-qb'
 import { Client } from 'pg'
 
+type Schema = {
+  employees: {
+    id: number
+    name: string
+    active: boolean
+  }
+}
+
 export interface Env {
   DB_URL: string
 }
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const qb = new PGQB(new Client(env.DB_URL))
+    const qb = new PGQB<Schema>(new Client(env.DB_URL))
     await qb.connect()
 
     const fetched = await qb
       .fetchOne({
-        tableName: 'employees',
+        tableName: 'employees',  // ✓ Autocomplete
         fields: 'count(*) as count',
         where: {
           conditions: 'active = ?1',
@@ -201,7 +230,7 @@ export default {
 
     // Important: Close the connection
     ctx.waitUntil(qb.close())
-    
+
     return Response.json({
       activeEmployees: fetched.results?.count || 0,
     })
