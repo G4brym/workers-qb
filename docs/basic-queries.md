@@ -173,6 +173,48 @@ await qb.dropTable({
 }).execute();
 ```
 
+## Supported Parameter Types
+
+`workers-qb` supports the following JavaScript types as query parameters:
+
+| JavaScript Type | SQLite Type | Notes |
+|-----------------|-------------|-------|
+| `null` | `NULL` | |
+| `string` | `TEXT` | |
+| `number` | `REAL` or `INTEGER` | |
+| `boolean` | `INTEGER` | `true` → 1, `false` → 0 |
+| `bigint` | `INTEGER` | |
+| `ArrayBuffer` | `BLOB` | For binary data |
+
+### Working with Binary Data (BLOB)
+
+You can use `ArrayBuffer` to store and retrieve binary data:
+
+```typescript
+// Create binary data
+const binaryData = new Uint8Array([0x00, 0x01, 0x02, 0x03]).buffer;
+
+// Insert binary data
+await qb.insert({
+  tableName: 'files',
+  data: {
+    name: 'example.bin',
+    content: binaryData,  // ArrayBuffer for BLOB column
+  },
+}).execute();
+
+// Query with binary parameter
+const result = await qb.fetchOne({
+  tableName: 'files',
+  where: {
+    conditions: 'content = ?',
+    params: [binaryData],
+  },
+}).execute();
+```
+
+**Note:** D1 returns BLOB data as `ArrayBufferLike` (typically `Uint8Array`), which can be converted back to `ArrayBuffer` if needed.
+
 ## Insert
 
 ### Insert One

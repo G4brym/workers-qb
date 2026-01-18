@@ -4,7 +4,16 @@ import { ColumnName, TableName, TableSchema } from './schema'
 import { Raw } from './tools'
 import { Merge } from './typefest'
 
-export type Primitive = null | string | number | boolean | bigint | Raw | SelectAll | SelectBuilder<any, any, any>
+export type Primitive =
+  | null
+  | string
+  | number
+  | boolean
+  | bigint
+  | ArrayBuffer
+  | Raw
+  | SelectAll
+  | SelectBuilder<any, any, any>
 
 export type QueryLoggerMeta = {
   duration?: number
@@ -15,7 +24,7 @@ export type QueryBuilderOptions<IsAsync extends boolean = true> = {
 }
 
 export type DefaultObject = Record<string, Primitive>
-export type DefaultReturnObject = Record<string, null | string | number | boolean | bigint>
+export type DefaultReturnObject = Record<string, null | string | number | boolean | bigint | ArrayBuffer>
 
 export type Where =
   | {
