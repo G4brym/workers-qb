@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
     "lint": "npx @biomejs/biome check src/ tests/ || (npx @biomejs/biome check --write src/ tests/; exit 1)",
-    "test": "tsc && vitest run --root tests",
+    "test": "tsc && vitest run --root tests && npm run test:types",
     "test:types": "tsc --noEmit --project tests/tsconfig.json",
     "build-docs": "npm run docs:build && cp docs/_redirects docs/.vitepress/dist/_redirects",
     "docs:dev": "vitepress dev docs",
