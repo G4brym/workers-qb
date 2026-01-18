@@ -502,13 +502,18 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     let primitiveParamIndex = 0
     const processedConditions: string[] = []
 
+    // Track which numbered params have been seen (for reuse like ?1 appearing multiple times)
+    const seenNumberedParams: Record<string, boolean> = {}
+
     for (const conditionStr of conditionStrings) {
-      // Regex to split by token or by '?'
-      const parts = conditionStr.split(/(__SUBQUERY_TOKEN_\d+__|\?)/g).filter(Boolean)
+      // Regex to split by token, numbered param (?1, ?2), or bare ?
+      // Order matters: \?\d+ before \? to match numbered params first
+      const parts = conditionStr.split(/(__SUBQUERY_TOKEN_\d+__|\?\d+|\?)/g).filter(Boolean)
       let builtCondition = ''
 
       for (const part of parts) {
         if (part === '?') {
+          // Unnumbered param - consume sequentially
           if (primitiveParamIndex >= primitiveParams.length) {
             throw new Error(
               'SQL generation error: Not enough primitive parameters for "?" placeholders in WHERE clause.'
@@ -516,6 +521,19 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
           }
           currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
           builtCondition += '?'
+        } else if (/^\?\d+$/.test(part)) {
+          // Numbered param like ?1, ?2 - only consume on first occurrence
+          const paramNum = part.slice(1)
+          if (!seenNumberedParams[paramNum]) {
+            seenNumberedParams[paramNum] = true
+            if (primitiveParamIndex >= primitiveParams.length) {
+              throw new Error(
+                'SQL generation error: Not enough primitive parameters for numbered placeholders in WHERE clause.'
+              )
+            }
+            currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
+          }
+          builtCondition += part // Preserve the ?N in output
         } else if (part.startsWith('__SUBQUERY_TOKEN_') && part.endsWith('__')) {
           if (!currentContext.subQueryPlaceholders || !currentContext.toSQLCompiler) {
             throw new Error('SQL generation error: Subquery context not provided for token processing.')
@@ -628,13 +646,18 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
     let primitiveParamIndex = 0
     const processedConditions: string[] = []
 
+    // Track which numbered params have been seen (for reuse like ?1 appearing multiple times)
+    const seenNumberedParams: Record<string, boolean> = {}
+
     for (const conditionStr of conditionStrings) {
-      // Regex to split by token or by '?'
-      const parts = conditionStr.split(/(__SUBQUERY_TOKEN_\d+__|\?)/g).filter(Boolean)
+      // Regex to split by token, numbered param (?1, ?2), or bare ?
+      // Order matters: \?\d+ before \? to match numbered params first
+      const parts = conditionStr.split(/(__SUBQUERY_TOKEN_\d+__|\?\d+|\?)/g).filter(Boolean)
       let builtCondition = ''
 
       for (const part of parts) {
         if (part === '?') {
+          // Unnumbered param - consume sequentially
           if (primitiveParamIndex >= primitiveParams.length) {
             throw new Error(
               'SQL generation error: Not enough primitive parameters for "?" placeholders in HAVING clause.'
@@ -642,6 +665,19 @@ export class QueryBuilder<GenericResultWrapper, IsAsync extends boolean = true> 
           }
           currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
           builtCondition += '?'
+        } else if (/^\?\d+$/.test(part)) {
+          // Numbered param like ?1, ?2 - only consume on first occurrence
+          const paramNum = part.slice(1)
+          if (!seenNumberedParams[paramNum]) {
+            seenNumberedParams[paramNum] = true
+            if (primitiveParamIndex >= primitiveParams.length) {
+              throw new Error(
+                'SQL generation error: Not enough primitive parameters for numbered placeholders in HAVING clause.'
+              )
+            }
+            currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
+          }
+          builtCondition += part // Preserve the ?N in output
         } else if (part.startsWith('__SUBQUERY_TOKEN_') && part.endsWith('__')) {
           if (!currentContext.subQueryPlaceholders || !currentContext.toSQLCompiler) {
             throw new Error('SQL generation error: Subquery context not provided for token processing.')

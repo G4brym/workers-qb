@@ -199,6 +199,53 @@ describe('Select Builder', () => {
     }
   })
 
+  it('select with where numbered', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchOne({
+        tableName: 'testTable',
+        fields: '*',
+        where: {
+          conditions: 'name = ?1 or id = ?1',
+          params: ['asd'],
+        },
+      }),
+    ]) {
+      expect(result.query).toEqual('SELECT * FROM testTable WHERE name = ?1 or id = ?1 LIMIT 1')
+      expect(result.arguments).toEqual(['asd'])
+      expect(result.fetchType).toEqual('ONE')
+    }
+  })
+
+  it('select with where numbered reuse across multiple conditions', async () => {
+    const result = new QuerybuilderTest().fetchOne({
+      tableName: 'testTable',
+      fields: '*',
+      where: {
+        conditions: ['name = ?1', 'alias = ?1'],
+        params: ['test_value'],
+      },
+    })
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE (name = ?1) AND (alias = ?1) LIMIT 1')
+    expect(result.arguments).toEqual(['test_value'])
+    expect(result.fetchType).toEqual('ONE')
+  })
+
+  it('select with where multiple numbered params with partial reuse', async () => {
+    const result = new QuerybuilderTest().fetchAll({
+      tableName: 'testTable',
+      fields: '*',
+      where: {
+        conditions: 'status = ?1 AND (created_by = ?2 OR updated_by = ?2)',
+        params: ['active', 'admin'],
+      },
+    })
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE status = ?1 AND (created_by = ?2 OR updated_by = ?2)')
+    expect(result.arguments).toEqual(['active', 'admin'])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
   it('select with simple join', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
@@ -1081,5 +1128,40 @@ describe('Subqueries in SELECT statements', () => {
         ' HAVING id IN (SELECT customer_id FROM orders GROUP BY customer_id HAVING SUM(total) > ?)'
     )
     expect(q.arguments).toEqual([1000])
+  })
+
+  it('HAVING with numbered param reuse', () => {
+    const q = new QuerybuilderTest().fetchAll({
+      tableName: 'sales',
+      fields: ['region', 'SUM(amount) as total'],
+      groupBy: 'region',
+      having: {
+        conditions: 'SUM(amount) > ?1 AND AVG(amount) > ?1',
+        params: [1000],
+      },
+    })
+
+    expect(q.query).toEqual(
+      'SELECT region, SUM(amount) as total FROM sales GROUP BY region HAVING SUM(amount) > ?1 AND AVG(amount) > ?1'
+    )
+    expect(q.arguments).toEqual([1000])
+  })
+
+  it('HAVING with multiple conditions reusing numbered params', () => {
+    const q = new QuerybuilderTest().fetchAll({
+      tableName: 'orders',
+      fields: ['customer_id', 'COUNT(*) as order_count', 'SUM(total) as total_spent'],
+      groupBy: 'customer_id',
+      having: {
+        conditions: ['COUNT(*) >= ?1', 'SUM(total) >= ?1'],
+        params: [100],
+      },
+    })
+
+    expect(q.query).toEqual(
+      'SELECT customer_id, COUNT(*) as order_count, SUM(total) as total_spent FROM orders' +
+        ' GROUP BY customer_id HAVING (COUNT(*) >= ?1) AND (SUM(total) >= ?1)'
+    )
+    expect(q.arguments).toEqual([100])
   })
 })

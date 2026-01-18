@@ -143,4 +143,32 @@ describe('Delete Builder', () => {
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
   })
+
+  it('delete with where numbered param reuse', async () => {
+    const result = new QuerybuilderTest().delete({
+      tableName: 'testTable',
+      where: {
+        conditions: 'owner_id = ?1 OR created_by = ?1',
+        params: ['user123'],
+      },
+    })
+
+    expect(result.query).toEqual('DELETE FROM testTable WHERE owner_id = ?1 OR created_by = ?1')
+    expect(result.arguments).toEqual(['user123'])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  it('delete with multiple conditions reusing numbered params', async () => {
+    const result = new QuerybuilderTest().delete({
+      tableName: 'testTable',
+      where: {
+        conditions: ['user_id = ?1', 'approver_id = ?1'],
+        params: ['admin'],
+      },
+    })
+
+    expect(result.query).toEqual('DELETE FROM testTable WHERE (user_id = ?1) AND (approver_id = ?1)')
+    expect(result.arguments).toEqual(['admin'])
+    expect(result.fetchType).toEqual('ALL')
+  })
 })
