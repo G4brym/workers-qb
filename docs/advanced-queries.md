@@ -717,3 +717,327 @@ const rawSingleUser = await qb.raw<User>({
 
 console.log('Raw single user:', rawSingleUser.results);
 ```
+
+## DISTINCT Selection
+
+Use the `distinct()` method to remove duplicate rows from your query results.
+
+### Simple DISTINCT
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+const qb = new D1QB(env.DB);
+
+// SELECT DISTINCT * FROM users
+const uniqueUsers = await qb.select('users')
+  .distinct()
+  .execute();
+
+// SELECT DISTINCT name, email FROM users
+const uniqueUserInfo = await qb.select('users')
+  .distinct()
+  .fields(['name', 'email'])
+  .execute();
+```
+
+### DISTINCT ON (PostgreSQL)
+
+PostgreSQL supports `DISTINCT ON` to select distinct rows based on specific columns:
+
+```typescript
+import { PGQB } from 'workers-qb';
+
+const qb = new PGQB(client);
+
+// SELECT DISTINCT ON (department) department, name FROM users ORDER BY department
+const firstUserPerDept = await qb.select('users')
+  .distinct(['department'])
+  .fields(['department', 'name'])
+  .orderBy('department')
+  .execute();
+```
+
+## Additional JOIN Types
+
+In addition to INNER, LEFT, and CROSS joins, `workers-qb` supports RIGHT, FULL, and NATURAL joins.
+
+### RIGHT JOIN
+
+A RIGHT JOIN returns all rows from the right table and matching rows from the left table:
+
+```typescript
+const result = await qb.select('orders')
+  .rightJoin({ table: 'users', on: 'orders.user_id = users.id' })
+  .execute();
+```
+
+### FULL OUTER JOIN
+
+A FULL JOIN returns all rows when there's a match in either table:
+
+```typescript
+const result = await qb.select('users')
+  .fullJoin({ table: 'profiles', on: 'users.id = profiles.user_id' })
+  .execute();
+```
+
+### NATURAL JOIN
+
+A NATURAL JOIN automatically joins tables based on columns with the same name:
+
+```typescript
+const result = await qb.select('users')
+  .naturalJoin('profiles')
+  .execute();
+```
+
+## Set Operations (UNION, INTERSECT, EXCEPT)
+
+Combine results from multiple queries using set operations.
+
+### UNION
+
+Combine results from two queries, removing duplicates:
+
+```typescript
+const result = await qb.select('active_users')
+  .fields(['id', 'name'])
+  .union(qb.select('archived_users').fields(['id', 'name']))
+  .execute();
+```
+
+### UNION ALL
+
+Combine results while keeping duplicates:
+
+```typescript
+const result = await qb.select('table1')
+  .fields(['id'])
+  .unionAll(qb.select('table2').fields(['id']))
+  .execute();
+```
+
+### INTERSECT
+
+Return only rows that appear in both queries:
+
+```typescript
+const result = await qb.select('users')
+  .fields(['id'])
+  .intersect(qb.select('admins').fields(['user_id']))
+  .execute();
+```
+
+### EXCEPT
+
+Return rows from the first query that don't appear in the second:
+
+```typescript
+const result = await qb.select('all_users')
+  .fields(['id'])
+  .except(qb.select('blocked_users').fields(['user_id']))
+  .execute();
+```
+
+### Chaining Set Operations
+
+You can chain multiple set operations and add ORDER BY to the final result:
+
+```typescript
+const result = await qb.select('table1')
+  .fields(['id', 'name'])
+  .union(qb.select('table2').fields(['id', 'name']))
+  .union(qb.select('table3').fields(['id', 'name']))
+  .orderBy({ name: 'ASC' })
+  .execute();
+```
+
+## Common Table Expressions (CTEs)
+
+CTEs allow you to define named temporary result sets using the `WITH` clause.
+
+### Simple CTE
+
+```typescript
+const result = await qb.select('orders')
+  .with('active_users', qb.select('users').where('status = ?', 'active'))
+  .join({ table: 'active_users', on: 'orders.user_id = active_users.id' })
+  .execute();
+
+// SQL: WITH active_users AS (SELECT * FROM users WHERE status = 'active')
+//      SELECT * FROM orders JOIN active_users ON orders.user_id = active_users.id
+```
+
+### Multiple CTEs
+
+```typescript
+const result = await qb.select('combined')
+  .with('recent_orders', qb.select('orders').where('created_at > ?', lastWeek))
+  .with('active_users', qb.select('users').where('status = ?', 'active'))
+  .execute();
+```
+
+### CTE with Column Names
+
+```typescript
+const result = await qb.select('results')
+  .with(
+    'user_stats',
+    qb.select('users').fields(['id', 'COUNT(*) as cnt']).groupBy('id'),
+    ['user_id', 'count'] // Column names for the CTE
+  )
+  .execute();
+
+// SQL: WITH user_stats(user_id, count) AS (SELECT id, COUNT(*) as cnt FROM users GROUP BY id)
+```
+
+## Query Inspection (toSQL / toDebugSQL)
+
+Inspect generated SQL without executing the query.
+
+### toSQL()
+
+Get the SQL query and parameters without executing:
+
+```typescript
+const { sql, params } = qb.select('users')
+  .where('status = ?', 'active')
+  .where('age > ?', 18)
+  .toSQL();
+
+console.log(sql);    // "SELECT * FROM users WHERE (status = ?) AND (age > ?)"
+console.log(params); // ['active', 18]
+```
+
+### toDebugSQL()
+
+Get the SQL with parameters interpolated (for debugging only):
+
+```typescript
+const debugSql = qb.select('users')
+  .where('id = ?', 1)
+  .where('name = ?', "O'Brien")
+  .toDebugSQL();
+
+console.log(debugSql);
+// "SELECT * FROM users WHERE (id = 1) AND (name = 'O''Brien')"
+```
+
+**Warning:** Never use `toDebugSQL()` output to execute queries as it bypasses parameterization.
+
+## Pagination
+
+The `paginate()` method provides convenient pagination with metadata.
+
+```typescript
+const result = await qb.select('users')
+  .where('active = ?', true)
+  .orderBy({ created_at: 'DESC' })
+  .paginate({ page: 2, perPage: 20 });
+
+console.log(result.results);     // Array of users for page 2
+console.log(result.pagination);  // Pagination metadata
+
+// result.pagination = {
+//   page: 2,
+//   perPage: 20,
+//   total: 150,
+//   totalPages: 8,
+//   hasNext: true,
+//   hasPrev: true
+// }
+```
+
+## Query Plan Analysis (EXPLAIN)
+
+Use `explain()` to get the query execution plan for debugging performance:
+
+```typescript
+const plan = await qb.select('users')
+  .where('email = ?', 'test@example.com')
+  .explain();
+
+console.log(plan.results);
+// Shows SQLite's EXPLAIN QUERY PLAN output
+```
+
+## Transactions
+
+Execute multiple queries atomically.
+
+### D1 Transactions
+
+D1 uses batching for atomic operations:
+
+```typescript
+import { D1QB } from 'workers-qb';
+
+const qb = new D1QB(env.DB);
+
+const results = await qb.transaction(async (tx) => {
+  return [
+    tx.insert({ tableName: 'orders', data: { user_id: 1, total: 100 } }),
+    tx.update({
+      tableName: 'inventory',
+      data: { stock: 9 },
+      where: { conditions: 'product_id = ?', params: [1] }
+    }),
+  ];
+});
+```
+
+### Durable Objects Transactions
+
+DOQB uses SQLite transactions synchronously:
+
+```typescript
+import { DOQB } from 'workers-qb';
+
+// Inside a Durable Object, use within blockConcurrencyWhile
+this.ctx.blockConcurrencyWhile(() => {
+  qb.transaction((tx) => {
+    tx.insert({ tableName: 'orders', data: { user_id: 1, total: 100 } }).execute();
+    tx.update({
+      tableName: 'inventory',
+      data: { stock: 9 },
+      where: { conditions: 'product_id = ?', params: [1] }
+    }).execute();
+  });
+});
+```
+
+## Query Hooks
+
+Register hooks to intercept queries before or after execution.
+
+### beforeQuery Hook
+
+Modify queries before execution (e.g., add tenant filters):
+
+```typescript
+const tenantId = 'tenant-123';
+
+qb.beforeQuery((query, type) => {
+  if (type === 'SELECT' || type === 'UPDATE' || type === 'DELETE') {
+    // Add tenant filter to all queries
+    query.query = query.query.replace(
+      'WHERE',
+      `WHERE tenant_id = '${tenantId}' AND`
+    );
+  }
+  return query;
+});
+```
+
+### afterQuery Hook
+
+Process results or record metrics after execution:
+
+```typescript
+qb.afterQuery((result, query, duration) => {
+  console.log(`Query took ${duration}ms:`, query.query);
+  metrics.record('query_duration', duration);
+  return result;
+});
+```

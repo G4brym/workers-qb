@@ -20,4 +20,16 @@ export enum JoinTypes {
   INNER = 'INNER',
   LEFT = 'LEFT',
   CROSS = 'CROSS',
+  RIGHT = 'RIGHT',
+  FULL = 'FULL',
+  NATURAL = 'NATURAL',
+}
+
+export enum SetOperationType {
+  UNION = 'UNION',
+  UNION_ALL = 'UNION ALL',
+  INTERSECT = 'INTERSECT',
+  INTERSECT_ALL = 'INTERSECT ALL',
+  EXCEPT = 'EXCEPT',
+  EXCEPT_ALL = 'EXCEPT ALL',
 }

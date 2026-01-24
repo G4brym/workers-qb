@@ -23,11 +23,22 @@ export class D1QB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
   }
 
   async execute(query: Query) {
-    return await this.loggerWrapper(query, this.options.logger, async () => {
-      let stmt = this.db.prepare(query.query)
+    const startTime = Date.now()
 
-      if (query.arguments) {
-        stmt = stmt.bind(...query.arguments)
+    // Run beforeQuery hook if registered
+    let processedQuery = query.toObject()
+    if (this.options.beforeQuery) {
+      const hookResult = await this.options.beforeQuery(processedQuery, this._getQueryType(query.query))
+      if (hookResult) {
+        processedQuery = hookResult
+      }
+    }
+
+    const result = await this.loggerWrapper(query, this.options.logger, async () => {
+      let stmt = this.db.prepare(processedQuery.query)
+
+      if (processedQuery.args) {
+        stmt = stmt.bind(...processedQuery.args)
       }
 
       if (query.fetchType === FetchTypes.ONE || query.fetchType === FetchTypes.ALL) {
@@ -49,6 +60,23 @@ export class D1QB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
 
       return stmt.run()
     })
+
+    // Run afterQuery hook if registered
+    if (this.options.afterQuery) {
+      const duration = Date.now() - startTime
+      return await this.options.afterQuery(result, processedQuery, duration)
+    }
+
+    return result
+  }
+
+  private _getQueryType(sql: string): 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'RAW' {
+    const trimmed = sql.trim().toUpperCase()
+    if (trimmed.startsWith('SELECT')) return 'SELECT'
+    if (trimmed.startsWith('INSERT')) return 'INSERT'
+    if (trimmed.startsWith('UPDATE')) return 'UPDATE'
+    if (trimmed.startsWith('DELETE')) return 'DELETE'
+    return 'RAW'
   }
 
   async batchExecute(queryArray: Query[]) {
@@ -105,5 +133,25 @@ export class D1QB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
         }
       )
     })
+  }
+
+  /**
+   * Execute multiple queries atomically as a transaction.
+   * D1 uses batching for transactions - all queries succeed or all fail together.
+   *
+   * @param callback - A function that receives a transaction builder and returns queries to execute
+   * @returns Array of results from all queries in the transaction
+   *
+   * @example
+   * const results = await qb.transaction(async (tx) => {
+   *   return [
+   *     tx.insert({ tableName: 'orders', data: { user_id: 1, total: 100 } }),
+   *     tx.update({ tableName: 'users', data: { balance: 50 }, where: { conditions: 'id = ?', params: [1] } }),
+   *   ]
+   * })
+   */
+  async transaction<T extends Query<any, true>[]>(callback: (tx: D1QB<Schema>) => T | Promise<T>): Promise<any[]> {
+    const queries = await callback(this)
+    return this.batchExecute(queries)
   }
 }

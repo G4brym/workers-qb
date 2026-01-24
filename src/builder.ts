@@ -1,6 +1,9 @@
-import { ConflictTypes, FetchTypes, OrderTypes } from './enums'
+import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from './enums'
+import { MissingDataError, MissingSubqueryContextError, ParameterMismatchError, SubqueryTokenError } from './errors'
 import {
+  AfterQueryHook,
   ArrayResult,
+  BeforeQueryHook,
   ConflictUpsert,
   DefaultObject,
   DefaultReturnObject,
@@ -61,6 +64,43 @@ export class QueryBuilder<
     } else {
       this.options.logger = undefined
     }
+  }
+
+  /**
+   * Register a hook to be called before each query execution.
+   * The hook can modify the query or throw to cancel execution.
+   *
+   * @param hook - The hook function to call before query execution
+   *
+   * @example
+   * qb.beforeQuery((query, type) => {
+   *   // Add tenant filter to all SELECT/UPDATE/DELETE queries
+   *   if (type !== 'INSERT' && type !== 'RAW') {
+   *     query.query = query.query.replace('WHERE', `WHERE tenant_id = ${tenantId} AND`)
+   *   }
+   *   return query
+   * })
+   */
+  beforeQuery(hook: BeforeQueryHook<IsAsync>): this {
+    this.options.beforeQuery = hook
+    return this
+  }
+
+  /**
+   * Register a hook to be called after each query execution.
+   * The hook receives the result and can modify it or perform side effects.
+   *
+   * @param hook - The hook function to call after query execution
+   *
+   * @example
+   * qb.afterQuery((result, query, duration) => {
+   *   metrics.record(query.query, duration)
+   *   return result
+   * })
+   */
+  afterQuery(hook: AfterQueryHook<IsAsync>): this {
+    this.options.afterQuery = hook
+    return this
   }
 
   execute(query: Query<any, IsAsync>): MaybeAsync<IsAsync, any> {
@@ -402,7 +442,7 @@ export class QueryBuilder<
     }
 
     if (!data || !data[0] || data.length === 0) {
-      throw new Error('Insert data is undefined')
+      throw new MissingDataError('INSERT', 'data')
     }
 
     const columns = Object.keys(data[0]).join(', ')
@@ -519,17 +559,46 @@ export class QueryBuilder<
       toSQLCompiler: this._select.bind(this),
     }
 
-    return (
-      `SELECT ${this._fields(params.fields)}
+    // Build CTE clause (WITH ...) if present
+    let cteClause = ''
+    if (params.cteDefinitions && params.cteDefinitions.length > 0) {
+      const cteParts: string[] = []
+      for (const cte of params.cteDefinitions) {
+        const cteColumns = cte.columns ? `(${cte.columns.join(', ')})` : ''
+        const cteSql = this._select(cte.query, currentQueryArgs)
+        cteParts.push(`${cte.name}${cteColumns} AS (${cteSql})`)
+      }
+      cteClause = `WITH ${cteParts.join(', ')} `
+    }
+
+    let sql =
+      cteClause +
+      `SELECT ${this._distinct(params.distinct)}${this._fields(params.fields)}
        FROM ${params.tableName}` +
       this._join(params.join, context) +
       this._where(params.where, context) +
       this._groupBy(params.groupBy) +
-      this._having(params.having, context) +
-      this._orderBy(params.orderBy) +
-      this._limit(params.limit) +
-      this._offset(params.offset)
-    )
+      this._having(params.having, context)
+
+    // Handle set operations (UNION, INTERSECT, EXCEPT)
+    // Note: ORDER BY, LIMIT, OFFSET apply to the combined result
+    if (params.setOperations && params.setOperations.length > 0) {
+      for (const setOp of params.setOperations) {
+        const setQuerySql = this._select(setOp.query, currentQueryArgs)
+        sql += ` ${setOp.type} ${setQuerySql}`
+      }
+    }
+
+    sql += this._orderBy(params.orderBy) + this._limit(params.limit) + this._offset(params.offset)
+
+    return sql
+  }
+
+  protected _distinct(value?: boolean | Array<string>): string {
+    if (!value) return ''
+    if (value === true) return 'DISTINCT '
+    // DISTINCT ON (columns) - PostgreSQL only
+    return `DISTINCT ON (${value.join(', ')}) `
   }
 
   protected _fields(value?: string | Array<string>): string {
@@ -586,9 +655,14 @@ export class QueryBuilder<
         if (part === '?') {
           // Unnumbered param - consume sequentially
           if (primitiveParamIndex >= primitiveParams.length) {
-            throw new Error(
-              'SQL generation error: Not enough primitive parameters for "?" placeholders in WHERE clause.'
-            )
+            // Count total placeholders for better error message
+            const totalPlaceholders = conditionStrings.join(' ').split('?').length - 1
+            throw new ParameterMismatchError({
+              clause: 'WHERE',
+              query: conditionStrings.join(' AND '),
+              expectedParams: totalPlaceholders,
+              receivedParams: primitiveParams.length,
+            })
           }
           currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
           builtCondition += '?'
@@ -598,20 +672,23 @@ export class QueryBuilder<
           if (!seenNumberedParams[paramNum]) {
             seenNumberedParams[paramNum] = true
             if (primitiveParamIndex >= primitiveParams.length) {
-              throw new Error(
-                'SQL generation error: Not enough primitive parameters for numbered placeholders in WHERE clause.'
-              )
+              throw new ParameterMismatchError({
+                clause: 'WHERE',
+                query: conditionStrings.join(' AND '),
+                expectedParams: Object.keys(seenNumberedParams).length + 1,
+                receivedParams: primitiveParams.length,
+              })
             }
             currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
           }
           builtCondition += part // Preserve the ?N in output
         } else if (part.startsWith('__SUBQUERY_TOKEN_') && part.endsWith('__')) {
           if (!currentContext.subQueryPlaceholders || !currentContext.toSQLCompiler) {
-            throw new Error('SQL generation error: Subquery context not provided for token processing.')
+            throw new MissingSubqueryContextError()
           }
           const subQueryParams = currentContext.subQueryPlaceholders[part]
           if (!subQueryParams) {
-            throw new Error(`SQL generation error: Subquery token ${part} not found in placeholders.`)
+            throw new SubqueryTokenError(part)
           }
           // The subquery's SQL is generated, and its arguments are added to the main query's argument list.
           const subQuerySql = currentContext.toSQLCompiler(subQueryParams, currentContext.queryArgs)
@@ -625,9 +702,12 @@ export class QueryBuilder<
 
     if (primitiveParamIndex < primitiveParams.length && primitiveParams.length > 0) {
       // Check primitiveParams.length to avoid error if no params were expected
-      throw new Error(
-        'SQL generation error: Too many primitive parameters provided for "?" placeholders in WHERE clause.'
-      )
+      throw new ParameterMismatchError({
+        clause: 'WHERE',
+        query: conditionStrings.join(' AND '),
+        expectedParams: primitiveParamIndex,
+        receivedParams: primitiveParams.length,
+      })
     }
 
     if (processedConditions.length === 0) return ''
@@ -671,7 +751,12 @@ export class QueryBuilder<
         // and push its arguments to context.queryArgs.
         tableSql = `(${context.toSQLCompiler(item.table, context.queryArgs)})`
       }
-      joinQuery.push(`${type}JOIN ${tableSql}${item.alias ? ` AS ${item.alias}` : ''} ON ${item.on}`)
+      // NATURAL joins don't use ON clause
+      if (item.type === JoinTypes.NATURAL || item.type === 'NATURAL') {
+        joinQuery.push(`${type}JOIN ${tableSql}${item.alias ? ` AS ${item.alias}` : ''}`)
+      } else {
+        joinQuery.push(`${type}JOIN ${tableSql}${item.alias ? ` AS ${item.alias}` : ''} ON ${item.on}`)
+      }
     })
 
     return ' ' + joinQuery.join(' ')
@@ -730,9 +815,13 @@ export class QueryBuilder<
         if (part === '?') {
           // Unnumbered param - consume sequentially
           if (primitiveParamIndex >= primitiveParams.length) {
-            throw new Error(
-              'SQL generation error: Not enough primitive parameters for "?" placeholders in HAVING clause.'
-            )
+            const totalPlaceholders = conditionStrings.join(' ').split('?').length - 1
+            throw new ParameterMismatchError({
+              clause: 'HAVING',
+              query: conditionStrings.join(' AND '),
+              expectedParams: totalPlaceholders,
+              receivedParams: primitiveParams.length,
+            })
           }
           currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
           builtCondition += '?'
@@ -742,20 +831,23 @@ export class QueryBuilder<
           if (!seenNumberedParams[paramNum]) {
             seenNumberedParams[paramNum] = true
             if (primitiveParamIndex >= primitiveParams.length) {
-              throw new Error(
-                'SQL generation error: Not enough primitive parameters for numbered placeholders in HAVING clause.'
-              )
+              throw new ParameterMismatchError({
+                clause: 'HAVING',
+                query: conditionStrings.join(' AND '),
+                expectedParams: Object.keys(seenNumberedParams).length + 1,
+                receivedParams: primitiveParams.length,
+              })
             }
             currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
           }
           builtCondition += part // Preserve the ?N in output
         } else if (part.startsWith('__SUBQUERY_TOKEN_') && part.endsWith('__')) {
           if (!currentContext.subQueryPlaceholders || !currentContext.toSQLCompiler) {
-            throw new Error('SQL generation error: Subquery context not provided for token processing.')
+            throw new MissingSubqueryContextError()
           }
           const subQueryParams = currentContext.subQueryPlaceholders[part]
           if (!subQueryParams) {
-            throw new Error(`SQL generation error: Subquery token ${part} not found in placeholders.`)
+            throw new SubqueryTokenError(part)
           }
           // The subquery's SQL is generated, and its arguments are added to the main query's argument list.
           const subQuerySql = currentContext.toSQLCompiler(subQueryParams, currentContext.queryArgs)
@@ -769,9 +861,12 @@ export class QueryBuilder<
 
     if (primitiveParamIndex < primitiveParams.length && primitiveParams.length > 0) {
       // Check primitiveParams.length to avoid error if no params were expected
-      throw new Error(
-        'SQL generation error: Too many primitive parameters provided for "?" placeholders in HAVING clause.'
-      )
+      throw new ParameterMismatchError({
+        clause: 'HAVING',
+        query: conditionStrings.join(' AND '),
+        expectedParams: primitiveParamIndex,
+        receivedParams: primitiveParams.length,
+      })
     }
 
     if (processedConditions.length === 0) return ''

@@ -1,4 +1,4 @@
-import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from './enums'
+import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes, SetOperationType } from './enums'
 import { SelectBuilder } from './modularBuilder'
 import { ColumnName, TableName, TableSchema } from './schema'
 import { Raw } from './tools'
@@ -19,8 +19,31 @@ export type QueryLoggerMeta = {
   duration?: number
 }
 
+/**
+ * Hook called before a query is executed.
+ * Can modify the query or cancel execution by throwing.
+ */
+export type BeforeQueryHook<IsAsync extends boolean = true> = (
+  query: RawQuery,
+  type: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'RAW'
+) => MaybeAsync<IsAsync, RawQuery | void>
+
+/**
+ * Hook called after a query is executed.
+ * Can modify the result or perform side effects.
+ */
+export type AfterQueryHook<IsAsync extends boolean = true> = (
+  result: any,
+  query: RawQuery,
+  duration: number
+) => MaybeAsync<IsAsync, any>
+
 export type QueryBuilderOptions<IsAsync extends boolean = true> = {
   logger?: (query: RawQuery, meta: QueryLoggerMeta) => MaybeAsync<IsAsync, void>
+  /** Hook called before each query execution */
+  beforeQuery?: BeforeQueryHook<IsAsync>
+  /** Hook called after each query execution */
+  afterQuery?: AfterQueryHook<IsAsync>
 }
 
 export type DefaultObject = Record<string, Primitive>
@@ -53,6 +76,8 @@ export type SelectOne = {
   offset?: number
   subQueryPlaceholders?: Record<string, SelectAll>
   subQueryTokenNextId?: number
+  /** Enable DISTINCT selection. Can be true for simple DISTINCT or an array of columns for DISTINCT ON */
+  distinct?: boolean | Array<string>
 }
 
 export type RawQuery = {
@@ -71,9 +96,24 @@ export type RawQueryFetchAll = Omit<RawQuery, 'fetchType'> & {
 
 export type RawQueryWithoutFetching = Omit<RawQuery, 'fetchType'>
 
+export type SetOperation = {
+  type: SetOperationType | string
+  query: SelectAll
+}
+
+export type CTEDefinition = {
+  name: string
+  query: SelectAll
+  columns?: string[]
+}
+
 export type SelectAll = SelectOne & {
   limit?: number
   lazy?: boolean
+  /** Set operations (UNION, INTERSECT, EXCEPT) to combine with this query */
+  setOperations?: SetOperation[]
+  /** Common Table Expressions (CTEs) for WITH clause */
+  cteDefinitions?: CTEDefinition[]
 }
 
 export type ConflictUpsert = {
@@ -183,6 +223,23 @@ export type ArrayResult<
 export type OneResult<ResultWrapper, Result> = Merge<ResultWrapper, { results?: Result }>
 
 export type CountResult<GenericResultWrapper> = OneResult<GenericResultWrapper, { total: number }>
+
+export type PaginationMeta = {
+  page: number
+  perPage: number
+  total: number
+  totalPages: number
+  hasNext: boolean
+  hasPrev: boolean
+}
+
+export type PaginatedResult<ResultWrapper, Result> = Merge<
+  ResultWrapper,
+  {
+    results?: Array<Result>
+    pagination: PaginationMeta
+  }
+>
 
 export type AsyncType<T> = Promise<T>
 export type SyncType<T> = T

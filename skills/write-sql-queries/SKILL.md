@@ -158,6 +158,25 @@ const records = await qb.select('assignments')
   .all();
 ```
 
+### DISTINCT
+
+```typescript
+// Simple DISTINCT
+const uniqueEmails = await qb.select('users')
+  .distinct()
+  .fields(['email'])
+  .all();
+// SELECT DISTINCT email FROM users
+
+// DISTINCT ON (PostgreSQL only)
+const latestPerDepartment = await qb.select('employees')
+  .distinct(['department'])
+  .fields(['department', 'name', 'created_at'])
+  .orderBy({ department: 'ASC', created_at: 'DESC' })
+  .all();
+// SELECT DISTINCT ON (department) department, name, created_at FROM employees
+```
+
 ### JOINs
 
 ```typescript
@@ -186,6 +205,28 @@ join: [
 ]
 ```
 
+### JOIN Convenience Methods
+
+```typescript
+// Using convenience methods (fluent API)
+const result = await qb.select('users')
+  .innerJoin({ table: 'orders', on: 'users.id = orders.user_id' })
+  .leftJoin({ table: 'profiles', on: 'users.id = profiles.user_id' })
+  .rightJoin({ table: 'teams', on: 'users.team_id = teams.id' })
+  .fullJoin({ table: 'projects', on: 'users.id = projects.owner_id' })
+  .all();
+
+// CROSS JOIN
+const combinations = await qb.select('colors')
+  .crossJoin({ table: 'sizes' })
+  .all();
+
+// NATURAL JOIN (auto-matches columns with same name)
+const combined = await qb.select('orders')
+  .naturalJoin('customers')
+  .all();
+```
+
 ### Subqueries
 
 ```typescript
@@ -210,7 +251,7 @@ const docs = await qb.select('documents')
   .all();
 ```
 
-### Pagination
+### Pagination (Manual)
 
 ```typescript
 const pageSize = 20;
@@ -222,6 +263,93 @@ const users = await qb.fetchAll({
   limit: pageSize,
   offset: (page - 1) * pageSize,
 }).execute();
+```
+
+### Pagination Helper
+
+```typescript
+// Use .paginate() for automatic pagination metadata
+const result = await qb.select('users')
+  .where('active = ?', true)
+  .orderBy({ created_at: 'DESC' })
+  .paginate({ page: 2, perPage: 20 });
+
+// Returns:
+// {
+//   results: [...],
+//   pagination: {
+//     page: 2,
+//     perPage: 20,
+//     total: 150,
+//     totalPages: 8,
+//     hasNext: true,
+//     hasPrev: true
+//   }
+// }
+```
+
+### UNION / INTERSECT / EXCEPT
+
+```typescript
+// UNION - combine results, remove duplicates
+const allUsers = await qb.select('active_users')
+  .fields(['id', 'name'])
+  .union(qb.select('archived_users').fields(['id', 'name']))
+  .all();
+
+// UNION ALL - keep duplicates
+const allRecords = await qb.select('table1')
+  .fields(['id'])
+  .unionAll(qb.select('table2').fields(['id']))
+  .all();
+
+// INTERSECT - only common rows
+const commonUsers = await qb.select('users')
+  .fields(['id'])
+  .intersect(qb.select('admins').fields(['user_id']))
+  .all();
+
+// EXCEPT - rows in first but not second
+const regularUsers = await qb.select('all_users')
+  .fields(['id'])
+  .except(qb.select('blocked_users').fields(['user_id']))
+  .all();
+
+// Chain multiple set operations
+const combined = await qb.select('table1')
+  .fields(['id'])
+  .union(qb.select('table2').fields(['id']))
+  .union(qb.select('table3').fields(['id']))
+  .orderBy({ id: 'ASC' })  // ORDER BY applies to combined result
+  .all();
+```
+
+### CTEs (Common Table Expressions)
+
+```typescript
+// Simple CTE - WITH clause
+const ordersWithActiveUsers = await qb.select('orders')
+  .with('active_users', qb.select('users').where('status = ?', 'active'))
+  .innerJoin({ table: 'active_users', on: 'orders.user_id = active_users.id' })
+  .all();
+// WITH active_users AS (SELECT * FROM users WHERE status = ?)
+// SELECT * FROM orders INNER JOIN active_users ON orders.user_id = active_users.id
+
+// Multiple CTEs
+const result = await qb.select('summary')
+  .with('recent_orders', qb.select('orders').where('created_at > ?', lastWeek))
+  .with('top_customers', qb.select('customers').where('total_spent > ?', 1000))
+  .all();
+
+// CTE with explicit column names
+const stats = await qb.select('user_counts')
+  .with(
+    'user_stats',
+    qb.select('users').fields(['department', 'COUNT(*) as cnt']).groupBy('department'),
+    ['dept', 'count']  // Column aliases for the CTE
+  )
+  .all();
+// WITH user_stats(dept, count) AS (SELECT department, COUNT(*) as cnt FROM users GROUP BY department)
 ```
 
 ### Order By
@@ -509,16 +637,121 @@ await qb.raw({
 
 ---
 
+## Query Debugging
+
+### toSQL() - Get Query Without Executing
+
+```typescript
+// Get the SQL and parameters without executing
+const { sql, params } = qb.select('users')
+  .where('id = ?', 1)
+  .where('status = ?', 'active')
+  .toSQL();
+
+console.log(sql);    // SELECT * FROM users WHERE (id = ?) AND (status = ?)
+console.log(params); // [1, 'active']
+```
+
+### toDebugSQL() - Interpolated SQL (for logging only)
+
+```typescript
+// Get SQL with parameters interpolated - NEVER use for execution
+const debugSql = qb.select('users')
+  .where('id = ?', 1)
+  .where("name = ?", "O'Brien")
+  .toDebugSQL();
+
+console.log(debugSql); // SELECT * FROM users WHERE (id = 1) AND (name = 'O''Brien')
+```
+
+### EXPLAIN - Query Plan Analysis
+
+```typescript
+// Get the query execution plan
+const plan = await qb.select('users')
+  .where('id = ?', 1)
+  .explain();
+
+// Returns array of plan rows showing how the database will execute the query
+console.log(plan.results);
+// [{ id: 0, parent: 0, notused: 0, detail: 'SCAN users' }]
+```
+
+---
+
+## Query Hooks
+
+Register middleware-style hooks for all queries:
+
+```typescript
+// beforeQuery - modify queries before execution
+qb.beforeQuery((query, type) => {
+  // Add tenant filter to all queries
+  if (type !== 'INSERT' && type !== 'RAW') {
+    query.query = query.query.replace('WHERE', `WHERE tenant_id = ${tenantId} AND`)
+  }
+  return query
+})
+
+// afterQuery - log, modify results, record metrics
+qb.afterQuery((result, query, duration) => {
+  console.log(`Query took ${duration}ms:`, query.query)
+  metrics.record(query.query, duration)
+  return result
+})
+```
+
+---
+
+## Transactions
+
+### D1QB Transactions (async, batch-based)
+
+```typescript
+// D1 uses batching - all queries succeed or all fail together
+const results = await qb.transaction(async (tx) => {
+  return [
+    tx.insert({ tableName: 'orders', data: { user_id: 1, total: 100 } }),
+    tx.update({
+      tableName: 'users',
+      data: { balance: new Raw('balance - 100') },
+      where: { conditions: 'id = ?', params: [1] }
+    }),
+  ]
+})
+```
+
+### DOQB Transactions (sync, SQLite BEGIN/COMMIT)
+
+```typescript
+// DOQB uses SQLite's native transaction support
+// Should be called within blockConcurrencyWhile for proper isolation
+this.ctx.blockConcurrencyWhile(() => {
+  qb.transaction((tx) => {
+    tx.insert({ tableName: 'orders', data: { user_id: 1, total: 100 } }).execute()
+    tx.update({
+      tableName: 'users',
+      data: { balance: new Raw('balance - 100') },
+      where: { conditions: 'id = ?', params: [1] }
+    }).execute()
+    // Automatically commits on success, rolls back on error
+  })
+})
+```
+
+---
+
 ## Checklist
 
 Before executing queries, verify:
 
-- [ ] Called `.execute()` on the query
+- [ ] Called `.execute()` on the query (or `.all()`, `.one()`, `.paginate()`)
 - [ ] Using `await` for D1QB/PGQB, **no** `await` for DOQB
 - [ ] Using parameterized queries (`?` placeholders), not string interpolation
 - [ ] WHERE clause is provided for UPDATE/DELETE (to avoid affecting all rows)
 - [ ] Schema type is defined for autocomplete and type safety
 - [ ] Using `Raw` for SQL expressions (not strings) in data objects
+- [ ] Use `.toSQL()` or `.toDebugSQL()` for debugging, not for execution
 
 ## Common Mistakes
 

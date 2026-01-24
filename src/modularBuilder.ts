@@ -1,15 +1,23 @@
+import { FetchTypes, JoinTypes, SetOperationType } from './enums'
 import {
   ArrayResult,
   CountResult,
   DefaultReturnObject,
   MaybeAsync,
   OneResult,
+  PaginatedResult,
+  PaginationMeta,
   Primitive,
   SelectAll,
   SelectOne,
 } from './interfaces'
 import { TableSchema } from './schema'
 import { Query, QueryWithExtra } from './tools'
+
+export interface PaginateOptions {
+  page: number
+  perPage: number
+}
 
 export interface SelectExecuteOptions {
   lazy?: boolean
@@ -53,6 +61,33 @@ export class SelectBuilder<
 
   fields(fields: SelectAll['fields']): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return this._parseArray('fields', this._options.fields, fields)
+  }
+
+  /**
+   * Enable DISTINCT selection to remove duplicate rows from results.
+   *
+   * @param columns - Optional array of columns for DISTINCT ON (PostgreSQL only).
+   *                  If not provided, applies simple DISTINCT.
+   *
+   * @example
+   * // Simple DISTINCT
+   * qb.select('users').distinct().execute()
+   * // SELECT DISTINCT * FROM users
+   *
+   * @example
+   * // DISTINCT ON specific columns (PostgreSQL)
+   * qb.select('users').distinct(['department']).fields(['department', 'name']).execute()
+   * // SELECT DISTINCT ON (department) department, name FROM users
+   */
+  distinct(columns?: Array<string>): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
+      {
+        ...this._options,
+        distinct: columns ?? true,
+      },
+      this._fetchAll,
+      this._fetchOne
+    )
   }
 
   where(
@@ -199,6 +234,214 @@ export class SelectBuilder<
       return j
     })
     return this._parseArray('join', this._options.join, processedJoins)
+  }
+
+  /**
+   * Add an INNER JOIN to the query.
+   */
+  innerJoin(params: {
+    table: string
+    on: string
+    alias?: string
+  }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.join({ ...params, type: JoinTypes.INNER })
+  }
+
+  /**
+   * Add a LEFT JOIN to the query.
+   */
+  leftJoin(params: {
+    table: string
+    on: string
+    alias?: string
+  }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.join({ ...params, type: JoinTypes.LEFT })
+  }
+
+  /**
+   * Add a RIGHT JOIN to the query.
+   */
+  rightJoin(params: {
+    table: string
+    on: string
+    alias?: string
+  }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.join({ ...params, type: JoinTypes.RIGHT })
+  }
+
+  /**
+   * Add a FULL OUTER JOIN to the query.
+   */
+  fullJoin(params: {
+    table: string
+    on: string
+    alias?: string
+  }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.join({ ...params, type: JoinTypes.FULL })
+  }
+
+  /**
+   * Add a CROSS JOIN to the query.
+   */
+  crossJoin(params: {
+    table: string
+    alias?: string
+  }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.join({ ...params, type: JoinTypes.CROSS, on: '1=1' })
+  }
+
+  /**
+   * Add a NATURAL JOIN to the query.
+   * Natural joins automatically match columns with the same name.
+   */
+  naturalJoin(table: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.join({ table, type: JoinTypes.NATURAL, on: '1=1' })
+  }
+
+  /**
+   * Define a Common Table Expression (CTE) using the WITH clause.
+   * CTEs allow you to define named temporary result sets that can be referenced
+   * in the main query, making complex queries more readable.
+   *
+   * @param name - The name of the CTE
+   * @param query - The query that defines the CTE
+   * @param columns - Optional column names for the CTE
+   *
+   * @example
+   * // Simple CTE
+   * qb.select('orders')
+   *   .with('active_users', qb.select('users').where('status = ?', 'active'))
+   *   .join({ table: 'active_users', on: 'orders.user_id = active_users.id' })
+   *   .execute()
+   *
+   * @example
+   * // Multiple CTEs
+   * qb.select('combined')
+   *   .with('cte1', qb.select('table1').where('x = ?', 1))
+   *   .with('cte2', qb.select('table2').where('y = ?', 2))
+   *   .execute()
+   */
+  with(
+    name: string,
+    query: SelectBuilder<any, any, any, any> | SelectAll,
+    columns?: string[]
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    const queryOptions = query instanceof SelectBuilder ? query.getOptions() : query
+    const existingCtes = this._options.cteDefinitions ?? []
+    return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
+      {
+        ...this._options,
+        cteDefinitions: [...existingCtes, { name, query: queryOptions, columns }],
+      },
+      this._fetchAll,
+      this._fetchOne
+    )
+  }
+
+  /**
+   * Combine results with another query using UNION (removes duplicates).
+   *
+   * @param query - The query to union with
+   * @param all - If true, uses UNION ALL to keep duplicates
+   *
+   * @example
+   * qb.select('active_users').fields(['id', 'name'])
+   *   .union(qb.select('archived_users').fields(['id', 'name']))
+   *   .execute()
+   */
+  union(
+    query: SelectBuilder<any, any, any, any> | SelectAll,
+    all = false
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    const queryOptions = query instanceof SelectBuilder ? query.getOptions() : query
+    const existingOps = this._options.setOperations ?? []
+    return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
+      {
+        ...this._options,
+        setOperations: [
+          ...existingOps,
+          { type: all ? SetOperationType.UNION_ALL : SetOperationType.UNION, query: queryOptions },
+        ],
+      },
+      this._fetchAll,
+      this._fetchOne
+    )
+  }
+
+  /**
+   * Combine results with another query using UNION ALL (keeps duplicates).
+   *
+   * @param query - The query to union with
+   *
+   * @example
+   * qb.select('table1').fields(['id'])
+   *   .unionAll(qb.select('table2').fields(['id']))
+   *   .execute()
+   */
+  unionAll(
+    query: SelectBuilder<any, any, any, any> | SelectAll
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.union(query, true)
+  }
+
+  /**
+   * Return only rows present in both queries using INTERSECT.
+   *
+   * @param query - The query to intersect with
+   * @param all - If true, uses INTERSECT ALL
+   *
+   * @example
+   * qb.select('users').fields(['id'])
+   *   .intersect(qb.select('admins').fields(['user_id']))
+   *   .execute()
+   */
+  intersect(
+    query: SelectBuilder<any, any, any, any> | SelectAll,
+    all = false
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    const queryOptions = query instanceof SelectBuilder ? query.getOptions() : query
+    const existingOps = this._options.setOperations ?? []
+    return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
+      {
+        ...this._options,
+        setOperations: [
+          ...existingOps,
+          { type: all ? SetOperationType.INTERSECT_ALL : SetOperationType.INTERSECT, query: queryOptions },
+        ],
+      },
+      this._fetchAll,
+      this._fetchOne
+    )
+  }
+
+  /**
+   * Return rows from the first query that are not in the second query using EXCEPT.
+   *
+   * @param query - The query to except
+   * @param all - If true, uses EXCEPT ALL
+   *
+   * @example
+   * qb.select('all_users').fields(['id'])
+   *   .except(qb.select('blocked_users').fields(['user_id']))
+   *   .execute()
+   */
+  except(
+    query: SelectBuilder<any, any, any, any> | SelectAll,
+    all = false
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    const queryOptions = query instanceof SelectBuilder ? query.getOptions() : query
+    const existingOps = this._options.setOperations ?? []
+    return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
+      {
+        ...this._options,
+        setOperations: [
+          ...existingOps,
+          { type: all ? SetOperationType.EXCEPT_ALL : SetOperationType.EXCEPT, query: queryOptions },
+        ],
+      },
+      this._fetchAll,
+      this._fetchOne
+    )
   }
 
   groupBy(groupBy: SelectAll['groupBy']): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
@@ -385,7 +628,131 @@ export class SelectBuilder<
     return this._fetchOne(this._options as SelectOne).count()
   }
 
+  /**
+   * Execute the query with pagination, returning results along with pagination metadata.
+   *
+   * @param options - Pagination options
+   * @param options.page - The page number (1-indexed)
+   * @param options.perPage - Number of results per page
+   *
+   * @example
+   * const result = await qb.select('users')
+   *   .where('active = ?', true)
+   *   .paginate({ page: 2, perPage: 20 })
+   *
+   * // Returns:
+   * // {
+   * //   results: [...],
+   * //   pagination: {
+   * //     page: 2,
+   * //     perPage: 20,
+   * //     total: 150,
+   * //     totalPages: 8,
+   * //     hasNext: true,
+   * //     hasPrev: true
+   * //   }
+   * // }
+   */
+  paginate(options: PaginateOptions): MaybeAsync<IsAsync, PaginatedResult<GenericResultWrapper, GenericResult>> {
+    const { page, perPage } = options
+    const offset = (page - 1) * perPage
+
+    // Get the count query
+    const countQuery = this._fetchOne(this._options as SelectOne)
+
+    // Get the data query with pagination
+    const dataQuery = this._fetchAll({
+      ...this._options,
+      limit: perPage,
+      offset: offset,
+    } as SelectAll)
+
+    // Execute count to get total
+    const countResult = countQuery.count()
+
+    // Helper to build pagination meta
+    const buildPaginationMeta = (total: number): PaginationMeta => {
+      const totalPages = Math.ceil(total / perPage)
+      return {
+        page,
+        perPage,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      }
+    }
+
+    // Handle async case (D1QB, PGQB)
+    if (countResult instanceof Promise) {
+      return (async () => {
+        const countRes = await countResult
+        const total = countRes.results?.total ?? 0
+        const dataRes = await dataQuery.execute()
+        return {
+          ...dataRes,
+          pagination: buildPaginationMeta(total),
+        } as PaginatedResult<GenericResultWrapper, GenericResult>
+      })() as MaybeAsync<IsAsync, PaginatedResult<GenericResultWrapper, GenericResult>>
+    }
+
+    // Handle sync case (DOQB)
+    const total = (countResult as CountResult<GenericResultWrapper>).results?.total ?? 0
+    const dataRes = dataQuery.execute() as any
+    return {
+      ...dataRes,
+      pagination: buildPaginationMeta(total),
+    } as MaybeAsync<IsAsync, PaginatedResult<GenericResultWrapper, GenericResult>>
+  }
+
   getOptions(): SelectAll {
     return this._options as SelectAll
+  }
+
+  /**
+   * Returns the SQL query string and parameters without executing.
+   * Useful for debugging and logging.
+   *
+   * @example
+   * const { sql, params } = qb.select('users').where('id = ?', 1).toSQL()
+   * // sql: "SELECT * FROM users WHERE id = ?"
+   * // params: [1]
+   */
+  toSQL(): { sql: string; params: Primitive[] } {
+    return this._fetchAll(this._options as SelectAll).toSQL()
+  }
+
+  /**
+   * Returns the SQL query with parameters interpolated for debugging purposes.
+   * WARNING: This should NEVER be used to execute queries as it bypasses parameterization.
+   *
+   * @example
+   * const debugSql = qb.select('users').where('id = ?', 1).toDebugSQL()
+   * // "SELECT * FROM users WHERE id = 1"
+   */
+  toDebugSQL(): string {
+    return this._fetchAll(this._options as SelectAll).toDebugSQL()
+  }
+
+  /**
+   * Get the query plan for this query using EXPLAIN.
+   * Returns the query plan as an array of rows showing how the database will execute the query.
+   *
+   * @example
+   * const plan = await qb.select('users').where('id = ?', 1).explain()
+   * // Returns query plan rows
+   */
+  explain(): MaybeAsync<
+    IsAsync,
+    ArrayResult<GenericResultWrapper, { id: number; parent: number; notused: number; detail: string }, IsAsync>
+  > {
+    const query = this._fetchAll(this._options as SelectAll)
+    const { sql, params } = query.toSQL()
+    const explainSql = `EXPLAIN QUERY PLAN ${sql}`
+    const explainQuery = new Query<
+      ArrayResult<GenericResultWrapper, { id: number; parent: number; notused: number; detail: string }, IsAsync>,
+      IsAsync
+    >(query.executeMethod as any, explainSql, params, FetchTypes.ALL)
+    return explainQuery.execute()
   }
 }
