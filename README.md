@@ -20,17 +20,6 @@
     </a>
 </p>
 
-## AI Skills
-
-workers-qb provides AI coding assistant skills to help you write queries faster. Install them using [npx skills](https://www.npmjs.com/package/skills):
-
-```bash
-npx skills install G4brym/workers-qb
-```
-
-Available skills:
-- **write-queries** - Comprehensive guide for writing SELECT, INSERT, UPDATE, DELETE queries
-
 ## Overview
 
 workers-qb is a lightweight query builder designed specifically for Cloudflare Workers. It provides a simple, standardized interface while maintaining the performance benefits of raw queries over traditional ORMs.
@@ -43,6 +32,17 @@ workers-qb is a lightweight query builder designed specifically for Cloudflare W
 - Maintains raw query performance
 - Zero dependencies
 - Lightweight and Worker-optimized
+
+## AI Skills
+
+workers-qb provides AI coding assistant skills to help you write queries faster. Install them using [npx skills](https://www.npmjs.com/package/skills):
+
+```bash
+npx skills install G4brym/workers-qb
+```
+
+Available skills:
+- **write-sql-queries** - Comprehensive guide for writing SELECT, INSERT, UPDATE, DELETE queries
 
 ## Supported Databases
 

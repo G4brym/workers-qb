@@ -1,5 +1,5 @@
 ---
-name: write-queries
+name: write-sql-queries
 description: Guide for writing SELECT, INSERT, UPDATE, DELETE queries with workers-qb
 ---
 
