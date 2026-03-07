@@ -905,13 +905,13 @@ export class QueryBuilder<
   }
 
   protected _limit(value?: number): string {
-    if (!value) return ''
+    if (value == null) return ''
 
     return ` LIMIT ${value}`
   }
 
   protected _offset(value?: number): string {
-    if (!value) return ''
+    if (value == null) return ''
 
     return ` OFFSET ${value}`
   }

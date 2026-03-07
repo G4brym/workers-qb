@@ -821,6 +821,35 @@ describe('Select Builder', () => {
     }
   })
 
+  it('select with limit 0 should produce LIMIT 0', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        fields: '*',
+        limit: 0,
+      }),
+      new QuerybuilderTest().select('testTable').fields('*').limit(0).getQueryAll(),
+    ]) {
+      expect(result.query).toEqual('SELECT * FROM testTable LIMIT 0')
+      expect(result.fetchType).toEqual('ALL')
+    }
+  })
+
+  it('select with offset 0 should produce OFFSET 0', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        fields: '*',
+        limit: 10,
+        offset: 0,
+      }),
+      new QuerybuilderTest().select('testTable').fields('*').limit(10).offset(0).getQueryAll(),
+    ]) {
+      expect(result.query).toEqual('SELECT * FROM testTable LIMIT 10 OFFSET 0')
+      expect(result.fetchType).toEqual('ALL')
+    }
+  })
+
   it('select with multiple where with OR conditions', async () => {
     for (const result of [
       new QuerybuilderTest().fetchAll({
