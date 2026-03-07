@@ -58,20 +58,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub Release
+        if: steps.changesets.outputs.published == 'true'
         run: |
           VERSION=$(jq -r .version package.json)
           TAG="v${VERSION}"
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release $TAG already exists, skipping."
           else
-            # Extract changelog for this version (between ## $VERSION and the next ## heading)
-            BODY=$(awk "/^## ${VERSION}\$/{ found=1; next } /^## /{ if(found) exit } found" CHANGELOG.md)
-            if [ -z "$BODY" ]; then
-              BODY="See [CHANGELOG.md](https://github.com/G4brym/workers-qb/blob/main/CHANGELOG.md) for details."
+            # Extract changelog for this version — escape dots for awk regex
+            ESCAPED=$(echo "$VERSION" | sed 's/\./\\./g')
+            awk "/^## ${ESCAPED}\$/{ found=1; next } /^## /{ if(found) exit } found" CHANGELOG.md > /tmp/release-notes.md || true
+            if [ ! -s /tmp/release-notes.md ]; then
+              echo "See [CHANGELOG.md](https://github.com/G4brym/workers-qb/blob/main/CHANGELOG.md) for details." > /tmp/release-notes.md
             fi
             gh release create "$TAG" \
               --title "$TAG" \
-              --notes "$BODY" \
+              --notes-file /tmp/release-notes.md \
               --latest
             echo "Created release $TAG"
           fi
