@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "npm"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install modules
+        run: npm install
+
+      - name: Run build
+        run: npm run lint && npm run build
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Get current version
+        id: pre
+        run: echo "version=$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Check if version is already published
+        id: check
+        run: |
+          VERSION="${{ steps.pre.outputs.version }}"
+          if npm view "workers-qb@${VERSION}" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create Release Pull Request or Publish
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: ${{ steps.check.outputs.published == 'false' && 'npm publish --provenance --access public' || 'echo Already published, skipping' }}
+          version: npx changeset version
+          title: "chore: version packages"
+          commit: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        run: |
+          VERSION=$(jq -r .version package.json)
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, skipping."
+          else
+            # Extract changelog for this version (between ## $VERSION and the next ## heading)
+            BODY=$(awk "/^## ${VERSION}\$/{ found=1; next } /^## /{ if(found) exit } found" CHANGELOG.md)
+            if [ -z "$BODY" ]; then
+              BODY="See [CHANGELOG.md](https://github.com/G4brym/workers-qb/blob/main/CHANGELOG.md) for details."
+            fi
+            gh release create "$TAG" \
+              --title "$TAG" \
+              --notes "$BODY" \
+              --latest
+            echo "Created release $TAG"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
