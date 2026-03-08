@@ -76,7 +76,7 @@ export class DOQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
 
   private _getQueryType(sql: string): 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'RAW' {
     const trimmed = sql.trim().toUpperCase()
-    if (trimmed.startsWith('SELECT')) return 'SELECT'
+    if (trimmed.startsWith('SELECT') || trimmed.startsWith('WITH')) return 'SELECT'
     if (trimmed.startsWith('INSERT')) return 'INSERT'
     if (trimmed.startsWith('UPDATE')) return 'UPDATE'
     if (trimmed.startsWith('DELETE')) return 'DELETE'
