@@ -76,10 +76,10 @@ export class syncMigrationsBuilder<GenericResultWrapper> {
     for (const migration of this.getUnapplied()) {
       this._builder
         .raw({
-          query: `
-          ${migration.sql}
+          query: `${migration.sql}
           INSERT INTO ${this._tableName} (name)
-          values ('${migration.name}');`,
+          values (?);`,
+          args: [migration.name],
         })
         .execute()
 
@@ -150,10 +150,10 @@ export class asyncMigrationsBuilder<GenericResultWrapper> {
     for (const migration of await this.getUnapplied()) {
       await this._builder
         .raw({
-          query: `
-          ${migration.sql}
+          query: `${migration.sql}
           INSERT INTO ${this._tableName} (name)
-          values ('${migration.name}');`,
+          values (?);`,
+          args: [migration.name],
         })
         .execute()
 
