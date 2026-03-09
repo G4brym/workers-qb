@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FetchTypes, JoinTypes, OrderTypes, SetOperationType } from '../../src'
+import { FetchTypes, InvalidConfigurationError, JoinTypes, OrderTypes, SetOperationType } from '../../src'
 import { QuerybuilderTest } from '../utils'
 
 describe('toSQL() / dry-run', () => {
@@ -292,6 +292,67 @@ describe('Error messages with context', () => {
     } catch (e: any) {
       expect(e.name).toBe('MissingDataError')
       expect(e.message).toContain('data is required')
+    }
+  })
+
+  it('throws InvalidConfigurationError for paginate with page = 0', () => {
+    const qb = new QuerybuilderTest()
+
+    expect(() => {
+      qb.select('users').paginate({ page: 0, perPage: 10 })
+    }).toThrow(InvalidConfigurationError)
+  })
+
+  it('throws InvalidConfigurationError for paginate with negative page', () => {
+    const qb = new QuerybuilderTest()
+
+    expect(() => {
+      qb.select('users').paginate({ page: -1, perPage: 10 })
+    }).toThrow(InvalidConfigurationError)
+  })
+
+  it('throws InvalidConfigurationError for paginate with perPage = 0', () => {
+    const qb = new QuerybuilderTest()
+
+    expect(() => {
+      qb.select('users').paginate({ page: 1, perPage: 0 })
+    }).toThrow(InvalidConfigurationError)
+  })
+
+  it('throws InvalidConfigurationError for paginate with negative perPage', () => {
+    const qb = new QuerybuilderTest()
+
+    expect(() => {
+      qb.select('users').paginate({ page: 1, perPage: -5 })
+    }).toThrow(InvalidConfigurationError)
+  })
+
+  it('throws InvalidConfigurationError for paginate with non-integer page', () => {
+    const qb = new QuerybuilderTest()
+
+    expect(() => {
+      qb.select('users').paginate({ page: 1.5, perPage: 10 })
+    }).toThrow(InvalidConfigurationError)
+  })
+
+  it('throws InvalidConfigurationError for paginate with non-integer perPage', () => {
+    const qb = new QuerybuilderTest()
+
+    expect(() => {
+      qb.select('users').paginate({ page: 1, perPage: 10.5 })
+    }).toThrow(InvalidConfigurationError)
+  })
+
+  it('paginate error includes helpful hint', () => {
+    const qb = new QuerybuilderTest()
+
+    try {
+      qb.select('users').paginate({ page: 0, perPage: 10 })
+      expect.fail('Should have thrown')
+    } catch (e: any) {
+      expect(e.name).toBe('InvalidConfigurationError')
+      expect(e.message).toContain('Invalid page value')
+      expect(e.message).toContain('Hint:')
     }
   })
 })

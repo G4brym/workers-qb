@@ -1,4 +1,5 @@
 import { FetchTypes, JoinTypes, SetOperationType } from './enums'
+import { InvalidConfigurationError } from './errors'
 import {
   ArrayResult,
   CountResult,
@@ -655,6 +656,21 @@ export class SelectBuilder<
    */
   paginate(options: PaginateOptions): MaybeAsync<IsAsync, PaginatedResult<GenericResultWrapper, GenericResult>> {
     const { page, perPage } = options
+
+    if (!Number.isInteger(page) || page < 1) {
+      throw new InvalidConfigurationError(
+        `Invalid page value: ${page}. Page must be an integer >= 1.`,
+        'Pass a positive integer for the page option, e.g. paginate({ page: 1, perPage: 20 })'
+      )
+    }
+
+    if (!Number.isInteger(perPage) || perPage < 1) {
+      throw new InvalidConfigurationError(
+        `Invalid perPage value: ${perPage}. PerPage must be an integer >= 1.`,
+        'Pass a positive integer for the perPage option, e.g. paginate({ page: 1, perPage: 20 })'
+      )
+    }
+
     const offset = (page - 1) * perPage
 
     // Get the count query
