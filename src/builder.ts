@@ -536,10 +536,10 @@ export class QueryBuilder<
       `DELETE
             FROM ${params.tableName}` +
       this._where(params.where) +
-      this._returning(params.returning) +
       this._orderBy(params.orderBy) +
       this._limit(params.limit) +
-      this._offset(params.offset)
+      this._offset(params.offset) +
+      this._returning(params.returning)
     )
   }
 
