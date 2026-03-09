@@ -50,7 +50,7 @@ export class DOQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
       const rowsRead = cursor.rowsRead
       const rowsWritten = cursor.rowsWritten
 
-      if (query.fetchType == FetchTypes.ONE) {
+      if (query.fetchType === FetchTypes.ONE) {
         return {
           results: resultArray.length > 0 ? resultArray[0] : undefined,
           rowsRead,

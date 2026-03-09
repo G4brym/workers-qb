@@ -255,13 +255,68 @@ describe('Pagination SQL generation', () => {
 })
 
 describe('Error messages with context', () => {
-  it('throws error for parameter mismatch in SelectBuilder.where()', () => {
+  it('throws ParameterMismatchError for too few params in SelectBuilder.where()', () => {
     const qb = new QuerybuilderTest()
 
-    // The where() method in SelectBuilder throws when params don't match placeholders
-    expect(() => {
+    try {
       qb.select('users').where('id = ? AND status = ?', 1)
-    }).toThrow('Mismatch between "?" placeholders and parameters')
+      expect.fail('Should have thrown')
+    } catch (e: any) {
+      expect(e.name).toBe('ParameterMismatchError')
+      expect(e.message).toContain('Parameter count mismatch')
+      expect(e.message).toContain('Clause: WHERE')
+      expect(e.message).toContain('Expected: 2 parameter(s)')
+      expect(e.message).toContain('Received: 1 parameter(s)')
+      expect(e.message).toContain('Hint:')
+    }
+  })
+
+  it('throws ParameterMismatchError for too many params in SelectBuilder.where()', () => {
+    const qb = new QuerybuilderTest()
+
+    try {
+      qb.select('users').where('id = ?', [1, 2, 3])
+      expect.fail('Should have thrown')
+    } catch (e: any) {
+      expect(e.name).toBe('ParameterMismatchError')
+      expect(e.message).toContain('Parameter count mismatch')
+      expect(e.message).toContain('Clause: WHERE')
+      expect(e.message).toContain('Expected: 1 parameter(s)')
+      expect(e.message).toContain('Received: 3 parameter(s)')
+      expect(e.message).toContain('Hint:')
+    }
+  })
+
+  it('throws ParameterMismatchError for too few params in SelectBuilder.having()', () => {
+    const qb = new QuerybuilderTest()
+
+    try {
+      qb.select('users').groupBy('status').having('COUNT(*) > ? AND SUM(amount) > ?', 5)
+      expect.fail('Should have thrown')
+    } catch (e: any) {
+      expect(e.name).toBe('ParameterMismatchError')
+      expect(e.message).toContain('Parameter count mismatch')
+      expect(e.message).toContain('Clause: HAVING')
+      expect(e.message).toContain('Expected: 2 parameter(s)')
+      expect(e.message).toContain('Received: 1 parameter(s)')
+      expect(e.message).toContain('Hint:')
+    }
+  })
+
+  it('throws ParameterMismatchError for too many params in SelectBuilder.having()', () => {
+    const qb = new QuerybuilderTest()
+
+    try {
+      qb.select('users').groupBy('status').having('COUNT(*) > ?', [5, 10, 15])
+      expect.fail('Should have thrown')
+    } catch (e: any) {
+      expect(e.name).toBe('ParameterMismatchError')
+      expect(e.message).toContain('Parameter count mismatch')
+      expect(e.message).toContain('Clause: HAVING')
+      expect(e.message).toContain('Expected: 1 parameter(s)')
+      expect(e.message).toContain('Received: 3 parameter(s)')
+      expect(e.message).toContain('Hint:')
+    }
   })
 
   it('throws ParameterMismatchError from QueryBuilder._where()', () => {
