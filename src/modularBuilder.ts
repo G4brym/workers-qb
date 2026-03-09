@@ -1,5 +1,5 @@
 import { FetchTypes, JoinTypes, SetOperationType } from './enums'
-import { InvalidConfigurationError } from './errors'
+import { InvalidConfigurationError, ParameterMismatchError } from './errors'
 import {
   ArrayResult,
   CountResult,
@@ -129,7 +129,13 @@ export class SelectBuilder<
 
       for (let j = 0; j < conditionParts.length - 1; j++) {
         if (paramIndex >= currentInputParams.length) {
-          throw new Error('Mismatch between "?" placeholders and parameters in where clause.')
+          const totalPlaceholders = currentInputConditions.join(' AND ').split('?').length - 1
+          throw new ParameterMismatchError({
+            clause: 'WHERE',
+            query: currentInputConditions.join(' AND '),
+            expectedParams: totalPlaceholders,
+            receivedParams: currentInputParams.length,
+          })
         }
         const currentParam = currentInputParams[paramIndex++]
 
@@ -161,7 +167,13 @@ export class SelectBuilder<
     }
 
     if (paramIndex < currentInputParams.length) {
-      throw new Error('Too many parameters provided for the given "?" placeholders in where clause.')
+      const totalPlaceholders = currentInputConditions.join(' AND ').split('?').length - 1
+      throw new ParameterMismatchError({
+        clause: 'WHERE',
+        query: currentInputConditions.join(' AND '),
+        expectedParams: totalPlaceholders,
+        receivedParams: currentInputParams.length,
+      })
     }
 
     return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
@@ -486,7 +498,13 @@ export class SelectBuilder<
 
       for (let j = 0; j < conditionParts.length - 1; j++) {
         if (paramIndex >= currentInputParams.length) {
-          throw new Error('Mismatch between "?" placeholders and parameters in having clause.')
+          const totalPlaceholders = currentInputConditions.join(' AND ').split('?').length - 1
+          throw new ParameterMismatchError({
+            clause: 'HAVING',
+            query: currentInputConditions.join(' AND '),
+            expectedParams: totalPlaceholders,
+            receivedParams: currentInputParams.length,
+          })
         }
         const currentParam = currentInputParams[paramIndex++]
         const isSubQuery =
@@ -517,7 +535,13 @@ export class SelectBuilder<
     }
 
     if (paramIndex < currentInputParams.length) {
-      throw new Error('Too many parameters provided for the given "?" placeholders in having clause.')
+      const totalPlaceholders = currentInputConditions.join(' AND ').split('?').length - 1
+      throw new ParameterMismatchError({
+        clause: 'HAVING',
+        query: currentInputConditions.join(' AND '),
+        expectedParams: totalPlaceholders,
+        receivedParams: currentInputParams.length,
+      })
     }
 
     return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
