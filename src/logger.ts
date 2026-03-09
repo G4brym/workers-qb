@@ -1,13 +1,15 @@
 import { QueryLoggerMeta, RawQuery } from './interfaces'
 import { Query } from './tools'
 
+type LoggerFunction = (query: RawQuery, meta: QueryLoggerMeta) => void | Promise<void>
+
 export function defaultLogger(query: RawQuery, meta: QueryLoggerMeta): any {
   console.log(`[workers-qb][${meta.duration}ms] ${JSON.stringify(query)}`)
 }
 
 export async function asyncLoggerWrapper<Async extends boolean = true>(
   query: Query<any, Async> | Query<any, Async>[],
-  loggerFunction: CallableFunction | undefined,
+  loggerFunction: LoggerFunction | undefined,
   innerFunction: () => any
 ) {
   const start = Date.now()
@@ -30,7 +32,7 @@ export async function asyncLoggerWrapper<Async extends boolean = true>(
 
 export function syncLoggerWrapper<Async extends boolean = false>(
   query: Query<any, Async> | Query<any, Async>[],
-  loggerFunction: CallableFunction | undefined,
+  loggerFunction: LoggerFunction | undefined,
   innerFunction: () => any
 ) {
   const start = Date.now()

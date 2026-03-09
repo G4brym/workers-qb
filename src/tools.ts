@@ -3,8 +3,8 @@ import { CountResult, MaybeAsync, Primitive, QueryLoggerMeta, RawQuery } from '.
 
 export class Raw {
   public isRaw = true
-  public content: any
-  constructor(content: any) {
+  public content: string
+  constructor(content: string) {
     this.content = content
   }
 }

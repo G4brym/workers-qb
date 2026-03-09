@@ -883,7 +883,6 @@ export class QueryBuilder<
     const order: Array<Record<string, string> | string> = []
     if (Array.isArray(value)) {
       for (const val of value) {
-        // @ts-ignore
         order.push(val)
       }
     } else {
