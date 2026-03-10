@@ -236,6 +236,164 @@ export class SelectBuilder<
     return this.where(whereInCondition, whereInParams)
   }
 
+  /**
+   * Conditionally apply query modifications based on a runtime value.
+   * If condition is truthy, the callback is invoked with the current builder
+   * and its return value is used. Otherwise, the builder is returned unchanged.
+   *
+   * @param condition - A value to check for truthiness
+   * @param callback - Function that receives the builder and returns a modified builder
+   *
+   * @example
+   * qb.select('users')
+   *   .when(nameFilter, q => q.where('name LIKE ?', [`%${nameFilter}%`]))
+   *   .when(sortByDate, q => q.orderBy({ created_at: 'DESC' }))
+   *   .execute()
+   */
+  when<T>(
+    condition: T | undefined | null | false | 0 | '',
+    callback: (
+      builder: SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>
+    ) => SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    if (condition) {
+      return callback(this)
+    }
+    return this
+  }
+
+  /**
+   * Add a WHERE column IS NULL condition.
+   *
+   * @param column - The column name to check for NULL
+   *
+   * @example
+   * qb.select('users').whereNull('deleted_at').execute()
+   * // SELECT * FROM users WHERE deleted_at IS NULL
+   */
+  whereNull(column: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.where(`${column} IS NULL`)
+  }
+
+  /**
+   * Add a WHERE column IS NOT NULL condition.
+   *
+   * @param column - The column name to check for NOT NULL
+   *
+   * @example
+   * qb.select('users').whereNotNull('email_verified_at').execute()
+   * // SELECT * FROM users WHERE email_verified_at IS NOT NULL
+   */
+  whereNotNull(column: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.where(`${column} IS NOT NULL`)
+  }
+
+  /**
+   * Add a WHERE column BETWEEN min AND max condition.
+   *
+   * @param column - The column name
+   * @param range - Tuple of [min, max] values
+   *
+   * @example
+   * qb.select('products').whereBetween('price', [10, 100]).execute()
+   * // SELECT * FROM products WHERE price BETWEEN ? AND ?
+   */
+  whereBetween(
+    column: string,
+    range: [Primitive, Primitive]
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.where(`${column} BETWEEN ? AND ?`, [range[0], range[1]])
+  }
+
+  /**
+   * Add a WHERE column NOT BETWEEN min AND max condition.
+   *
+   * @param column - The column name
+   * @param range - Tuple of [min, max] values
+   *
+   * @example
+   * qb.select('products').whereNotBetween('price', [10, 100]).execute()
+   * // SELECT * FROM products WHERE price NOT BETWEEN ? AND ?
+   */
+  whereNotBetween(
+    column: string,
+    range: [Primitive, Primitive]
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.where(`${column} NOT BETWEEN ? AND ?`, [range[0], range[1]])
+  }
+
+  /**
+   * Add a WHERE column LIKE pattern condition.
+   *
+   * @param column - The column name
+   * @param pattern - The LIKE pattern (e.g., '%search%')
+   *
+   * @example
+   * qb.select('users').whereLike('name', '%john%').execute()
+   * // SELECT * FROM users WHERE name LIKE ?
+   */
+  whereLike(column: string, pattern: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.where(`${column} LIKE ?`, [pattern])
+  }
+
+  /**
+   * Add a WHERE column NOT LIKE pattern condition.
+   *
+   * @param column - The column name
+   * @param pattern - The LIKE pattern
+   *
+   * @example
+   * qb.select('users').whereNotLike('email', '%@spam.com').execute()
+   * // SELECT * FROM users WHERE email NOT LIKE ?
+   */
+  whereNotLike(column: string, pattern: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.where(`${column} NOT LIKE ?`, [pattern])
+  }
+
+  /**
+   * Add a WHERE column NOT IN (values) condition.
+   *
+   * @param fields - Column name(s) to check
+   * @param values - Values to exclude
+   *
+   * @example
+   * qb.select('users').whereNotIn('status', ['banned', 'suspended']).execute()
+   * // SELECT * FROM users WHERE (status) NOT IN (VALUES (?), (?))
+   */
+  whereNotIn<T extends string | Array<string>, P extends T extends Array<string> ? Primitive[][] : Primitive[]>(
+    fields: T,
+    values: P
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    let whereNotInCondition: string
+    let whereNotInParams: Primitive[]
+
+    const separateWithComma = (prev: string, next: string) => prev + ', ' + next
+
+    if (values.length === 0) {
+      return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
+        { ...this._options },
+        this._fetchAll,
+        this._fetchOne
+      )
+    }
+
+    if (!Array.isArray(fields)) {
+      whereNotInCondition = `(${fields}) NOT IN (VALUES `
+      whereNotInCondition += values.map(() => '(?)').reduce(separateWithComma)
+      whereNotInCondition += ')'
+      whereNotInParams = values as Primitive[]
+    } else {
+      const fieldLength = fields.length
+      whereNotInCondition = `(${fields.map((val) => val).reduce(separateWithComma)}) NOT IN (VALUES `
+      const valuesString = `(${[...new Array(fieldLength).keys()].map(() => '?').reduce(separateWithComma)})`
+      whereNotInCondition += [...new Array(values.length).keys()].map(() => valuesString).reduce(separateWithComma)
+      whereNotInCondition += ')'
+      whereNotInParams = values.flat()
+    }
+
+    return this.where(whereNotInCondition, whereNotInParams)
+  }
+
   join(join: SelectAll['join']): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     const joins = Array.isArray(join) ? join : [join]
     const processedJoins = joins.map((j) => {
