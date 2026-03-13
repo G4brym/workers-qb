@@ -402,6 +402,85 @@ const usersInSpecificRolesMultipleColumns = await qb.select('users')
 console.log('Users in specific role and department combinations:', usersInSpecificRolesMultipleColumns.results);
 ```
 
+## WHERE Convenience Methods
+
+The `SelectBuilder` provides convenience methods for common WHERE clause patterns, wrapping the underlying `.where()` method for a cleaner API.
+
+### Conditional Queries with `.when()`
+
+The `.when()` method conditionally applies a callback to the builder only if the condition is truthy. This keeps your fluent chain intact without breaking into if/else blocks.
+
+```typescript
+const nameFilter = request.query.name // might be undefined
+const roleFilter = request.query.role
+
+const users = await qb.select('users')
+  .where('active = ?', true)
+  .when(nameFilter, q => q.whereLike('name', `%${nameFilter}%`))
+  .when(roleFilter, q => q.where('role = ?', roleFilter))
+  .execute()
+```
+
+### NULL Checks: `.whereNull()` / `.whereNotNull()`
+
+```typescript
+// Find soft-deleted records
+const deleted = await qb.select('users')
+  .whereNotNull('deleted_at')
+  .execute()
+
+// Find records without a value
+const unverified = await qb.select('users')
+  .whereNull('email_verified_at')
+  .execute()
+```
+
+### Range Queries: `.whereBetween()` / `.whereNotBetween()`
+
+```typescript
+// Products in a price range
+const products = await qb.select('products')
+  .whereBetween('price', [10, 100])
+  .execute()
+
+// Exclude a date range
+const users = await qb.select('users')
+  .whereNotBetween('created_at', ['2024-01-01', '2024-06-30'])
+  .execute()
+```
+
+### Pattern Matching: `.whereLike()` / `.whereNotLike()`
+
+The pattern is passed as a parameterized value (not interpolated), preventing SQL injection.
+
+```typescript
+// Search by name pattern
+const users = await qb.select('users')
+  .whereLike('name', '%john%')
+  .execute()
+
+// Exclude spam emails
+const users = await qb.select('users')
+  .whereNotLike('email', '%@spam.com')
+  .execute()
+```
+
+### Exclusion Lists: `.whereNotIn()`
+
+The inverse of `.whereIn()`, filtering out rows where a column matches any value in the list.
+
+```typescript
+// Exclude specific statuses
+const users = await qb.select('users')
+  .whereNotIn('status', ['banned', 'suspended'])
+  .execute()
+
+// Multi-column NOT IN
+const users = await qb.select('users')
+  .whereNotIn(['role', 'department'], [['admin', 'IT'], ['manager', 'HR']])
+  .execute()
+```
+
 ## Group By and Having
 
 ### Group By Clause

@@ -1194,3 +1194,142 @@ describe('Subqueries in SELECT statements', () => {
     expect(q.arguments).toEqual([100])
   })
 })
+
+describe('WHERE convenience methods', () => {
+  it('.when() with truthy condition applies callback', () => {
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .when(true, (q) => q.where('active = ?', 1))
+      .getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE active = ?')
+    expect(result.arguments).toEqual([1])
+  })
+
+  it('.when() with falsy conditions returns builder unchanged', () => {
+    for (const falsyValue of [null, undefined, false, 0, '']) {
+      const result = new QuerybuilderTest()
+        .select('testTable')
+        .when(falsyValue, (q) => q.where('active = ?', 1))
+        .getQueryAll()
+
+      expect(result.query).toEqual('SELECT * FROM testTable')
+      expect(result.arguments).toEqual([])
+    }
+  })
+
+  it('.when() chained multiple times', () => {
+    const nameFilter = 'john'
+    const roleFilter = null
+
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .when(nameFilter, (q) => q.where('name = ?', nameFilter))
+      .when(roleFilter, (q) => q.where('role = ?', roleFilter))
+      .getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE name = ?')
+    expect(result.arguments).toEqual(['john'])
+  })
+
+  it('.whereNull(column)', () => {
+    const result = new QuerybuilderTest().select('testTable').whereNull('deleted_at').getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE deleted_at IS NULL')
+    expect(result.arguments).toEqual([])
+  })
+
+  it('.whereNotNull(column)', () => {
+    const result = new QuerybuilderTest().select('testTable').whereNotNull('email_verified_at').getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE email_verified_at IS NOT NULL')
+    expect(result.arguments).toEqual([])
+  })
+
+  it('.whereNull() combined with .where()', () => {
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .where('active = ?', 1)
+      .whereNull('deleted_at')
+      .getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE (active = ?) AND (deleted_at IS NULL)')
+    expect(result.arguments).toEqual([1])
+  })
+
+  it('.whereBetween(column, [min, max])', () => {
+    const result = new QuerybuilderTest().select('testTable').whereBetween('price', [10, 100]).getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE price BETWEEN ? AND ?')
+    expect(result.arguments).toEqual([10, 100])
+  })
+
+  it('.whereNotBetween(column, [min, max])', () => {
+    const result = new QuerybuilderTest().select('testTable').whereNotBetween('price', [10, 100]).getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE price NOT BETWEEN ? AND ?')
+    expect(result.arguments).toEqual([10, 100])
+  })
+
+  it('.whereLike(column, pattern)', () => {
+    const result = new QuerybuilderTest().select('testTable').whereLike('name', '%john%').getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE name LIKE ?')
+    expect(result.arguments).toEqual(['%john%'])
+  })
+
+  it('.whereNotLike(column, pattern)', () => {
+    const result = new QuerybuilderTest().select('testTable').whereNotLike('email', '%@spam.com').getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE email NOT LIKE ?')
+    expect(result.arguments).toEqual(['%@spam.com'])
+  })
+
+  it('.whereNotIn single field', () => {
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .whereNotIn('status', ['banned', 'suspended'])
+      .getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE (status) NOT IN (VALUES (?), (?))')
+    expect(result.arguments).toEqual(['banned', 'suspended'])
+  })
+
+  it('.whereNotIn multiple fields', () => {
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .whereNotIn(
+        ['field', 'test'],
+        [
+          ['a', 1],
+          ['b', 2],
+        ]
+      )
+      .getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE (field, test) NOT IN (VALUES (?, ?), (?, ?))')
+    expect(result.arguments).toEqual(['a', 1, 'b', 2])
+  })
+
+  it('.whereNotIn with empty array is a no-op', () => {
+    const result = new QuerybuilderTest().select('testTable').whereNotIn('status', []).getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable')
+    expect(result.arguments).toEqual([])
+  })
+
+  it('combined convenience methods compose correctly', () => {
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .where('active = ?', 1)
+      .whereNull('deleted_at')
+      .whereBetween('age', [18, 65])
+      .whereLike('name', '%test%')
+      .getQueryAll()
+
+    expect(result.query).toEqual(
+      'SELECT * FROM testTable WHERE (active = ?) AND (deleted_at IS NULL) AND (age BETWEEN ? AND ?) AND (name LIKE ?)'
+    )
+    expect(result.arguments).toEqual([1, 18, 65, '%test%'])
+  })
+})
