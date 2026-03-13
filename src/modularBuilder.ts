@@ -458,7 +458,7 @@ export class SelectBuilder<
     table: string
     alias?: string
   }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.join({ ...params, type: JoinTypes.CROSS, on: '1=1' })
+    return this.join({ ...params, type: JoinTypes.CROSS, on: '' })
   }
 
   /**

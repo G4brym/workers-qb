@@ -85,6 +85,14 @@ describe('Additional JOIN types', () => {
     expect(sql).toContain('FULL JOIN orders ON users.id = orders.user_id')
   })
 
+  it('crossJoin convenience method', () => {
+    const qb = new QuerybuilderTest()
+    const { sql } = qb.select('orders').crossJoin({ table: 'products' }).toSQL()
+
+    expect(sql).toContain('CROSS JOIN products')
+    expect(sql).not.toContain('ON')
+  })
+
   it('naturalJoin convenience method', () => {
     const qb = new QuerybuilderTest()
     const { sql } = qb.select('users').naturalJoin('profiles').toSQL()
