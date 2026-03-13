@@ -119,7 +119,7 @@ describe('Delete Builder', () => {
     })
 
     expect(result.query).toEqual(
-      'DELETE FROM testTable WHERE (field = ?1) AND (id = ?2) RETURNING id, field LIMIT 10000'
+      'DELETE FROM testTable WHERE (field = ?1) AND (id = ?2) LIMIT 10000 RETURNING id, field'
     )
     expect(result.arguments).toEqual(['test', 123])
     expect(result.fetchType).toEqual('ALL')
@@ -138,9 +138,27 @@ describe('Delete Builder', () => {
     })
 
     expect(result.query).toEqual(
-      'DELETE FROM testTable WHERE (field = ?1) AND (id = ?2) RETURNING id, field ORDER BY id LIMIT 10000'
+      'DELETE FROM testTable WHERE (field = ?1) AND (id = ?2) ORDER BY id LIMIT 10000 RETURNING id, field'
     )
     expect(result.arguments).toEqual(['test', 123])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  it('delete with returning after order by, limit, and offset', async () => {
+    const result = new QuerybuilderTest().delete({
+      tableName: 'testTable',
+      where: {
+        conditions: 'active = ?1',
+        params: [false],
+      },
+      returning: ['id'],
+      orderBy: 'id',
+      limit: 100,
+      offset: 10,
+    })
+
+    expect(result.query).toEqual('DELETE FROM testTable WHERE active = ?1 ORDER BY id LIMIT 100 OFFSET 10 RETURNING id')
+    expect(result.arguments).toEqual([false])
     expect(result.fetchType).toEqual('ALL')
   })
 
