@@ -439,4 +439,55 @@ describe('Update Builder', () => {
     expect(result.arguments).toEqual(['admin_user', true])
     expect(result.fetchType).toEqual('ALL')
   })
+
+  it('update with falsy where param: false', async () => {
+    const result = new QuerybuilderTest().update({
+      tableName: 'testTable',
+      data: {
+        name: 'updated',
+      },
+      where: {
+        conditions: 'active = ?1',
+        params: false,
+      },
+    })
+
+    expect(result.query).toEqual('UPDATE testTable SET name = ?2 WHERE active = ?1')
+    expect(result.arguments).toEqual([false, 'updated'])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  it('update with falsy where param: 0', async () => {
+    const result = new QuerybuilderTest().update({
+      tableName: 'testTable',
+      data: {
+        name: 'updated',
+      },
+      where: {
+        conditions: 'count = ?1',
+        params: 0,
+      },
+    })
+
+    expect(result.query).toEqual('UPDATE testTable SET name = ?2 WHERE count = ?1')
+    expect(result.arguments).toEqual([0, 'updated'])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  it('update with falsy where param: empty string', async () => {
+    const result = new QuerybuilderTest().update({
+      tableName: 'testTable',
+      data: {
+        status: 'active',
+      },
+      where: {
+        conditions: 'label = ?1',
+        params: '',
+      },
+    })
+
+    expect(result.query).toEqual('UPDATE testTable SET status = ?2 WHERE label = ?1')
+    expect(result.arguments).toEqual(['', 'active'])
+    expect(result.fetchType).toEqual('ALL')
+  })
 })
