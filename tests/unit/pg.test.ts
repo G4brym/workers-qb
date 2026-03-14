@@ -20,7 +20,7 @@ function makeMockPgClient() {
 }
 
 describe('PGQB parameter placeholder conversion', () => {
-  it('converts bare ? placeholders to $1, $2 sequentially', async () => {
+  it('converts a single bare ? placeholder to $1', async () => {
     const client = makeMockPgClient()
     const qb = new PGQB(client)
 
@@ -32,8 +32,7 @@ describe('PGQB parameter placeholder conversion', () => {
       .execute()
 
     const lastQuery = client.getLastQuery()
-    expect(lastQuery?.text).toContain('$1')
-    expect(lastQuery?.text).not.toContain('?')
+    expect(lastQuery?.text).toBe('SELECT * FROM users WHERE id = $1')
     expect(lastQuery?.values).toEqual([42])
   })
 
@@ -49,13 +48,11 @@ describe('PGQB parameter placeholder conversion', () => {
       .execute()
 
     const lastQuery = client.getLastQuery()
-    expect(lastQuery?.text).toContain('$1')
-    expect(lastQuery?.text).toContain('$2')
-    expect(lastQuery?.text).not.toContain('?')
+    expect(lastQuery?.text).toBe('SELECT * FROM users WHERE (id = $1) AND (status = $2)')
     expect(lastQuery?.values).toEqual([42, 'active'])
   })
 
-  it('converts numbered ?1, ?2 to $1, $2', async () => {
+  it('converts numbered ?1, ?2 to $1, $2 (UPDATE with WHERE)', async () => {
     const client = makeMockPgClient()
     const qb = new PGQB(client)
 
@@ -68,21 +65,31 @@ describe('PGQB parameter placeholder conversion', () => {
       .execute()
 
     const lastQuery = client.getLastQuery()
-    expect(lastQuery?.text).toContain('$1')
-    expect(lastQuery?.text).toContain('$2')
+    expect(lastQuery?.text).toContain('SET name = $2')
+    expect(lastQuery?.text).toContain('WHERE id = $1')
     expect(lastQuery?.text).not.toContain('?')
+    expect(lastQuery?.values).toEqual([42, 'Alice'])
   })
 
-  it('SelectBuilder where() uses $1, $2 in generated PG query', async () => {
+  it('SelectBuilder where() chain produces $1, $2 in generated PG query', async () => {
     const client = makeMockPgClient()
     const qb = new PGQB(client)
 
     await qb.select('users').where('id = ?', 42).where('active = ?', true).execute()
 
     const lastQuery = client.getLastQuery()
-    expect(lastQuery?.text).toContain('$1')
-    expect(lastQuery?.text).toContain('$2')
-    expect(lastQuery?.text).not.toContain('?')
+    expect(lastQuery?.text).toBe('SELECT * FROM users WHERE (id = $1) AND (active = $2)')
     expect(lastQuery?.values).toEqual([42, true])
+  })
+
+  it('passes through a query with no placeholders unchanged', async () => {
+    const client = makeMockPgClient()
+    const qb = new PGQB(client)
+
+    await qb.fetchAll({ tableName: 'users' }).execute()
+
+    const lastQuery = client.getLastQuery()
+    expect(lastQuery?.text).toBe('SELECT * FROM users')
+    expect(lastQuery?.values).toEqual([])
   })
 })
