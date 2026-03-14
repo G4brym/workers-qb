@@ -191,6 +191,92 @@ export class SelectBuilder<
     )
   }
 
+  /**
+   * Add an OR WHERE condition to the query.
+   * All previously added WHERE conditions are grouped together and ORed with the new condition.
+   * Subsequent `.where()` calls after `.orWhere()` are ANDed as independent conditions.
+   *
+   * @param conditions - The SQL condition string(s) (can use ? placeholders)
+   * @param params - The parameter(s) to bind to the ? placeholders
+   *
+   * @example
+   * // Simple OR condition
+   * qb.select('users').where('status = ?', 'active').orWhere('status = ?', 'pending').execute()
+   * // SELECT * FROM users WHERE (status = ?) OR (status = ?)
+   *
+   * @example
+   * // Multiple where conditions ORed together
+   * qb.select('users')
+   *   .where('tenant_id = ?', 1)
+   *   .where('status = ?', 'active')
+   *   .orWhere('role = ?', 'superadmin')
+   *   .execute()
+   * // SELECT * FROM users WHERE ((tenant_id = ?) AND (status = ?)) OR (role = ?)
+   */
+  orWhere(
+    conditions: string | Array<string>,
+    params?: Primitive | Primitive[]
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    const existingConditions =
+      this._options.where && typeof this._options.where === 'object' && 'conditions' in this._options.where
+        ? (this._options.where.conditions as string[])
+        : []
+    const existingParams =
+      this._options.where &&
+      typeof this._options.where === 'object' &&
+      'params' in this._options.where &&
+      this._options.where.params
+        ? ((Array.isArray(this._options.where.params)
+            ? this._options.where.params
+            : [this._options.where.params]) as Primitive[])
+        : []
+
+    // If no existing conditions, treat as a regular where
+    if (existingConditions.length === 0) {
+      return this.where(conditions, params)
+    }
+
+    // Process the new conditions using where() on a builder with cleared conditions
+    // but with preserved subquery context (subQueryPlaceholders, subQueryTokenNextId)
+    const clearedBuilder = new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
+      {
+        ...this._options,
+        where: undefined,
+      },
+      this._fetchAll,
+      this._fetchOne
+    )
+    const processedBuilder = clearedBuilder.where(conditions, params)
+    const processedWhere = processedBuilder._options.where
+    const newConditions =
+      processedWhere && typeof processedWhere === 'object' && 'conditions' in processedWhere
+        ? (processedWhere.conditions as string[])
+        : []
+    const newParams =
+      processedWhere && typeof processedWhere === 'object' && 'params' in processedWhere && processedWhere.params
+        ? ((Array.isArray(processedWhere.params) ? processedWhere.params : [processedWhere.params]) as Primitive[])
+        : []
+
+    // Build combined OR condition string
+    const existingCombined =
+      existingConditions.length === 1 ? existingConditions[0] : `(${existingConditions.join(') AND (')})`
+    const newCombined = newConditions.length === 1 ? newConditions[0] : `(${newConditions.join(') AND (')})`
+    const orCondition = `(${existingCombined}) OR (${newCombined})`
+
+    return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
+      {
+        // Spread processedBuilder._options to pick up any new subQueryPlaceholders/TokenNextId
+        ...processedBuilder._options,
+        where: {
+          conditions: [orCondition],
+          params: [...existingParams, ...newParams],
+        },
+      },
+      this._fetchAll,
+      this._fetchOne
+    )
+  }
+
   whereIn<T extends string | Array<string>, P extends T extends Array<string> ? Primitive[][] : Primitive[]>(
     fields: T,
     values: P
