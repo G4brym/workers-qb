@@ -1232,6 +1232,62 @@ describe('WHERE convenience methods', () => {
     expect(result.arguments).toEqual(['john'])
   })
 
+  it('.when() with truthy condition applies callback, not otherwise', () => {
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .when(
+        true,
+        (q) => q.where('stock > ?', 0),
+        (q) => q.where('stock = ?', 0)
+      )
+      .getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE stock > ?')
+    expect(result.arguments).toEqual([0])
+  })
+
+  it('.when() with falsy condition applies otherwise callback', () => {
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .when(
+        false,
+        (q) => q.where('stock > ?', 0),
+        (q) => q.where('stock = ?', 0)
+      )
+      .getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE stock = ?')
+    expect(result.arguments).toEqual([0])
+  })
+
+  it('.when() with falsy condition and no otherwise returns builder unchanged', () => {
+    for (const falsyValue of [null, undefined, false, 0, '']) {
+      const result = new QuerybuilderTest()
+        .select('testTable')
+        .when(falsyValue, (q) => q.where('active = ?', 1), undefined)
+        .getQueryAll()
+
+      expect(result.query).toEqual('SELECT * FROM testTable')
+      expect(result.arguments).toEqual([])
+    }
+  })
+
+  it('.when() otherwise can chain additional methods', () => {
+    const isArchive = false
+
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .when(
+        isArchive,
+        (q) => q.where('status = ?', 'archived').orderBy('archived_at'),
+        (q) => q.where('status = ?', 'active').orderBy('created_at')
+      )
+      .getQueryAll()
+
+    expect(result.query).toEqual('SELECT * FROM testTable WHERE status = ? ORDER BY created_at')
+    expect(result.arguments).toEqual(['active'])
+  })
+
   it('.whereNull(column)', () => {
     const result = new QuerybuilderTest().select('testTable').whereNull('deleted_at').getQueryAll()
 

@@ -239,25 +239,43 @@ export class SelectBuilder<
   /**
    * Conditionally apply query modifications based on a runtime value.
    * If condition is truthy, the callback is invoked with the current builder
-   * and its return value is used. Otherwise, the builder is returned unchanged.
+   * and its return value is used. If condition is falsy and an otherwise callback
+   * is provided, it is invoked instead. Otherwise, the builder is returned unchanged.
    *
    * @param condition - A value to check for truthiness
    * @param callback - Function that receives the builder and returns a modified builder
+   * @param otherwise - Optional function applied when condition is falsy
    *
    * @example
    * qb.select('users')
    *   .when(nameFilter, q => q.where('name LIKE ?', [`%${nameFilter}%`]))
    *   .when(sortByDate, q => q.orderBy({ created_at: 'DESC' }))
    *   .execute()
+   *
+   * @example
+   * // With otherwise callback
+   * qb.select('products')
+   *   .when(
+   *     inStock,
+   *     q => q.where('stock > ?', 0),
+   *     q => q.where('stock = ?', 0)
+   *   )
+   *   .execute()
    */
   when<T>(
     condition: T | undefined | null | false | 0 | '',
     callback: (
       builder: SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>
+    ) => SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>,
+    otherwise?: (
+      builder: SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>
     ) => SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>
   ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     if (condition) {
       return callback(this)
+    }
+    if (otherwise) {
+      return otherwise(this)
     }
     return this
   }

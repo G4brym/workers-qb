@@ -421,6 +421,20 @@ const users = await qb.select('users')
   .execute()
 ```
 
+An optional third argument `otherwise` is applied when the condition is falsy, enabling inline if/else logic within the chain:
+
+```typescript
+const inStock = request.query.inStock === 'true'
+
+const products = await qb.select('products')
+  .when(
+    inStock,
+    q => q.where('stock > ?', 0),   // truthy branch
+    q => q.where('stock = ?', 0)    // falsy branch
+  )
+  .execute()
+```
+
 ### NULL Checks: `.whereNull()` / `.whereNotNull()`
 
 ```typescript
