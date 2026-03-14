@@ -28,7 +28,13 @@ export class PGQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
 
   async execute(query: Query) {
     return await this.loggerWrapper(query, this.options.logger, async () => {
-      const queryString = query.query.replaceAll('?', '$')
+      // Convert ? placeholders to PostgreSQL $N style in a single pass.
+      // Numbered ?1, ?2 keep their index ($1, $2, ...).
+      // Bare ? are assigned the next available index after the highest numbered ?N seen.
+      // This guarantees globally unique $N indices even if both styles appear in the same query.
+      const maxNumbered = Math.max(0, ...[...query.query.matchAll(/\?(\d+)/g)].map((m) => Number.parseInt(m[1]!, 10)))
+      let paramIndex = maxNumbered
+      const queryString = query.query.replace(/\?(\d+)?/g, (_, n) => (n !== undefined ? `$${n}` : `$${++paramIndex}`))
 
       let result
 
