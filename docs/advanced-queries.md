@@ -495,6 +495,37 @@ const users = await qb.select('users')
   .execute()
 ```
 
+### OR Conditions: `.orWhere()`
+
+The `.orWhere()` method adds an OR condition to your query. When called after one or more `.where()` calls, all previous conditions are grouped together and ORed with the new condition. When called with no prior where conditions, it behaves identically to `.where()`.
+
+```typescript
+// Simple OR condition
+const users = await qb.select('users')
+  .where('status = ?', 'active')
+  .orWhere('status = ?', 'pending')
+  .execute()
+// SQL: SELECT * FROM users WHERE (status = ?) OR (status = ?)
+
+// Multiple prior where conditions are grouped before ORing
+const users = await qb.select('users')
+  .where('tenant_id = ?', 1)
+  .where('status = ?', 'active')
+  .orWhere('role = ?', 'superadmin')
+  .execute()
+// SQL: SELECT * FROM users WHERE ((tenant_id = ?) AND (status = ?)) OR (role = ?)
+
+// A .where() after .orWhere() is ANDed as an independent condition
+const users = await qb.select('users')
+  .where('status = ?', 'active')
+  .orWhere('status = ?', 'pending')
+  .where('tenant_id = ?', 42)
+  .execute()
+// SQL: SELECT * FROM users WHERE ((status = ?) OR (status = ?)) AND (tenant_id = ?)
+```
+
+Subquery placeholders and parameter validation (`ParameterMismatchError`) are fully supported in `.orWhere()`, matching the behaviour of `.where()`.
+
 ## Group By and Having
 
 ### Group By Clause

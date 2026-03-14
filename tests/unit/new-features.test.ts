@@ -411,3 +411,75 @@ describe('Error messages with context', () => {
     }
   })
 })
+
+describe('orWhere()', () => {
+  it('simple orWhere produces OR condition', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('users').where('status = ?', 'active').orWhere('status = ?', 'pending').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE (status = ?) OR (status = ?)')
+    expect(params).toEqual(['active', 'pending'])
+  })
+
+  it('orWhere with no prior where is equivalent to where', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('users').orWhere('status = ?', 'active').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE status = ?')
+    expect(params).toEqual(['active'])
+  })
+
+  it('multiple where conditions ORed together', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb
+      .select('users')
+      .where('tenant_id = ?', 1)
+      .where('status = ?', 'active')
+      .orWhere('role = ?', 'superadmin')
+      .toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE ((tenant_id = ?) AND (status = ?)) OR (role = ?)')
+    expect(params).toEqual([1, 'active', 'superadmin'])
+  })
+
+  it('where after orWhere is ANDed independently', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb
+      .select('users')
+      .where('status = ?', 'active')
+      .orWhere('status = ?', 'pending')
+      .where('tenant_id = ?', 42)
+      .toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE ((status = ?) OR (status = ?)) AND (tenant_id = ?)')
+    expect(params).toEqual(['active', 'pending', 42])
+  })
+
+  it('orWhere with multiple conditions array', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb
+      .select('users')
+      .where('tenant_id = ?', 1)
+      .orWhere(['role = ?', 'is_active = ?'], ['admin', true])
+      .toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE (tenant_id = ?) OR ((role = ?) AND (is_active = ?))')
+    expect(params).toEqual([1, 'admin', true])
+  })
+
+  it('chained orWhere calls produce nested OR', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('users').where('a = ?', 1).orWhere('b = ?', 2).orWhere('c = ?', 3).toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE ((a = ?) OR (b = ?)) OR (c = ?)')
+    expect(params).toEqual([1, 2, 3])
+  })
+
+  it('throws ParameterMismatchError for wrong param count in orWhere', () => {
+    const qb = new QuerybuilderTest()
+
+    expect(() => {
+      qb.select('users').where('a = ?', 1).orWhere('b = ? AND c = ?', 2)
+    }).toThrow('Parameter count mismatch')
+  })
+})
