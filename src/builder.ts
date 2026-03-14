@@ -751,8 +751,8 @@ export class QueryBuilder<
         // and push its arguments to context.queryArgs.
         tableSql = `(${context.toSQLCompiler(item.table, context.queryArgs)})`
       }
-      // NATURAL joins don't use ON clause
-      if (item.type === JoinTypes.NATURAL || item.type === 'NATURAL') {
+      // NATURAL joins and joins with an empty ON clause don't include an ON clause
+      if (item.type === JoinTypes.NATURAL || item.type === 'NATURAL' || !item.on) {
         joinQuery.push(`${type}JOIN ${tableSql}${item.alias ? ` AS ${item.alias}` : ''}`)
       } else {
         joinQuery.push(`${type}JOIN ${tableSql}${item.alias ? ` AS ${item.alias}` : ''} ON ${item.on}`)
