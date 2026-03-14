@@ -28,7 +28,11 @@ export class PGQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
 
   async execute(query: Query) {
     return await this.loggerWrapper(query, this.options.logger, async () => {
-      const queryString = query.query.replaceAll('?', '$')
+      // Convert ? placeholders to PostgreSQL $N style.
+      // Numbered ?1, ?2 become $1, $2 directly.
+      // Bare ? placeholders are numbered sequentially ($1, $2, ...).
+      let paramIndex = 0
+      const queryString = query.query.replace(/\?(\d+)/g, (_, n) => `$${n}`).replace(/\?/g, () => `$${++paramIndex}`)
 
       let result
 
