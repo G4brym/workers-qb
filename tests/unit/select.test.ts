@@ -83,6 +83,45 @@ describe('Select Builder', () => {
     }
   })
 
+  it('select with falsy where param: false', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        where: { conditions: 'active = ?', params: false },
+      }),
+      new QuerybuilderTest().select('testTable').where('active = ?', false).getQueryAll(),
+    ]) {
+      expect(result.query).toEqual('SELECT * FROM testTable WHERE active = ?')
+      expect(result.arguments).toEqual([false])
+    }
+  })
+
+  it('select with falsy where param: 0', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        where: { conditions: 'count = ?', params: 0 },
+      }),
+      new QuerybuilderTest().select('testTable').where('count = ?', 0).getQueryAll(),
+    ]) {
+      expect(result.query).toEqual('SELECT * FROM testTable WHERE count = ?')
+      expect(result.arguments).toEqual([0])
+    }
+  })
+
+  it('select with falsy where param: empty string', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        where: { conditions: 'label = ?', params: '' },
+      }),
+      new QuerybuilderTest().select('testTable').where('label = ?', '').getQueryAll(),
+    ]) {
+      expect(result.query).toEqual('SELECT * FROM testTable WHERE label = ?')
+      expect(result.arguments).toEqual([''])
+    }
+  })
+
   it('select with empty where', async () => {
     for (const result of [
       new QuerybuilderTest().fetchOne({

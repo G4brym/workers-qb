@@ -315,7 +315,7 @@ export class QueryBuilder<
       if (
         typeof params.onConflict?.where === 'object' &&
         !Array.isArray(params.onConflict?.where) &&
-        params.onConflict?.where?.params
+        params.onConflict?.where?.params != null
       ) {
         // 1 - on conflict where parameters
         args = args.concat(params.onConflict.where?.params)
@@ -360,7 +360,7 @@ export class QueryBuilder<
   update<GenericResult = DefaultReturnObject>(params: any): Query<any, IsAsync> {
     let args = this._parse_arguments(params.data)
 
-    if (typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params) {
+    if (typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params != null) {
       if (Array.isArray(params.where?.params)) {
         args = params.where?.params.concat(args)
       } else {
@@ -393,7 +393,7 @@ export class QueryBuilder<
         return this.execute(q)
       },
       this._delete(params),
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
+      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params != null
         ? Array.isArray(params.where?.params)
           ? params.where?.params
           : [params.where?.params]
@@ -456,7 +456,7 @@ export class QueryBuilder<
       if (
         typeof params.onConflict?.where === 'object' &&
         !Array.isArray(params.onConflict?.where) &&
-        params.onConflict?.where?.params
+        params.onConflict?.where?.params != null
       ) {
         if (Array.isArray(params.onConflict.where?.params)) {
           index += (params.onConflict.where?.params).length
@@ -497,7 +497,7 @@ export class QueryBuilder<
 
   protected _update(params: Update): string {
     const whereParamsLength: number =
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params
+      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params != null
         ? Array.isArray(params.where?.params)
           ? Object.keys(params.where?.params).length
           : 1
@@ -627,7 +627,7 @@ export class QueryBuilder<
 
     if (typeof value === 'object' && !Array.isArray(value)) {
       conditionStrings = Array.isArray(value.conditions) ? value.conditions : [value.conditions]
-      if (value.params) {
+      if (value.params != null) {
         primitiveParams = Array.isArray(value.params) ? value.params : [value.params]
       }
     } else if (Array.isArray(value)) {
@@ -787,7 +787,7 @@ export class QueryBuilder<
 
     if (typeof value === 'object' && !Array.isArray(value)) {
       conditionStrings = Array.isArray(value.conditions) ? value.conditions : [value.conditions]
-      if (value.params) {
+      if (value.params != null) {
         primitiveParams = Array.isArray(value.params) ? value.params : [value.params]
       }
     } else if (Array.isArray(value)) {
