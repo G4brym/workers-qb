@@ -515,6 +515,13 @@ describe('orWhereNull / orWhereNotNull', () => {
 
     expect(sql).toBe('SELECT * FROM users WHERE deleted_at IS NULL')
   })
+
+  it('orWhereNotNull with no prior where is equivalent to whereNotNull', () => {
+    const qb = new QuerybuilderTest()
+    const { sql } = qb.select('users').orWhereNotNull('verified_at').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE verified_at IS NOT NULL')
+  })
 })
 
 describe('orWhereBetween / orWhereNotBetween', () => {
@@ -545,6 +552,14 @@ describe('orWhereBetween / orWhereNotBetween', () => {
     expect(sql).toBe('SELECT * FROM products WHERE price BETWEEN ? AND ?')
     expect(params).toEqual([10, 100])
   })
+
+  it('orWhereNotBetween with no prior where is equivalent to whereNotBetween', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('products').orWhereNotBetween('price', [10, 100]).toSQL()
+
+    expect(sql).toBe('SELECT * FROM products WHERE price NOT BETWEEN ? AND ?')
+    expect(params).toEqual([10, 100])
+  })
 })
 
 describe('orWhereLike / orWhereNotLike', () => {
@@ -570,5 +585,13 @@ describe('orWhereLike / orWhereNotLike', () => {
 
     expect(sql).toBe('SELECT * FROM users WHERE name LIKE ?')
     expect(params).toEqual(['%alice%'])
+  })
+
+  it('orWhereNotLike with no prior where is equivalent to whereNotLike', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('users').orWhereNotLike('email', '%@spam.com').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE email NOT LIKE ?')
+    expect(params).toEqual(['%@spam.com'])
   })
 })

@@ -526,6 +526,84 @@ const users = await qb.select('users')
 
 Subquery placeholders and parameter validation (`ParameterMismatchError`) are fully supported in `.orWhere()`, matching the behaviour of `.where()`.
 
+### OR NULL Checks: `.orWhereNull()` / `.orWhereNotNull()`
+
+The OR companions to `.whereNull()` and `.whereNotNull()`. When called after existing conditions, the result is ORed with the accumulated WHERE clause. When called with no prior conditions, they behave identically to `.whereNull()` / `.whereNotNull()`.
+
+```typescript
+// OR with a prior condition
+const users = await qb.select('users')
+  .where('active = ?', true)
+  .orWhereNull('deleted_at')
+  .execute()
+// SQL: SELECT * FROM users WHERE (active = ?) OR (deleted_at IS NULL)
+
+// Combining NULL checks with OR
+const users = await qb.select('users')
+  .whereNull('deleted_at')
+  .orWhereNotNull('verified_at')
+  .execute()
+// SQL: SELECT * FROM users WHERE (deleted_at IS NULL) OR (verified_at IS NOT NULL)
+
+// No prior where — behaves like whereNull
+const users = await qb.select('users')
+  .orWhereNull('deleted_at')
+  .execute()
+// SQL: SELECT * FROM users WHERE deleted_at IS NULL
+```
+
+### OR Range Queries: `.orWhereBetween()` / `.orWhereNotBetween()`
+
+The OR companions to `.whereBetween()` and `.whereNotBetween()`. Parameters are fully parameterized, preventing SQL injection.
+
+```typescript
+// Featured products OR products in a price range
+const products = await qb.select('products')
+  .where('featured = ?', true)
+  .orWhereBetween('price', [10, 100])
+  .execute()
+// SQL: SELECT * FROM products WHERE (featured = ?) OR (price BETWEEN ? AND ?)
+
+// Active products OR products outside a price range
+const products = await qb.select('products')
+  .where('active = ?', true)
+  .orWhereNotBetween('price', [10, 100])
+  .execute()
+// SQL: SELECT * FROM products WHERE (active = ?) OR (price NOT BETWEEN ? AND ?)
+
+// No prior where — behaves like whereBetween
+const products = await qb.select('products')
+  .orWhereBetween('price', [10, 100])
+  .execute()
+// SQL: SELECT * FROM products WHERE price BETWEEN ? AND ?
+```
+
+### OR Pattern Matching: `.orWhereLike()` / `.orWhereNotLike()`
+
+The OR companions to `.whereLike()` and `.whereNotLike()`. The pattern is passed as a parameterized value (not interpolated), preventing SQL injection.
+
+```typescript
+// Match name or email with a pattern
+const users = await qb.select('users')
+  .whereLike('name', '%john%')
+  .orWhereLike('email', '%john%')
+  .execute()
+// SQL: SELECT * FROM users WHERE (name LIKE ?) OR (email LIKE ?)
+
+// Active users or users without spam emails
+const users = await qb.select('users')
+  .where('active = ?', true)
+  .orWhereNotLike('email', '%@spam.com')
+  .execute()
+// SQL: SELECT * FROM users WHERE (active = ?) OR (email NOT LIKE ?)
+
+// No prior where — behaves like whereLike
+const users = await qb.select('users')
+  .orWhereLike('name', '%alice%')
+  .execute()
+// SQL: SELECT * FROM users WHERE name LIKE ?
+```
+
 ## Group By and Having
 
 ### Group By Clause
