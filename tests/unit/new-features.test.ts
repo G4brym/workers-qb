@@ -528,7 +528,11 @@ describe('orWhereBetween / orWhereNotBetween', () => {
 
   it('orWhereNotBetween produces OR column NOT BETWEEN ? AND ?', () => {
     const qb = new QuerybuilderTest()
-    const { sql, params } = qb.select('products').where('active = ?', true).orWhereNotBetween('price', [10, 100]).toSQL()
+    const { sql, params } = qb
+      .select('products')
+      .where('active = ?', true)
+      .orWhereNotBetween('price', [10, 100])
+      .toSQL()
 
     expect(sql).toBe('SELECT * FROM products WHERE (active = ?) OR (price NOT BETWEEN ? AND ?)')
     expect(params).toEqual([true, 10, 100])
