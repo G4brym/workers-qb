@@ -427,6 +427,66 @@ export class SelectBuilder<
   }
 
   /**
+   * Add an OR WHERE column IS NULL condition.
+   *
+   * @param column - The column name to check for NULL
+   *
+   * @example
+   * qb.select('users').where('active = ?', true).orWhereNull('deleted_at').execute()
+   * // SELECT * FROM users WHERE (active = ?) OR (deleted_at IS NULL)
+   */
+  orWhereNull(column: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.orWhere(`${column} IS NULL`)
+  }
+
+  /**
+   * Add an OR WHERE column IS NOT NULL condition.
+   *
+   * @param column - The column name to check for NOT NULL
+   *
+   * @example
+   * qb.select('users').whereNull('deleted_at').orWhereNotNull('verified_at').execute()
+   * // SELECT * FROM users WHERE (deleted_at IS NULL) OR (verified_at IS NOT NULL)
+   */
+  orWhereNotNull(column: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.orWhere(`${column} IS NOT NULL`)
+  }
+
+  /**
+   * Add an OR WHERE column BETWEEN min AND max condition.
+   *
+   * @param column - The column name
+   * @param range - Tuple of [min, max] values
+   *
+   * @example
+   * qb.select('products').where('active = ?', true).orWhereBetween('price', [10, 100]).execute()
+   * // SELECT * FROM products WHERE (active = ?) OR (price BETWEEN ? AND ?)
+   */
+  orWhereBetween(
+    column: string,
+    range: [Primitive, Primitive]
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.orWhere(`${column} BETWEEN ? AND ?`, [range[0], range[1]])
+  }
+
+  /**
+   * Add an OR WHERE column NOT BETWEEN min AND max condition.
+   *
+   * @param column - The column name
+   * @param range - Tuple of [min, max] values
+   *
+   * @example
+   * qb.select('products').where('featured = ?', true).orWhereNotBetween('price', [10, 100]).execute()
+   * // SELECT * FROM products WHERE (featured = ?) OR (price NOT BETWEEN ? AND ?)
+   */
+  orWhereNotBetween(
+    column: string,
+    range: [Primitive, Primitive]
+  ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.orWhere(`${column} NOT BETWEEN ? AND ?`, [range[0], range[1]])
+  }
+
+  /**
    * Add a WHERE column LIKE pattern condition.
    *
    * @param column - The column name
@@ -452,6 +512,34 @@ export class SelectBuilder<
    */
   whereNotLike(column: string, pattern: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return this.where(`${column} NOT LIKE ?`, [pattern])
+  }
+
+  /**
+   * Add an OR WHERE column LIKE pattern condition.
+   *
+   * @param column - The column name
+   * @param pattern - The LIKE pattern (e.g., '%search%')
+   *
+   * @example
+   * qb.select('users').whereLike('name', '%john%').orWhereLike('email', '%john%').execute()
+   * // SELECT * FROM users WHERE (name LIKE ?) OR (email LIKE ?)
+   */
+  orWhereLike(column: string, pattern: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.orWhere(`${column} LIKE ?`, [pattern])
+  }
+
+  /**
+   * Add an OR WHERE column NOT LIKE pattern condition.
+   *
+   * @param column - The column name
+   * @param pattern - The LIKE pattern
+   *
+   * @example
+   * qb.select('users').where('active = ?', true).orWhereNotLike('email', '%@spam.com').execute()
+   * // SELECT * FROM users WHERE (active = ?) OR (email NOT LIKE ?)
+   */
+  orWhereNotLike(column: string, pattern: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return this.orWhere(`${column} NOT LIKE ?`, [pattern])
   }
 
   /**

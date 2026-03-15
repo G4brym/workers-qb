@@ -491,3 +491,107 @@ describe('orWhere()', () => {
     }).toThrow('Parameter count mismatch')
   })
 })
+
+describe('orWhereNull / orWhereNotNull', () => {
+  it('orWhereNull produces OR column IS NULL', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('users').where('active = ?', true).orWhereNull('deleted_at').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE (active = ?) OR (deleted_at IS NULL)')
+    expect(params).toEqual([true])
+  })
+
+  it('orWhereNotNull produces OR column IS NOT NULL', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('users').whereNull('deleted_at').orWhereNotNull('verified_at').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE (deleted_at IS NULL) OR (verified_at IS NOT NULL)')
+    expect(params).toEqual([])
+  })
+
+  it('orWhereNull with no prior where is equivalent to whereNull', () => {
+    const qb = new QuerybuilderTest()
+    const { sql } = qb.select('users').orWhereNull('deleted_at').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE deleted_at IS NULL')
+  })
+
+  it('orWhereNotNull with no prior where is equivalent to whereNotNull', () => {
+    const qb = new QuerybuilderTest()
+    const { sql } = qb.select('users').orWhereNotNull('verified_at').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE verified_at IS NOT NULL')
+  })
+})
+
+describe('orWhereBetween / orWhereNotBetween', () => {
+  it('orWhereBetween produces OR column BETWEEN ? AND ?', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('products').where('featured = ?', true).orWhereBetween('price', [10, 100]).toSQL()
+
+    expect(sql).toBe('SELECT * FROM products WHERE (featured = ?) OR (price BETWEEN ? AND ?)')
+    expect(params).toEqual([true, 10, 100])
+  })
+
+  it('orWhereNotBetween produces OR column NOT BETWEEN ? AND ?', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb
+      .select('products')
+      .where('active = ?', true)
+      .orWhereNotBetween('price', [10, 100])
+      .toSQL()
+
+    expect(sql).toBe('SELECT * FROM products WHERE (active = ?) OR (price NOT BETWEEN ? AND ?)')
+    expect(params).toEqual([true, 10, 100])
+  })
+
+  it('orWhereBetween with no prior where is equivalent to whereBetween', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('products').orWhereBetween('price', [10, 100]).toSQL()
+
+    expect(sql).toBe('SELECT * FROM products WHERE price BETWEEN ? AND ?')
+    expect(params).toEqual([10, 100])
+  })
+
+  it('orWhereNotBetween with no prior where is equivalent to whereNotBetween', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('products').orWhereNotBetween('price', [10, 100]).toSQL()
+
+    expect(sql).toBe('SELECT * FROM products WHERE price NOT BETWEEN ? AND ?')
+    expect(params).toEqual([10, 100])
+  })
+})
+
+describe('orWhereLike / orWhereNotLike', () => {
+  it('orWhereLike produces OR column LIKE ?', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('users').whereLike('name', '%john%').orWhereLike('email', '%john%').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE (name LIKE ?) OR (email LIKE ?)')
+    expect(params).toEqual(['%john%', '%john%'])
+  })
+
+  it('orWhereNotLike produces OR column NOT LIKE ?', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('users').where('active = ?', true).orWhereNotLike('email', '%@spam.com').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE (active = ?) OR (email NOT LIKE ?)')
+    expect(params).toEqual([true, '%@spam.com'])
+  })
+
+  it('orWhereLike with no prior where is equivalent to whereLike', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('users').orWhereLike('name', '%alice%').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE name LIKE ?')
+    expect(params).toEqual(['%alice%'])
+  })
+
+  it('orWhereNotLike with no prior where is equivalent to whereNotLike', () => {
+    const qb = new QuerybuilderTest()
+    const { sql, params } = qb.select('users').orWhereNotLike('email', '%@spam.com').toSQL()
+
+    expect(sql).toBe('SELECT * FROM users WHERE email NOT LIKE ?')
+    expect(params).toEqual(['%@spam.com'])
+  })
+})
