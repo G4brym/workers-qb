@@ -61,13 +61,13 @@
     "url": "https://github.com/G4brym/workers-qb/issues"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.12",
+    "@biomejs/biome": "2.4.8",
     "@changesets/changelog-github": "^0.6.0",
     "@changesets/cli": "^2.30.0",
-    "@cloudflare/vitest-pool-workers": "^0.12.6",
+    "@cloudflare/vitest-pool-workers": "^0.13.3",
     "@cloudflare/workers-types": "^4.20260124.0",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.2",
     "vitepress": "^1.6.4",
     "wrangler": "^4.60.0"
   }
