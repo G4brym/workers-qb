@@ -5,9 +5,55 @@ import { asyncMigrationsBuilder, MigrationOptions } from '../migrations'
 import { TableSchema } from '../schema'
 import { Query } from '../tools'
 
+class PGMigrationsBuilder extends asyncMigrationsBuilder<PGResult> {
+  override async initialize(): Promise<void> {
+    await this._builder
+      .createTable({
+        tableName: this._tableName,
+        schema: `id         SERIAL PRIMARY KEY,
+               name       TEXT UNIQUE,
+               applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL`,
+        ifNotExists: true,
+      })
+      .execute()
+  }
+
+  override async apply(): Promise<Array<{ name: string; sql: string }>> {
+    const appliedMigrations: Array<{ name: string; sql: string }> = []
+
+    for (const migration of await this.getUnapplied()) {
+      await this._builder.raw({ query: 'BEGIN' }).execute()
+
+      try {
+        await this._builder
+          .raw({
+            query: migration.sql,
+          })
+          .execute()
+
+        await this._builder
+          .raw({
+            query: `INSERT INTO ${this._tableName} (name)
+            values (?);`,
+            args: [migration.name],
+          })
+          .execute()
+
+        await this._builder.raw({ query: 'COMMIT' }).execute()
+        appliedMigrations.push(migration)
+      } catch (error) {
+        await this._builder.raw({ query: 'ROLLBACK' }).execute()
+        throw error
+      }
+    }
+
+    return appliedMigrations
+  }
+}
+
 export class PGQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, PGResult, true> {
   public db: any
-  _migrationsBuilder = asyncMigrationsBuilder
+  _migrationsBuilder = PGMigrationsBuilder
 
   constructor(db: any, options?: QueryBuilderOptions) {
     super(options)
@@ -15,7 +61,7 @@ export class PGQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
   }
 
   migrations(options: MigrationOptions) {
-    return new asyncMigrationsBuilder<PGResult>(options, this)
+    return new this._migrationsBuilder(options, this)
   }
 
   async connect() {

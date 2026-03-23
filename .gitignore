@@ -5,3 +5,4 @@ docs/site
 src/**/*.js
 docs/.vitepress/cache
 .env
+.DS_Store
