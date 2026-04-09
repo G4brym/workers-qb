@@ -6,7 +6,7 @@ import { TableSchema } from '../schema'
 import { Query } from '../tools'
 
 class PGMigrationsBuilder extends asyncMigrationsBuilder<PGResult> {
-  override async initialize(): Promise<void> {
+  async initialize(): Promise<void> {
     await this._builder
       .createTable({
         tableName: this._tableName,
@@ -18,7 +18,7 @@ class PGMigrationsBuilder extends asyncMigrationsBuilder<PGResult> {
       .execute()
   }
 
-  override async apply(): Promise<Array<{ name: string; sql: string }>> {
+  async apply(): Promise<Array<{ name: string; sql: string }>> {
     const appliedMigrations: Array<{ name: string; sql: string }> = []
 
     for (const migration of await this.getUnapplied()) {
@@ -53,7 +53,6 @@ class PGMigrationsBuilder extends asyncMigrationsBuilder<PGResult> {
 
 export class PGQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, PGResult, true> {
   public db: any
-  _migrationsBuilder = PGMigrationsBuilder
 
   constructor(db: any, options?: QueryBuilderOptions) {
     super(options)
@@ -61,7 +60,7 @@ export class PGQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
   }
 
   migrations(options: MigrationOptions) {
-    return new this._migrationsBuilder(options, this)
+    return new PGMigrationsBuilder(options, this)
   }
 
   async connect() {
