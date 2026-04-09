@@ -52,9 +52,10 @@ export class QueryBuilderError extends Error {
 
     this.message = enhancedMessage
 
-    // Maintains proper stack trace for where our error was thrown
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, QueryBuilderError)
+    // Maintains proper stack trace for where our error was thrown (V8 engines)
+    const ErrorWithCapture = Error as unknown as { captureStackTrace?: (target: object, constructor: Function) => void }
+    if (ErrorWithCapture.captureStackTrace) {
+      ErrorWithCapture.captureStackTrace(this, QueryBuilderError)
     }
   }
 }
