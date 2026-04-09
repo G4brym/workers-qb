@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - '**'
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test:
@@ -12,7 +15,7 @@ jobs:
       matrix:
         os:
           - ubuntu-latest
-        node: [20.x, 22.x]
+        node: [22.x, 24.x]
 
     steps:
       - uses: actions/checkout@v6
