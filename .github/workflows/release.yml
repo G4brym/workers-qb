@@ -2,24 +2,27 @@ name: Release
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
 
 jobs:
   release:
-    name: Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
+    timeout-minutes: 10
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: false
+
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-node@v6
         with:
-          node-version: "24"
+          node-version: 24.x
           cache: "npm"
           registry-url: "https://registry.npmjs.org"
 
@@ -32,51 +35,13 @@ jobs:
       - name: Run tests
         run: npm run test
 
-      - name: Get current version
-        id: pre
-        run: echo "version=$(jq -r .version package.json)" >> "$GITHUB_OUTPUT"
-
-      - name: Check if version is already published
-        id: check
-        run: |
-          VERSION="${{ steps.pre.outputs.version }}"
-          if npm view "workers-qb@${VERSION}" version >/dev/null 2>&1; then
-            echo "published=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "published=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Create Release Pull Request or Publish
-        id: changesets
+      - name: Create release PR or publish
         uses: changesets/action@v1
         with:
-          publish: ${{ steps.check.outputs.published == 'false' && 'npm publish --provenance --access public' || 'echo Already published, skipping' }}
           version: npx changeset version
+          publish: npx changeset publish
           title: "chore: version packages"
           commit: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create GitHub Release
-        if: steps.changesets.outputs.published == 'true'
-        if: steps.changesets.outputs.published == 'true'
-        run: |
-          VERSION=$(jq -r .version package.json)
-          TAG="v${VERSION}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists, skipping."
-          else
-            # Extract changelog for this version — escape dots for awk regex
-            ESCAPED=$(echo "$VERSION" | sed 's/\./\\./g')
-            awk "/^## ${ESCAPED}\$/{ found=1; next } /^## /{ if(found) exit } found" CHANGELOG.md > /tmp/release-notes.md || true
-            if [ ! -s /tmp/release-notes.md ]; then
-              echo "See [CHANGELOG.md](https://github.com/G4brym/workers-qb/blob/main/CHANGELOG.md) for details." > /tmp/release-notes.md
-            fi
-            gh release create "$TAG" \
-              --title "$TAG" \
-              --notes-file /tmp/release-notes.md \
-              --latest
-            echo "Created release $TAG"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true

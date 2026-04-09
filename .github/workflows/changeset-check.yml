@@ -1,5 +1,8 @@
 name: Changeset Check
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches:
@@ -7,21 +10,22 @@ on:
 
 jobs:
   changeset-check:
-    if: github.head_ref != 'changeset-release/main'
-    name: Changeset Check
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
       - uses: actions/setup-node@v6
         with:
-          node-version: "24"
+          node-version: 24.x
           cache: "npm"
 
-      - name: Install dependencies
-        run: npm install
-
+      - run: npm install
       - name: Check for changeset
         run: npx changeset status --since=origin/main
