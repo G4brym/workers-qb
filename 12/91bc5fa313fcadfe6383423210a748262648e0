@@ -1,0 +1,21 @@
+docs/databases/d1.md
+  s_a972a0cbdb606a::t_2f188af03c1037 194-199
+docs/databases/do.md
+  s_a972a0cbdb606a::t_c7336c108f17ea 217-222
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "1291bc5fa313fcadfe6383423210a748262648e0",
+  "prompts": {},
+  "sessions": {
+    "s_a972a0cbdb606a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_07e631048ffeqLPHCFSyhCDOzb",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Gabriel Massadas <gmassadas@cloudflare.com>"
+    }
+  }
+}
