@@ -6,6 +6,8 @@ This section delves into advanced query building features of `workers-qb`, allow
 
 Table names, column names, aliases, CTE names, join types, and ordering directions are validated before SQL is generated. Never pass request-controlled values directly into these structural options; map them to an allowlist of known identifiers.
 
+Plain `groupBy`, `distinct`, and `returning` strings must be identifiers. Plain `orderBy` strings must be identifiers with an optional `ASC` or `DESC` direction, and join conditions must use simple identifier or numeric comparisons joined by `AND` or `OR`. Wrap more complex, trusted expressions in `Raw`.
+
 For backward compatibility, `fields` accepts SQL expressions as strings and inserts them directly into the query. Field expressions must therefore be trusted, application-authored SQL. Use placeholders for dynamic values; passing `Raw` as a `WHERE` or `HAVING` parameter explicitly inlines trusted SQL instead:
 
 ```typescript
@@ -682,6 +684,8 @@ console.log('Roles with more than 5 users:', rolesWithMoreThan5Users.results);
 
 ## Order By
 
+`orderBy` is SQL structure and cannot be represented by a bound value. `workers-qb` validates plain strings as a column identifier with an optional `ASC` or `DESC` direction before inserting them into the query. Use an application allowlist when selecting a sort column from request input.
+
 ### Simple Order By
 
 Use the `orderBy` method to sort the result set by one or more columns. By default, it sorts in ascending order (ASC).
@@ -741,6 +745,19 @@ const usersOrderedByRoleNameAndName = await qb.fetchAll<User>({
 
 console.log('Users ordered by role and name:', usersOrderedByRoleNameAndName.results);
 ```
+
+For a trusted SQL ordering expression, use `Raw` explicitly:
+
+```typescript
+import { Raw } from 'workers-qb';
+
+const randomUser = await qb.fetchOne<User>({
+  tableName: 'users',
+  orderBy: new Raw('RANDOM()'),
+}).execute();
+```
+
+Never construct `Raw` from request-controlled input.
 
 ## Limit and Offset
 

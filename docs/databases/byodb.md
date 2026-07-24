@@ -16,7 +16,7 @@ Here are the key steps to create a custom database adapter:
 
 1.  **Create a New Class:** Create a new TypeScript class that extends `QueryBuilder`. Choose a descriptive name for your class, e.g., `MySQLQB` for MySQL, `SQLiteQB` for external SQLite, etc.
 2.  **Constructor:** In the constructor of your custom class, accept any necessary database connection parameters (e.g., connection string, database client instance) and pass any options to the `super()` constructor of `QueryBuilder`.
-3.  **Implement `execute` Method:** This is the core method you need to implement. It takes a `Query` object as input, which contains the SQL query string (`query.query`) and parameterized arguments (`query.arguments`). Inside `execute`:
+3.  **Implement `execute` Method:** This is the core method you need to implement. It takes a `Query` object containing parameterized arguments in `query.arguments`. Generate the executable SQL with `query.toStatement('sqlite')` for SQLite-style `?N` parameters or `query.toStatement('postgres')` for PostgreSQL `$N` parameters. `query.query` is intended for display and logging. Inside `execute`:
   *   Establish a database connection (if not already established or passed in constructor).
   *   Prepare and execute the SQL query using your database's client library or API.
   *   Handle parameterized arguments.
@@ -54,7 +54,7 @@ export class SQLiteQB extends QueryBuilder<SQLiteResultWrapper, false> { // Sync
 
   execute(query: Query<any, false>): SQLiteResultWrapper {
     try {
-      const stmt = this.db.prepare(query.query);
+      const stmt = this.db.prepare(query.toStatement('sqlite'));
       let result;
 
       if (query.fetchType === FetchTypes.ONE) {
@@ -93,6 +93,7 @@ export class SQLiteQB extends QueryBuilder<SQLiteResultWrapper, false> { // Sync
 *   **Custom `SQLiteResultWrapper`:** Defines a type to wrap SQLite-specific result information (changes, lastInsertRowid, etc.).
 *   **`better-sqlite3` Library:** Uses `better-sqlite3` as an example SQLite library (you'd need to install it).
 *   **Synchronous `execute`:** Implements synchronous `execute` method as SQLite operations with `better-sqlite3` are typically synchronous.
+*   **Dialect-ready SQL:** Uses `query.toStatement('sqlite')` so generated and nested parameters retain their unique binding positions. PostgreSQL adapters should use `query.toStatement('postgres')`.
 *   **Result Formatting:** Formats results from `stmt.get()`, `stmt.all()`, and `stmt.run()` into `workers-qb`'s `ArrayResult`, `OneResult`, and wrapper formats.
 *   **Error Handling:** Includes basic error logging and re-throwing.
 *   **`close()` Method:**  Adds a `close()` method to close the SQLite database connection.
