@@ -48,6 +48,7 @@ export type QueryBuilderOptions<IsAsync extends boolean = true> = {
 
 export type DefaultObject = Record<string, Primitive>
 export type DefaultReturnObject = Record<string, null | string | number | boolean | bigint | ArrayBuffer>
+export type SqlExpression = string | Raw
 
 export type Where =
   | {
@@ -59,25 +60,25 @@ export type Where =
   | Array<string>
 
 export type Join = {
-  type?: string | JoinTypes
-  table: string | SelectAll | SelectBuilder<any, any, any>
-  on: string
+  type?: JoinTypes | `${JoinTypes}`
+  table: string | Raw | SelectAll | SelectBuilder<any, any, any>
+  on: SqlExpression
   alias?: string
 }
 
 export type SelectOne = {
   tableName: string
-  fields?: string | Array<string>
+  fields?: SqlExpression | Array<SqlExpression>
   where?: Where
   join?: Join | Array<Join>
-  groupBy?: string | Array<string>
+  groupBy?: SqlExpression | Array<SqlExpression>
   having?: Where
-  orderBy?: string | Array<string> | Record<string, string | OrderTypes>
+  orderBy?: SqlExpression | Array<SqlExpression> | Record<string, OrderTypes | `${OrderTypes}`>
   offset?: number
   subQueryPlaceholders?: Record<string, SelectAll>
   subQueryTokenNextId?: number
   /** Enable DISTINCT selection. Can be true for simple DISTINCT or an array of columns for DISTINCT ON */
-  distinct?: boolean | Array<string>
+  distinct?: boolean | Array<SqlExpression>
 }
 
 export type RawQuery = {
@@ -97,7 +98,7 @@ export type RawQueryFetchAll = Omit<RawQuery, 'fetchType'> & {
 export type RawQueryWithoutFetching = Omit<RawQuery, 'fetchType'>
 
 export type SetOperation = {
-  type: SetOperationType | string
+  type: SetOperationType | `${SetOperationType}`
   query: SelectAll
 }
 
@@ -125,18 +126,18 @@ export type ConflictUpsert = {
 export type Insert = {
   tableName: string
   data: DefaultObject | Array<DefaultObject>
-  returning?: string | Array<string>
-  onConflict?: string | ConflictTypes | ConflictUpsert
+  returning?: SqlExpression | Array<SqlExpression>
+  onConflict?: ConflictTypes | `${ConflictTypes}` | ConflictUpsert
 }
 
 export type InsertOne = Omit<Insert, 'data' | 'returning'> & {
   data: DefaultObject
-  returning: string | Array<string>
+  returning: SqlExpression | Array<SqlExpression>
 }
 
 export type InsertMultiple = Omit<Insert, 'data' | 'returning'> & {
   data: Array<DefaultObject>
-  returning: string | Array<string>
+  returning: SqlExpression | Array<SqlExpression>
 }
 
 export type InsertWithoutReturning = Omit<Insert, 'returning'>
@@ -145,26 +146,26 @@ export type Update = {
   tableName: string
   data: DefaultObject
   where?: Where
-  returning?: string | Array<string>
-  onConflict?: string | ConflictTypes
+  returning?: SqlExpression | Array<SqlExpression>
+  onConflict?: ConflictTypes | `${ConflictTypes}`
 }
 
 export type UpdateReturning = Omit<Update, 'returning'> & {
-  returning: string | Array<string>
+  returning: SqlExpression | Array<SqlExpression>
 }
 export type UpdateWithoutReturning = Omit<Update, 'returning'>
 
 export type Delete = {
   tableName: string
   where: Where // This field is optional, but is kept required in type to warn users of delete without where
-  returning?: string | Array<string>
-  orderBy?: string | Array<string> | Record<string, string | OrderTypes>
+  returning?: SqlExpression | Array<SqlExpression>
+  orderBy?: SqlExpression | Array<SqlExpression> | Record<string, OrderTypes | `${OrderTypes}`>
   limit?: number
   offset?: number
 }
 
 export type DeleteReturning = Omit<Delete, 'returning'> & {
-  returning: string | Array<string>
+  returning: SqlExpression | Array<SqlExpression>
 }
 export type DeleteWithoutReturning = Omit<Delete, 'returning'>
 
@@ -262,9 +263,14 @@ export type TypedSelectOne<
   fields?: F[] | F | '*'
   where?: Where
   join?: Join | Array<Join>
-  groupBy?: ColumnName<S, T> | ColumnName<S, T>[] | string | string[]
+  groupBy?: ColumnName<S, T> | ColumnName<S, T>[] | Raw | Array<ColumnName<S, T> | Raw>
   having?: Where
-  orderBy?: Partial<Record<ColumnName<S, T>, OrderTypes | string>> | string | string[]
+  orderBy?:
+    | Partial<Record<ColumnName<S, T>, OrderTypes | `${OrderTypes}`>>
+    | ColumnName<S, T>
+    | Array<ColumnName<S, T>>
+    | Raw
+    | Array<ColumnName<S, T> | Raw>
   offset?: number
 }
 
@@ -286,8 +292,8 @@ export type TypedSelectAll<
 export type TypedInsert<S extends TableSchema, T extends TableName<S>> = {
   tableName: T
   data: Partial<S[T]> | Array<Partial<S[T]>>
-  returning?: ColumnName<S, T>[] | ColumnName<S, T> | '*'
-  onConflict?: string | ConflictTypes | ConflictUpsert
+  returning?: Array<ColumnName<S, T> | Raw> | ColumnName<S, T> | Raw | '*'
+  onConflict?: ConflictTypes | `${ConflictTypes}` | ConflictUpsert
 }
 
 /**
@@ -297,8 +303,8 @@ export type TypedUpdate<S extends TableSchema, T extends TableName<S>> = {
   tableName: T
   data: Partial<S[T]>
   where?: Where
-  returning?: ColumnName<S, T>[] | ColumnName<S, T> | '*'
-  onConflict?: string | ConflictTypes
+  returning?: Array<ColumnName<S, T> | Raw> | ColumnName<S, T> | Raw | '*'
+  onConflict?: ConflictTypes | `${ConflictTypes}`
 }
 
 /**
@@ -307,8 +313,13 @@ export type TypedUpdate<S extends TableSchema, T extends TableName<S>> = {
 export type TypedDelete<S extends TableSchema, T extends TableName<S>> = {
   tableName: T
   where: Where
-  returning?: ColumnName<S, T>[] | ColumnName<S, T> | '*'
-  orderBy?: Partial<Record<ColumnName<S, T>, OrderTypes | string>> | string | string[]
+  returning?: Array<ColumnName<S, T> | Raw> | ColumnName<S, T> | Raw | '*'
+  orderBy?:
+    | Partial<Record<ColumnName<S, T>, OrderTypes | `${OrderTypes}`>>
+    | ColumnName<S, T>
+    | Array<ColumnName<S, T>>
+    | Raw
+    | Array<ColumnName<S, T> | Raw>
   limit?: number
   offset?: number
 }

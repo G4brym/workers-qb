@@ -30,7 +30,7 @@ export class DOQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
     const startTime = Date.now()
 
     // Run beforeQuery hook if registered
-    let processedQuery = query.toObject()
+    let processedQuery = { ...query.toObject(), query: query.toStatement('sqlite') }
     if (this.options.beforeQuery) {
       const hookResult = this.options.beforeQuery(processedQuery, this._getQueryType(query.query))
       if (hookResult) {
@@ -85,11 +85,12 @@ export class DOQB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
 
   lazyExecute(query: Query<any, false>): Iterable<any> {
     return this.loggerWrapper(query, this.options.logger, () => {
+      const statement = query.toStatement('sqlite')
       let cursor
       if (query.arguments) {
-        cursor = this.db.exec(query.query, ...query.arguments)
+        cursor = this.db.exec(statement, ...query.arguments)
       } else {
-        cursor = this.db.exec(query.query)
+        cursor = this.db.exec(statement)
       }
       return cursor
     })

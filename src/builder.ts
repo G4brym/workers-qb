@@ -1,5 +1,11 @@
 import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from './enums'
-import { MissingDataError, MissingSubqueryContextError, ParameterMismatchError, SubqueryTokenError } from './errors'
+import {
+  InvalidConfigurationError,
+  MissingDataError,
+  MissingSubqueryContextError,
+  ParameterMismatchError,
+  SubqueryTokenError,
+} from './errors'
 import {
   AfterQueryHook,
   ArrayResult,
@@ -26,6 +32,7 @@ import {
   RawQueryWithoutFetching,
   SelectAll,
   SelectOne,
+  SqlExpression,
   TypedDelete,
   TypedInsert,
   TypedSelectAll,
@@ -39,7 +46,17 @@ import {
 import { asyncLoggerWrapper, defaultLogger } from './logger'
 import { SelectBuilder } from './modularBuilder'
 import { ColumnName, TableName, TableSchema } from './schema'
-import { Query, QueryWithExtra, Raw } from './tools'
+import {
+  renderConflictType,
+  renderExpression,
+  renderIdentifier,
+  renderJoinCondition,
+  renderJoinType,
+  renderOrderBy,
+  renderOrderDirection,
+  renderSetOperationType,
+} from './sql'
+import { Query, QueryWithExtra, Raw, renderParameter, renderRaw, renderRawSql } from './tools'
 
 export class QueryBuilder<
   Schema extends TableSchema = {},
@@ -124,7 +141,7 @@ export class QueryBuilder<
       (q) => {
         return this.execute(q)
       },
-      `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName}
+      `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${renderIdentifier(params.tableName, 'table name')}
       ( ${params.schema})`
     )
   }
@@ -137,7 +154,7 @@ export class QueryBuilder<
       (q) => {
         return this.execute(q)
       },
-      `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`
+      `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${renderIdentifier(params.tableName, 'table name')}`
     )
   }
 
@@ -312,14 +329,8 @@ export class QueryBuilder<
     let args: any[] = []
 
     if (typeof params.onConflict === 'object') {
-      if (
-        typeof params.onConflict?.where === 'object' &&
-        !Array.isArray(params.onConflict?.where) &&
-        params.onConflict?.where?.params != null
-      ) {
-        // 1 - on conflict where parameters
-        args = args.concat(params.onConflict.where?.params)
-      }
+      // 1 - on conflict where parameters
+      args = args.concat(this._parse_where_arguments(params.onConflict?.where))
 
       if (params.onConflict.data) {
         // 2 - on conflict data parameters
@@ -359,14 +370,7 @@ export class QueryBuilder<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   update<GenericResult = DefaultReturnObject>(params: any): Query<any, IsAsync> {
     let args = this._parse_arguments(params.data)
-
-    if (typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params != null) {
-      if (Array.isArray(params.where?.params)) {
-        args = params.where?.params.concat(args)
-      } else {
-        args = [params.where?.params].concat(args)
-      }
-    }
+    args = this._parse_where_arguments(params.where).concat(args)
 
     return new Query<any, IsAsync>(
       (q) => {
@@ -388,16 +392,14 @@ export class QueryBuilder<
   // Implementation signature - accepts any object with tableName
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   delete<GenericResult = DefaultReturnObject>(params: any): Query<any, IsAsync> {
+    const args = this._parse_where_arguments(params.where)
+
     return new Query<any, IsAsync>(
       (q) => {
         return this.execute(q)
       },
       this._delete(params),
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params != null
-        ? Array.isArray(params.where?.params)
-          ? params.where?.params
-          : [params.where?.params]
-        : undefined,
+      args.length > 0 ? args : undefined,
       FetchTypes.ALL
     )
   }
@@ -410,7 +412,14 @@ export class QueryBuilder<
     })
   }
 
-  protected _onConflict(resolution?: string | ConflictTypes | ConflictUpsert): string {
+  protected _parse_where_arguments(value?: Where): Array<any> {
+    if (!value || typeof value !== 'object' || Array.isArray(value) || value.params == null) return []
+
+    const params = Array.isArray(value.params) ? value.params : [value.params]
+    return params.filter((param) => !(param instanceof Raw))
+  }
+
+  protected _onConflict(resolution?: ConflictTypes | `${ConflictTypes}` | ConflictUpsert): string {
     if (resolution) {
       if (typeof resolution === 'object') {
         if (!Array.isArray(resolution.column)) {
@@ -421,12 +430,16 @@ export class QueryBuilder<
           tableName: '_REPLACE_',
           data: resolution.data,
           where: resolution.where,
-        }).query.replace(' _REPLACE_', '') // Replace here is to lint the query
+        })
+          .getStatement()
+          .replace(' _REPLACE_', '') // Replace here is to lint the query
 
-        return ` ON CONFLICT (${resolution.column.join(', ')}) DO ${_update_query}`
+        return ` ON CONFLICT (${resolution.column
+          .map((column) => renderIdentifier(column, 'conflict column'))
+          .join(', ')}) DO ${_update_query}`
       }
 
-      return `OR ${resolution} `
+      return `OR ${renderConflictType(resolution)} `
     }
     return ''
   }
@@ -445,7 +458,9 @@ export class QueryBuilder<
       throw new MissingDataError('INSERT', 'data')
     }
 
-    const columns = Object.keys(data[0]).join(', ')
+    const columns = Object.keys(data[0])
+      .map((column) => renderIdentifier(column, 'column name'))
+      .join(', ')
     let index = 1
 
     let orConflict = ''
@@ -453,17 +468,7 @@ export class QueryBuilder<
     if (params.onConflict && typeof params.onConflict === 'object') {
       onConflict = this._onConflict(params.onConflict)
 
-      if (
-        typeof params.onConflict?.where === 'object' &&
-        !Array.isArray(params.onConflict?.where) &&
-        params.onConflict?.where?.params != null
-      ) {
-        if (Array.isArray(params.onConflict.where?.params)) {
-          index += (params.onConflict.where?.params).length
-        } else {
-          index += 1
-        }
-      }
+      index += this._parse_where_arguments(params.onConflict?.where).length
 
       if (params.onConflict.data) {
         index += this._parse_arguments(params.onConflict.data).length
@@ -477,9 +482,9 @@ export class QueryBuilder<
       Object.values(row).forEach((value) => {
         if (value instanceof Raw) {
           // Raw parameters should not increase the index, as they are not a real parameter
-          values.push(value.content)
+          values.push(renderRaw(value))
         } else {
-          values.push(`?${index}`)
+          values.push(renderParameter(index, index))
           index += 1
         }
       })
@@ -488,7 +493,7 @@ export class QueryBuilder<
     }
 
     return (
-      `INSERT ${orConflict} INTO ${params.tableName} (${columns})` +
+      `INSERT ${orConflict} INTO ${renderIdentifier(params.tableName, 'table name')} (${columns})` +
       ` VALUES ${rows.join(', ')}` +
       onConflict +
       this._returning(params.returning)
@@ -496,35 +501,25 @@ export class QueryBuilder<
   }
 
   protected _update(params: Update): string {
-    const whereParamsLength: number =
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params != null
-        ? Array.isArray(params.where?.params)
-          ? Object.keys(params.where?.params).length
-          : 1
-        : 0
+    const whereParamsLength = this._parse_where_arguments(params.where).length
 
-    let whereString = this._where(params.where)
-
-    let parameterIndex = 1
-    if (whereString && whereString.match(/(?<!\d)\?(?!\d)/)) {
-      // if the user is using unnumbered parameters in where, replace '?' in whereString with numbered parameters
-      whereString = whereString.replace(/\?/g, () => `?${parameterIndex++}`)
-    }
+    const whereString = this._where(params.where, { queryArgs: [], numberParameters: true })
 
     const set: Array<string> = []
     let index = 1
     for (const [key, value] of Object.entries(params.data)) {
       if (value instanceof Raw) {
         // Raw parameters should not increase the index, as they are not a real parameter
-        set.push(`${key} = ${value.content}`)
+        set.push(`${renderIdentifier(key, 'column name')} = ${renderRaw(value)}`)
       } else {
-        set.push(`${key} = ?${whereParamsLength + index}`)
+        const parameterIndex = whereParamsLength + index
+        set.push(`${renderIdentifier(key, 'column name')} = ${renderParameter(parameterIndex, parameterIndex)}`)
         index += 1
       }
     }
 
     return (
-      `UPDATE ${this._onConflict(params.onConflict)}${params.tableName}
+      `UPDATE ${this._onConflict(params.onConflict)}${renderIdentifier(params.tableName, 'table name')}
        SET ${set.join(', ')}` +
       whereString +
       this._returning(params.returning)
@@ -534,7 +529,7 @@ export class QueryBuilder<
   protected _delete(params: Delete): string {
     return (
       `DELETE
-            FROM ${params.tableName}` +
+            FROM ${renderIdentifier(params.tableName, 'table name')}` +
       this._where(params.where) +
       this._orderBy(params.orderBy) +
       this._limit(params.limit) +
@@ -564,9 +559,11 @@ export class QueryBuilder<
     if (params.cteDefinitions && params.cteDefinitions.length > 0) {
       const cteParts: string[] = []
       for (const cte of params.cteDefinitions) {
-        const cteColumns = cte.columns ? `(${cte.columns.join(', ')})` : ''
+        const cteColumns = cte.columns
+          ? `(${cte.columns.map((column) => renderIdentifier(column, 'CTE column')).join(', ')})`
+          : ''
         const cteSql = this._select(cte.query, currentQueryArgs)
-        cteParts.push(`${cte.name}${cteColumns} AS (${cteSql})`)
+        cteParts.push(`${renderIdentifier(cte.name, 'CTE name')}${cteColumns} AS (${cteSql})`)
       }
       cteClause = `WITH ${cteParts.join(', ')} `
     }
@@ -574,7 +571,7 @@ export class QueryBuilder<
     let sql =
       cteClause +
       `SELECT ${this._distinct(params.distinct)}${this._fields(params.fields)}
-       FROM ${params.tableName}` +
+       FROM ${renderIdentifier(params.tableName, 'table name')}` +
       this._join(params.join, context) +
       this._where(params.where, context) +
       this._groupBy(params.groupBy) +
@@ -585,7 +582,7 @@ export class QueryBuilder<
     if (params.setOperations && params.setOperations.length > 0) {
       for (const setOp of params.setOperations) {
         const setQuerySql = this._select(setOp.query, currentQueryArgs)
-        sql += ` ${setOp.type} ${setQuerySql}`
+        sql += ` ${renderSetOperationType(setOp.type)} ${setQuerySql}`
       }
     }
 
@@ -594,18 +591,18 @@ export class QueryBuilder<
     return sql
   }
 
-  protected _distinct(value?: boolean | Array<string>): string {
+  protected _distinct(value?: boolean | Array<SqlExpression>): string {
     if (!value) return ''
     if (value === true) return 'DISTINCT '
     // DISTINCT ON (columns) - PostgreSQL only
-    return `DISTINCT ON (${value.join(', ')}) `
+    return `DISTINCT ON (${value.map((item) => renderExpression(item, 'DISTINCT ON')).join(', ')}) `
   }
 
-  protected _fields(value?: string | Array<string>): string {
+  protected _fields(value?: SqlExpression | Array<SqlExpression>): string {
     if (!value) return '*'
-    if (typeof value === 'string') return value
+    if (!Array.isArray(value)) return value instanceof Raw ? renderRaw(value) : renderRawSql(value)
 
-    return value.join(', ')
+    return value.map((item) => (item instanceof Raw ? renderRaw(item) : renderRawSql(item))).join(', ')
   }
 
   protected _where(
@@ -613,6 +610,7 @@ export class QueryBuilder<
     context?: {
       subQueryPlaceholders?: Record<string, SelectAll>
       queryArgs: any[]
+      numberParameters?: boolean
       // Allow toSQLCompiler to be undefined for calls not originating from _select, though practically it should always be provided.
       toSQLCompiler?: (params: SelectAll, queryArgs: any[]) => string
     }
@@ -644,6 +642,10 @@ export class QueryBuilder<
 
     // Track which numbered params have been seen (for reuse like ?1 appearing multiple times)
     const seenNumberedParams: Record<string, boolean> = {}
+    const numberedParamSql: Record<string, string> = {}
+    const hasRawParams = primitiveParams.some((param) => param instanceof Raw)
+    const parameterOffset = currentContext.queryArgs.length
+    let numberedParamIndex = 0
 
     for (const conditionStr of conditionStrings) {
       // Regex to split by token, numbered param (?1, ?2), or bare ?
@@ -664,8 +666,17 @@ export class QueryBuilder<
               receivedParams: primitiveParams.length,
             })
           }
-          currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
-          builtCondition += '?'
+          const param = primitiveParams[primitiveParamIndex++]
+          if (param instanceof Raw) {
+            builtCondition += renderRaw(param)
+          } else {
+            currentContext.queryArgs.push(param)
+            const parameterIndex = currentContext.queryArgs.length
+            builtCondition += renderParameter(
+              parameterIndex,
+              currentContext.numberParameters ? parameterIndex : undefined
+            )
+          }
         } else if (/^\?\d+$/.test(part)) {
           // Numbered param like ?1, ?2 - only consume on first occurrence
           const paramNum = part.slice(1)
@@ -679,9 +690,19 @@ export class QueryBuilder<
                 receivedParams: primitiveParams.length,
               })
             }
-            currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
+            const param = primitiveParams[primitiveParamIndex++]
+            if (param instanceof Raw) {
+              numberedParamSql[paramNum] = renderRaw(param)
+            } else {
+              currentContext.queryArgs.push(param)
+              const displayIndex = hasRawParams ? ++numberedParamIndex : Number.parseInt(paramNum, 10)
+              numberedParamSql[paramNum] = renderParameter(
+                hasRawParams ? currentContext.queryArgs.length : parameterOffset + displayIndex,
+                displayIndex
+              )
+            }
           }
-          builtCondition += part // Preserve the ?N in output
+          builtCondition += numberedParamSql[paramNum]
         } else if (part.startsWith('__SUBQUERY_TOKEN_') && part.endsWith('__')) {
           if (!currentContext.subQueryPlaceholders || !currentContext.toSQLCompiler) {
             throw new MissingSubqueryContextError()
@@ -739,10 +760,12 @@ export class QueryBuilder<
 
     const joinQuery: Array<string> = []
     joinArray.forEach((item: Join) => {
-      const type = item.type ? `${item.type} ` : ''
+      const type = item.type ? `${renderJoinType(item.type)} ` : ''
       let tableSql: string
       if (typeof item.table === 'string') {
-        tableSql = item.table
+        tableSql = renderIdentifier(item.table, 'JOIN table')
+      } else if (item.table instanceof Raw) {
+        tableSql = renderRaw(item.table)
       } else if (item.table instanceof SelectBuilder) {
         tableSql = `(${context.toSQLCompiler(item.table.getOptions(), context.queryArgs)})`
       } else {
@@ -752,21 +775,25 @@ export class QueryBuilder<
         tableSql = `(${context.toSQLCompiler(item.table, context.queryArgs)})`
       }
       // NATURAL joins and joins with an empty ON clause don't include an ON clause
-      if (item.type === JoinTypes.NATURAL || item.type === 'NATURAL' || !item.on) {
-        joinQuery.push(`${type}JOIN ${tableSql}${item.alias ? ` AS ${item.alias}` : ''}`)
+      if (item.type === JoinTypes.NATURAL || !item.on) {
+        joinQuery.push(
+          `${type}JOIN ${tableSql}${item.alias ? ` AS ${renderIdentifier(item.alias, 'JOIN alias')}` : ''}`
+        )
       } else {
-        joinQuery.push(`${type}JOIN ${tableSql}${item.alias ? ` AS ${item.alias}` : ''} ON ${item.on}`)
+        joinQuery.push(
+          `${type}JOIN ${tableSql}${item.alias ? ` AS ${renderIdentifier(item.alias, 'JOIN alias')}` : ''} ON ${renderJoinCondition(item.on)}`
+        )
       }
     })
 
     return ' ' + joinQuery.join(' ')
   }
 
-  protected _groupBy(value?: string | Array<string>): string {
+  protected _groupBy(value?: SqlExpression | Array<SqlExpression>): string {
     if (!value) return ''
-    if (typeof value === 'string') return ` GROUP BY ${value}`
+    if (!Array.isArray(value)) return ` GROUP BY ${renderExpression(value, 'GROUP BY')}`
 
-    return ` GROUP BY ${value.join(', ')}`
+    return ` GROUP BY ${value.map((item) => renderExpression(item, 'GROUP BY')).join(', ')}`
   }
 
   protected _having(
@@ -804,6 +831,10 @@ export class QueryBuilder<
 
     // Track which numbered params have been seen (for reuse like ?1 appearing multiple times)
     const seenNumberedParams: Record<string, boolean> = {}
+    const numberedParamSql: Record<string, string> = {}
+    const hasRawParams = primitiveParams.some((param) => param instanceof Raw)
+    const parameterOffset = currentContext.queryArgs.length
+    let numberedParamIndex = 0
 
     for (const conditionStr of conditionStrings) {
       // Regex to split by token, numbered param (?1, ?2), or bare ?
@@ -823,8 +854,13 @@ export class QueryBuilder<
               receivedParams: primitiveParams.length,
             })
           }
-          currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
-          builtCondition += '?'
+          const param = primitiveParams[primitiveParamIndex++]
+          if (param instanceof Raw) {
+            builtCondition += renderRaw(param)
+          } else {
+            currentContext.queryArgs.push(param)
+            builtCondition += renderParameter(currentContext.queryArgs.length)
+          }
         } else if (/^\?\d+$/.test(part)) {
           // Numbered param like ?1, ?2 - only consume on first occurrence
           const paramNum = part.slice(1)
@@ -838,9 +874,19 @@ export class QueryBuilder<
                 receivedParams: primitiveParams.length,
               })
             }
-            currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
+            const param = primitiveParams[primitiveParamIndex++]
+            if (param instanceof Raw) {
+              numberedParamSql[paramNum] = renderRaw(param)
+            } else {
+              currentContext.queryArgs.push(param)
+              const displayIndex = hasRawParams ? ++numberedParamIndex : Number.parseInt(paramNum, 10)
+              numberedParamSql[paramNum] = renderParameter(
+                hasRawParams ? currentContext.queryArgs.length : parameterOffset + displayIndex,
+                displayIndex
+              )
+            }
           }
-          builtCondition += part // Preserve the ?N in output
+          builtCondition += numberedParamSql[paramNum]
         } else if (part.startsWith('__SUBQUERY_TOKEN_') && part.endsWith('__')) {
           if (!currentContext.subQueryPlaceholders || !currentContext.toSQLCompiler) {
             throw new MissingSubqueryContextError()
@@ -876,11 +922,13 @@ export class QueryBuilder<
     return ` HAVING (${processedConditions.join(') AND (')})`
   }
 
-  protected _orderBy(value?: string | Array<string> | Record<string, string | OrderTypes>): string {
+  protected _orderBy(
+    value?: SqlExpression | Array<SqlExpression> | Record<string, OrderTypes | `${OrderTypes}`>
+  ): string {
     if (!value) return ''
-    if (typeof value === 'string') return ` ORDER BY ${value}`
+    if (typeof value === 'string' || value instanceof Raw) return ` ORDER BY ${renderOrderBy(value)}`
 
-    const order: Array<Record<string, string> | string> = []
+    const order: Array<Record<string, OrderTypes | `${OrderTypes}`> | SqlExpression> = []
     if (Array.isArray(value)) {
       for (const val of value) {
         order.push(val)
@@ -890,14 +938,14 @@ export class QueryBuilder<
     }
 
     const result = order.map((obj) => {
-      if (typeof obj === 'object') {
+      if (typeof obj === 'object' && !(obj instanceof Raw)) {
         const objs: Array<string> = []
         Object.entries(obj).forEach(([key, item]) => {
-          objs.push(`${key} ${item}`)
+          objs.push(`${renderIdentifier(key, 'ORDER BY column')} ${renderOrderDirection(item)}`)
         })
         return objs.join(', ')
       }
-      return obj
+      return renderOrderBy(obj)
     })
 
     return ` ORDER BY ${result.join(', ')}`
@@ -905,20 +953,26 @@ export class QueryBuilder<
 
   protected _limit(value?: number): string {
     if (value == null) return ''
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new InvalidConfigurationError(`Invalid LIMIT value: ${value}`, 'Use a non-negative safe integer.')
+    }
 
     return ` LIMIT ${value}`
   }
 
   protected _offset(value?: number): string {
     if (value == null) return ''
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new InvalidConfigurationError(`Invalid OFFSET value: ${value}`, 'Use a non-negative safe integer.')
+    }
 
     return ` OFFSET ${value}`
   }
 
-  protected _returning(value?: string | Array<string>): string {
+  protected _returning(value?: SqlExpression | Array<SqlExpression>): string {
     if (!value) return ''
-    if (typeof value === 'string') return ` RETURNING ${value}`
+    if (!Array.isArray(value)) return ` RETURNING ${renderExpression(value, 'RETURNING')}`
 
-    return ` RETURNING ${value.join(', ')}`
+    return ` RETURNING ${value.map((item) => renderExpression(item, 'RETURNING')).join(', ')}`
   }
 }

@@ -214,6 +214,12 @@ In this example, `fetchAll` is called with `lazy: true`. Since DOQB operations a
 
 **Note:** Lazy queries are useful in Durable Objects when dealing with large datasets, as they avoid loading the entire result set into memory at once. Each iteration retrieves the next row from SQLite on demand.
 
+## Bound Parameter Limit
+
+SQLite-backed Durable Objects support a maximum of [100 bound parameters per query](https://developers.cloudflare.com/durable-objects/platform/limits/#sql-storage-limits). `workers-qb` assigns each independently supplied bound value a unique parameter position across CTEs, subqueries, `WHERE`, and `HAVING` clauses. Queries composed from several nested clauses can therefore approach the platform limit more quickly.
+
+Split large operations into multiple queries when needed. Do not use `Raw` to bypass the limit for request-controlled values; `Raw` inserts SQL directly and must only contain trusted, application-authored expressions.
+
 ## Execution Metrics
 
 When you execute a query with `DOQB`, the returned result object contains metrics about the database operation. This includes `rowsRead` and `rowsWritten`, which provide insight into the impact of your query.
