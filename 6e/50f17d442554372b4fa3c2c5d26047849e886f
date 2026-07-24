@@ -1,0 +1,43 @@
+README.md
+  s_b5476d0b1ae770::t_fd811997e31ad6 178,201
+docs/json-queries.md
+  s_b5476d0b1ae770::t_aca8f91ba0a1c9 17,52,60,78,145,162,172,181
+src/modularBuilder.ts
+  s_b5476d0b1ae770::t_12a4687d631a78 16-17,84,303,313-315,382,395,412,429,442,455,472,489,503,517,531,545,576,582-584,612,623,634,645
+src/sql.ts
+  s_cc15bfaa330289::t_86910367635290 1-78
+tests/integration/json.test.ts
+  s_b5476d0b1ae770::t_654e685b6969bc 38,47,57,77,87,96,105,113
+tests/unit/new-features.test.ts
+  s_cc15bfaa330289::t_e99cd1a6365dc9 2,210-217
+tests/unit/select.test.ts
+  s_cc15bfaa330289::t_1e7ab147b21089 3,442,456,487,502,534-535,541,561-562,568,1181,1205,1222
+tests/unit/sql-safety.test.ts
+  s_cc15bfaa330289::t_d8337bd61b1bda 1-139
+tests/unit/subquery.test.ts
+  s_b5476d0b1ae770::t_1ec6e85c9ea1b0 2,57,81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "6e50f17d442554372b4fa3c2c5d26047849e886f",
+  "prompts": {},
+  "sessions": {
+    "s_b5476d0b1ae770": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_080e71deaffeiLM2zDsIMu2GED",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Gabriel Massadas <gmassadas@cloudflare.com>"
+    },
+    "s_cc15bfaa330289": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_06d02e1a8ffe0rKsd1teRs555S",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Gabriel Massadas <gmassadas@cloudflare.com>"
+    }
+  }
+}
