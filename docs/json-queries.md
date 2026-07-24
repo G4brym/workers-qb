@@ -14,7 +14,7 @@ JSON data is typically stored in a `TEXT` column. You can then use a variety of 
 Define your schema with JSON columns using `Record<string, unknown>` or a specific type:
 
 ```typescript
-import { D1QB, Raw } from 'workers-qb';
+import { D1QB } from 'workers-qb';
 
 type Schema = {
   users: {
@@ -49,7 +49,7 @@ type UserName = { name: string };
 
 const user = await qb.fetchOne<UserName>({
   tableName: 'users',
-  fields: [new Raw("json_extract(data, '$.name') as name")],
+  fields: ["json_extract(data, '$.name') as name"],
   where: { conditions: 'id = ?', params: 1 },
 }).execute();
 // user.results.name will be "John Doe"
@@ -57,7 +57,7 @@ const user = await qb.fetchOne<UserName>({
 // Using ->>
 const user2 = await qb.fetchOne<UserName>({
   tableName: 'users',
-  fields: [new Raw("data ->> '$.name' as name")],
+  fields: ["data ->> '$.name' as name"],
   where: { conditions: 'id = ?', params: 1 },
 }).execute();
 // user2.results.name will be "John Doe"
@@ -75,7 +75,7 @@ type TagCount = { count: number };
 
 const tagCount = await qb.fetchOne<TagCount>({
   tableName: 'posts',
-  fields: [new Raw("json_array_length(data, '$.tags') as count")],
+  fields: ["json_array_length(data, '$.tags') as count"],
   where: { conditions: 'id = ?', params: 1 },
 }).execute();
 // tagCount.results.count will be 3
@@ -142,7 +142,7 @@ type JsonResult = { json_data: Record<string, unknown> };
 
 const result = await qb.fetchOne<JsonResult>({
   tableName: 'users', // This can be any table
-  fields: [new Raw("json_object('name', 'John', 'age', 30) as json_data")],
+  fields: ["json_object('name', 'John', 'age', 30) as json_data"],
 }).execute();
 // result.results.json_data will be { "name": "John", "age": 30 }
 ```
@@ -159,7 +159,7 @@ type AgeType = { ageType: string };
 
 const user = await qb.fetchOne<AgeType>({
   tableName: 'users',
-  fields: [new Raw("json_type(data, '$.age') as ageType")],
+  fields: ["json_type(data, '$.age') as ageType"],
   where: { conditions: 'id = ?', params: 1 },
 }).execute();
 // user.results.ageType will be 'integer'
@@ -169,7 +169,7 @@ type ValidResult = { isValid: number };
 
 const result = await qb.fetchOne<ValidResult>({
   tableName: 'users', // This can be any table
-  fields: [new Raw("json_valid('{\"a\":1}') as isValid")],
+  fields: ["json_valid('{\"a\":1}') as isValid"],
 }).execute();
 // result.results.isValid will be 1 (true)
 
@@ -178,7 +178,7 @@ type JsonString = { json_string: string };
 
 const result2 = await qb.fetchOne<JsonString>({
   tableName: 'users', // This can be any table
-  fields: [new Raw("json_quote('[1, 2, 3]') as json_string")],
+  fields: ["json_quote('[1, 2, 3]') as json_string"],
 }).execute();
 // result2.results.json_string will be "[1,2,3]"
 ```

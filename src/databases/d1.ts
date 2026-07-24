@@ -26,7 +26,7 @@ export class D1QB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
     const startTime = Date.now()
 
     // Run beforeQuery hook if registered
-    let processedQuery = query.toObject()
+    let processedQuery = { ...query.toObject(), query: query.toStatement('sqlite') }
     if (this.options.beforeQuery) {
       const hookResult = await this.options.beforeQuery(processedQuery, this._getQueryType(query.query))
       if (hookResult) {
@@ -82,7 +82,7 @@ export class D1QB<Schema extends TableSchema = {}> extends QueryBuilder<Schema, 
   async batchExecute(queryArray: Query[]) {
     return await this.loggerWrapper(queryArray, this.options.logger, async () => {
       const statements = queryArray.map((query) => {
-        let stmt = this.db.prepare(query.query)
+        let stmt = this.db.prepare(query.toStatement('sqlite'))
         if (query.arguments) {
           stmt = stmt.bind(...query.arguments)
         }

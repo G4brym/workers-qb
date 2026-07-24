@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { Raw } from '../../src'
 import { QuerybuilderTest } from '../utils'
 
 describe('Subqueries using SelectBuilder instance', () => {
@@ -54,7 +53,7 @@ describe('Subqueries using SelectBuilder instance', () => {
   it('Subquery in a JOIN clause', () => {
     const subquery = new QuerybuilderTest()
       .select('orders')
-      .fields(['customer_id', new Raw('COUNT(id) as order_count')])
+      .fields(['customer_id', 'COUNT(id) as order_count'])
       .groupBy('customer_id')
 
     const query = new QuerybuilderTest()
@@ -78,7 +77,7 @@ describe('Subqueries using SelectBuilder instance', () => {
   it('Subquery in a JOIN clause with params', () => {
     const subquery = new QuerybuilderTest()
       .select('orders')
-      .fields(['customer_id', new Raw('COUNT(id) as order_count')])
+      .fields(['customer_id', 'COUNT(id) as order_count'])
       .where('status = ?', 'completed')
       .groupBy('customer_id')
 

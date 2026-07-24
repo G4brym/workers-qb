@@ -175,7 +175,7 @@ node_compat = true
 
 Example usage:
 ```typescript
-import { PGQB, Raw } from 'workers-qb'
+import { PGQB } from 'workers-qb'
 import { Client } from 'pg'
 
 type Schema = {
@@ -198,7 +198,7 @@ export default {
     const fetched = await qb
       .fetchOne({
         tableName: 'employees',  // ✓ Autocomplete
-        fields: new Raw('count(*) as count'),
+        fields: 'count(*) as count',
         where: {
           conditions: 'active = ?1',
           params: [true],

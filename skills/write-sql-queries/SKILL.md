@@ -180,12 +180,10 @@ const latestPerDepartment = await qb.select('employees')
 ### JOINs
 
 ```typescript
-import { Raw } from 'workers-qb';
-
 // INNER JOIN
 const usersWithRoles = await qb.fetchAll({
   tableName: 'users',
-  fields: ['users.name', new Raw('roles.name AS role_name')],
+  fields: ['users.name', 'roles.name AS role_name'],
   join: {
     type: 'INNER',
     table: 'roles',
@@ -329,8 +327,6 @@ const combined = await qb.select('table1')
 ### CTEs (Common Table Expressions)
 
 ```typescript
-import { Raw } from 'workers-qb';
-
 // Simple CTE - WITH clause
 const ordersWithActiveUsers = await qb.select('orders')
   .with('active_users', qb.select('users').where('status = ?', 'active'))
@@ -349,7 +345,7 @@ const result = await qb.select('summary')
 const stats = await qb.select('user_counts')
   .with(
     'user_stats',
-    qb.select('users').fields(['department', new Raw('COUNT(*) as cnt')]).groupBy('department'),
+    qb.select('users').fields(['department', 'COUNT(*) as cnt']).groupBy('department'),
     ['dept', 'count']  // Column aliases for the CTE
   )
   .all();
@@ -375,15 +371,9 @@ orderBy: [
 ### Group By and Having
 
 ```typescript
-import { Raw } from 'workers-qb';
-
 const stats = await qb.fetchAll({
   tableName: 'orders',
-  fields: [
-    'customer_id',
-    new Raw('COUNT(*) as order_count'),
-    new Raw('SUM(total) as total_spent'),
-  ],
+  fields: ['customer_id', 'COUNT(*) as order_count', 'SUM(total) as total_spent'],
   groupBy: 'customer_id',
   having: 'SUM(total) > 1000',
 }).execute();

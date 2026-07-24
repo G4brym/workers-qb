@@ -56,7 +56,7 @@ import {
   renderOrderDirection,
   renderSetOperationType,
 } from './sql'
-import { Query, QueryWithExtra, Raw } from './tools'
+import { Query, QueryWithExtra, Raw, renderParameter, renderRaw, renderRawSql } from './tools'
 
 export class QueryBuilder<
   Schema extends TableSchema = {},
@@ -201,7 +201,7 @@ export class QueryBuilder<
     // Ensure subQueryPlaceholders are passed to the count query as well, if they exist on params
     const selectParamsForCount: SelectAll = {
       ...params,
-      fields: new Raw('count(*) as total'),
+      fields: 'count(*) as total',
       offset: undefined,
       groupBy: undefined,
       limit: 1,
@@ -266,7 +266,7 @@ export class QueryBuilder<
     // Ensure subQueryPlaceholders are passed to the count query as well
     const countQueryParams: SelectAll = {
       ...params,
-      fields: new Raw('count(*) as total'),
+      fields: 'count(*) as total',
       offset: undefined,
       groupBy: undefined,
       limit: 1,
@@ -329,14 +329,8 @@ export class QueryBuilder<
     let args: any[] = []
 
     if (typeof params.onConflict === 'object') {
-      if (
-        typeof params.onConflict?.where === 'object' &&
-        !Array.isArray(params.onConflict?.where) &&
-        params.onConflict?.where?.params != null
-      ) {
-        // 1 - on conflict where parameters
-        args = args.concat(params.onConflict.where?.params)
-      }
+      // 1 - on conflict where parameters
+      args = args.concat(this._parse_where_arguments(params.onConflict?.where))
 
       if (params.onConflict.data) {
         // 2 - on conflict data parameters
@@ -376,14 +370,7 @@ export class QueryBuilder<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   update<GenericResult = DefaultReturnObject>(params: any): Query<any, IsAsync> {
     let args = this._parse_arguments(params.data)
-
-    if (typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params != null) {
-      if (Array.isArray(params.where?.params)) {
-        args = params.where?.params.concat(args)
-      } else {
-        args = [params.where?.params].concat(args)
-      }
-    }
+    args = this._parse_where_arguments(params.where).concat(args)
 
     return new Query<any, IsAsync>(
       (q) => {
@@ -405,16 +392,14 @@ export class QueryBuilder<
   // Implementation signature - accepts any object with tableName
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   delete<GenericResult = DefaultReturnObject>(params: any): Query<any, IsAsync> {
+    const args = this._parse_where_arguments(params.where)
+
     return new Query<any, IsAsync>(
       (q) => {
         return this.execute(q)
       },
       this._delete(params),
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params != null
-        ? Array.isArray(params.where?.params)
-          ? params.where?.params
-          : [params.where?.params]
-        : undefined,
+      args.length > 0 ? args : undefined,
       FetchTypes.ALL
     )
   }
@@ -425,6 +410,13 @@ export class QueryBuilder<
     return Object.values(row).filter((value) => {
       return !(value instanceof Raw)
     })
+  }
+
+  protected _parse_where_arguments(value?: Where): Array<any> {
+    if (!value || typeof value !== 'object' || Array.isArray(value) || value.params == null) return []
+
+    const params = Array.isArray(value.params) ? value.params : [value.params]
+    return params.filter((param) => !(param instanceof Raw))
   }
 
   protected _onConflict(resolution?: ConflictTypes | `${ConflictTypes}` | ConflictUpsert): string {
@@ -438,7 +430,9 @@ export class QueryBuilder<
           tableName: '_REPLACE_',
           data: resolution.data,
           where: resolution.where,
-        }).query.replace(' _REPLACE_', '') // Replace here is to lint the query
+        })
+          .getStatement()
+          .replace(' _REPLACE_', '') // Replace here is to lint the query
 
         return ` ON CONFLICT (${resolution.column
           .map((column) => renderIdentifier(column, 'conflict column'))
@@ -474,17 +468,7 @@ export class QueryBuilder<
     if (params.onConflict && typeof params.onConflict === 'object') {
       onConflict = this._onConflict(params.onConflict)
 
-      if (
-        typeof params.onConflict?.where === 'object' &&
-        !Array.isArray(params.onConflict?.where) &&
-        params.onConflict?.where?.params != null
-      ) {
-        if (Array.isArray(params.onConflict.where?.params)) {
-          index += (params.onConflict.where?.params).length
-        } else {
-          index += 1
-        }
-      }
+      index += this._parse_where_arguments(params.onConflict?.where).length
 
       if (params.onConflict.data) {
         index += this._parse_arguments(params.onConflict.data).length
@@ -498,9 +482,9 @@ export class QueryBuilder<
       Object.values(row).forEach((value) => {
         if (value instanceof Raw) {
           // Raw parameters should not increase the index, as they are not a real parameter
-          values.push(value.content)
+          values.push(renderRaw(value))
         } else {
-          values.push(`?${index}`)
+          values.push(renderParameter(index, index))
           index += 1
         }
       })
@@ -517,29 +501,19 @@ export class QueryBuilder<
   }
 
   protected _update(params: Update): string {
-    const whereParamsLength: number =
-      typeof params.where === 'object' && !Array.isArray(params.where) && params.where?.params != null
-        ? Array.isArray(params.where?.params)
-          ? Object.keys(params.where?.params).length
-          : 1
-        : 0
+    const whereParamsLength = this._parse_where_arguments(params.where).length
 
-    let whereString = this._where(params.where)
-
-    let parameterIndex = 1
-    if (whereString && whereString.match(/(?<!\d)\?(?!\d)/)) {
-      // if the user is using unnumbered parameters in where, replace '?' in whereString with numbered parameters
-      whereString = whereString.replace(/\?/g, () => `?${parameterIndex++}`)
-    }
+    const whereString = this._where(params.where, { queryArgs: [], numberParameters: true })
 
     const set: Array<string> = []
     let index = 1
     for (const [key, value] of Object.entries(params.data)) {
       if (value instanceof Raw) {
         // Raw parameters should not increase the index, as they are not a real parameter
-        set.push(`${renderIdentifier(key, 'column name')} = ${value.content}`)
+        set.push(`${renderIdentifier(key, 'column name')} = ${renderRaw(value)}`)
       } else {
-        set.push(`${renderIdentifier(key, 'column name')} = ?${whereParamsLength + index}`)
+        const parameterIndex = whereParamsLength + index
+        set.push(`${renderIdentifier(key, 'column name')} = ${renderParameter(parameterIndex, parameterIndex)}`)
         index += 1
       }
     }
@@ -626,9 +600,9 @@ export class QueryBuilder<
 
   protected _fields(value?: SqlExpression | Array<SqlExpression>): string {
     if (!value) return '*'
-    if (!Array.isArray(value)) return renderExpression(value, 'field')
+    if (!Array.isArray(value)) return value instanceof Raw ? renderRaw(value) : renderRawSql(value)
 
-    return value.map((item) => renderExpression(item, 'field')).join(', ')
+    return value.map((item) => (item instanceof Raw ? renderRaw(item) : renderRawSql(item))).join(', ')
   }
 
   protected _where(
@@ -636,6 +610,7 @@ export class QueryBuilder<
     context?: {
       subQueryPlaceholders?: Record<string, SelectAll>
       queryArgs: any[]
+      numberParameters?: boolean
       // Allow toSQLCompiler to be undefined for calls not originating from _select, though practically it should always be provided.
       toSQLCompiler?: (params: SelectAll, queryArgs: any[]) => string
     }
@@ -667,6 +642,10 @@ export class QueryBuilder<
 
     // Track which numbered params have been seen (for reuse like ?1 appearing multiple times)
     const seenNumberedParams: Record<string, boolean> = {}
+    const numberedParamSql: Record<string, string> = {}
+    const hasRawParams = primitiveParams.some((param) => param instanceof Raw)
+    const parameterOffset = currentContext.queryArgs.length
+    let numberedParamIndex = 0
 
     for (const conditionStr of conditionStrings) {
       // Regex to split by token, numbered param (?1, ?2), or bare ?
@@ -687,8 +666,17 @@ export class QueryBuilder<
               receivedParams: primitiveParams.length,
             })
           }
-          currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
-          builtCondition += '?'
+          const param = primitiveParams[primitiveParamIndex++]
+          if (param instanceof Raw) {
+            builtCondition += renderRaw(param)
+          } else {
+            currentContext.queryArgs.push(param)
+            const parameterIndex = currentContext.queryArgs.length
+            builtCondition += renderParameter(
+              parameterIndex,
+              currentContext.numberParameters ? parameterIndex : undefined
+            )
+          }
         } else if (/^\?\d+$/.test(part)) {
           // Numbered param like ?1, ?2 - only consume on first occurrence
           const paramNum = part.slice(1)
@@ -702,9 +690,19 @@ export class QueryBuilder<
                 receivedParams: primitiveParams.length,
               })
             }
-            currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
+            const param = primitiveParams[primitiveParamIndex++]
+            if (param instanceof Raw) {
+              numberedParamSql[paramNum] = renderRaw(param)
+            } else {
+              currentContext.queryArgs.push(param)
+              const displayIndex = hasRawParams ? ++numberedParamIndex : Number.parseInt(paramNum, 10)
+              numberedParamSql[paramNum] = renderParameter(
+                hasRawParams ? currentContext.queryArgs.length : parameterOffset + displayIndex,
+                displayIndex
+              )
+            }
           }
-          builtCondition += part // Preserve the ?N in output
+          builtCondition += numberedParamSql[paramNum]
         } else if (part.startsWith('__SUBQUERY_TOKEN_') && part.endsWith('__')) {
           if (!currentContext.subQueryPlaceholders || !currentContext.toSQLCompiler) {
             throw new MissingSubqueryContextError()
@@ -767,7 +765,7 @@ export class QueryBuilder<
       if (typeof item.table === 'string') {
         tableSql = renderIdentifier(item.table, 'JOIN table')
       } else if (item.table instanceof Raw) {
-        tableSql = item.table.content
+        tableSql = renderRaw(item.table)
       } else if (item.table instanceof SelectBuilder) {
         tableSql = `(${context.toSQLCompiler(item.table.getOptions(), context.queryArgs)})`
       } else {
@@ -833,6 +831,10 @@ export class QueryBuilder<
 
     // Track which numbered params have been seen (for reuse like ?1 appearing multiple times)
     const seenNumberedParams: Record<string, boolean> = {}
+    const numberedParamSql: Record<string, string> = {}
+    const hasRawParams = primitiveParams.some((param) => param instanceof Raw)
+    const parameterOffset = currentContext.queryArgs.length
+    let numberedParamIndex = 0
 
     for (const conditionStr of conditionStrings) {
       // Regex to split by token, numbered param (?1, ?2), or bare ?
@@ -852,8 +854,13 @@ export class QueryBuilder<
               receivedParams: primitiveParams.length,
             })
           }
-          currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
-          builtCondition += '?'
+          const param = primitiveParams[primitiveParamIndex++]
+          if (param instanceof Raw) {
+            builtCondition += renderRaw(param)
+          } else {
+            currentContext.queryArgs.push(param)
+            builtCondition += renderParameter(currentContext.queryArgs.length)
+          }
         } else if (/^\?\d+$/.test(part)) {
           // Numbered param like ?1, ?2 - only consume on first occurrence
           const paramNum = part.slice(1)
@@ -867,9 +874,19 @@ export class QueryBuilder<
                 receivedParams: primitiveParams.length,
               })
             }
-            currentContext.queryArgs.push(primitiveParams[primitiveParamIndex++])
+            const param = primitiveParams[primitiveParamIndex++]
+            if (param instanceof Raw) {
+              numberedParamSql[paramNum] = renderRaw(param)
+            } else {
+              currentContext.queryArgs.push(param)
+              const displayIndex = hasRawParams ? ++numberedParamIndex : Number.parseInt(paramNum, 10)
+              numberedParamSql[paramNum] = renderParameter(
+                hasRawParams ? currentContext.queryArgs.length : parameterOffset + displayIndex,
+                displayIndex
+              )
+            }
           }
-          builtCondition += part // Preserve the ?N in output
+          builtCondition += numberedParamSql[paramNum]
         } else if (part.startsWith('__SUBQUERY_TOKEN_') && part.endsWith('__')) {
           if (!currentContext.subQueryPlaceholders || !currentContext.toSQLCompiler) {
             throw new MissingSubqueryContextError()

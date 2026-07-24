@@ -6,17 +6,18 @@ This section delves into advanced query building features of `workers-qb`, allow
 
 Table names, column names, aliases, CTE names, join types, and ordering directions are validated before SQL is generated. Never pass request-controlled values directly into these structural options; map them to an allowlist of known identifiers.
 
-Plain field and ordering strings accept identifiers such as `users.name` and ordering clauses such as `created_at DESC`. Wrap other trusted SQL expressions in `Raw`:
+For backward compatibility, `fields` accepts SQL expressions as strings and inserts them directly into the query. Field expressions must therefore be trusted, application-authored SQL. Use placeholders for dynamic values; passing `Raw` as a `WHERE` or `HAVING` parameter explicitly inlines trusted SQL instead:
 
 ```typescript
 import { Raw } from 'workers-qb';
 
 qb.select('orders')
-  .fields(['customer_id', new Raw('COUNT(*) AS order_count')])
-  .groupBy('customer_id');
+  .fields(['customer_id', 'COUNT(*) AS order_count'])
+  .where('created_at < ? AND status = ?', [new Raw('CURRENT_TIMESTAMP'), status])
+  .groupBy('customer_id'); // status is bound; CURRENT_TIMESTAMP is inlined
 ```
 
-`Raw` bypasses structural validation and must only contain trusted, application-authored SQL. Continue using placeholders for all data values.
+`Raw` bypasses parameter binding and structural validation and must only contain trusted, application-authored SQL.
 
 ## Joins
 
@@ -27,7 +28,7 @@ qb.select('orders')
 An INNER JOIN returns rows only when there is a match in both tables based on the join condition.
 
 ```typescript
-import { D1QB, Raw } from 'workers-qb';
+import { D1QB } from 'workers-qb';
 
 // Define your database schema
 type Schema = {
@@ -52,7 +53,7 @@ type UserWithRole = {
 
 const usersWithRoles = await qb.fetchAll<UserWithRole>({
   tableName: 'users',
-  fields: [new Raw('users.name AS userName'), new Raw('roles.name AS roleName')],
+  fields: ['users.name AS userName', 'roles.name AS roleName'],
   join: {
     type: 'INNER',
     table: 'roles',
@@ -68,7 +69,7 @@ console.log('Users with roles:', usersWithRoles.results);
 A LEFT JOIN (or LEFT OUTER JOIN) returns all rows from the left table and the matching rows from the right table. If there's no match in the right table, columns from the right table will contain `NULL` values.
 
 ```typescript
-import { D1QB, Raw } from 'workers-qb';
+import { D1QB } from 'workers-qb';
 
 type Schema = {
   users: { id: number; name: string; role_id: number };
@@ -84,7 +85,7 @@ type UserWithOptionalRole = {
 
 const usersWithOptionalRoles = await qb.fetchAll<UserWithOptionalRole>({
   tableName: 'users',
-  fields: [new Raw('users.name AS userName'), new Raw('roles.name AS roleName')],
+  fields: ['users.name AS userName', 'roles.name AS roleName'],
   join: {
     type: 'LEFT',
     table: 'roles',
@@ -100,7 +101,7 @@ console.log('Users with optional roles:', usersWithOptionalRoles.results);
 A CROSS JOIN returns the Cartesian product of rows from the tables in the join. It combines each row from the first table with each row from the second table. **Use CROSS JOIN with caution, as it can result in very large result sets.**
 
 ```typescript
-import { D1QB, Raw } from 'workers-qb';
+import { D1QB } from 'workers-qb';
 
 type Schema = {
   users: { id: number; name: string };
@@ -116,7 +117,7 @@ type UserAndProduct = {
 
 const userProductCombinations = await qb.fetchAll<UserAndProduct>({
   tableName: 'users',
-  fields: [new Raw('users.name AS userName'), new Raw('products.name AS productName')],
+  fields: ['users.name AS userName', 'products.name AS productName'],
   join: {
     type: 'CROSS',
     table: 'products',
@@ -241,7 +242,7 @@ console.log(customerDetails.results);
 You can use a subquery as a derived table in a `JOIN` clause. This is useful for complex aggregations or when you need to join against a pre-filtered or pre-aggregated set of data.
 
 ```typescript
-import { D1QB, Raw } from 'workers-qb';
+import { D1QB } from 'workers-qb';
 
 // ... (D1QB initialization) ...
 
@@ -253,7 +254,7 @@ const customerOrderCounts = await qb
     table: (qb) =>
       qb
         .select('orders')
-        .fields(['customer_id', new Raw('COUNT(id) as order_count')])
+        .fields(['customer_id', 'COUNT(id) as order_count'])
         .groupBy('customer_id'),
     alias: 'oc',
     on: 'customers.id = oc.customer_id',
@@ -294,7 +295,7 @@ You can chain various methods on the `SelectBuilder` to define different parts o
 *   `.offset()`: Add OFFSET clause.
 
 ```typescript
-import { D1QB, Raw } from 'workers-qb';
+import { D1QB } from 'workers-qb';
 
 // ... (D1QB initialization) ...
 
@@ -305,7 +306,7 @@ type UserInfo = {
 };
 
 const usersInfo = await qb.select<UserInfo>('users')
-  .fields(['users.name', 'users.email', new Raw('roles.name AS roleName')])
+  .fields(['users.name', 'users.email', 'roles.name AS roleName'])
   .join({
     type: 'LEFT',
     table: 'roles',
@@ -627,7 +628,7 @@ const users = await qb.select('users')
 Use the `groupBy` method to group rows with the same values in one or more columns into summary rows.
 
 ```typescript
-import { D1QB, Raw } from 'workers-qb';
+import { D1QB } from 'workers-qb';
 
 // ... (D1QB initialization) ...
 
@@ -638,7 +639,7 @@ type RoleUserCount = {
 
 const userCountsByRole = await qb.fetchAll<RoleUserCount>({
   tableName: 'users',
-  fields: [new Raw('roles.name AS roleName'), new Raw('COUNT(users.id) AS userCount')],
+  fields: ['roles.name AS roleName', 'COUNT(users.id) AS userCount'],
   join: {
     type: 'INNER',
     table: 'roles',
@@ -655,7 +656,7 @@ console.log('User counts by role:', userCountsByRole.results);
 The `having` method filters groups based on aggregate functions, similar to WHERE but for grouped rows.
 
 ```typescript
-import { D1QB, Raw } from 'workers-qb';
+import { D1QB } from 'workers-qb';
 
 // ... (D1QB initialization) ...
 
@@ -666,7 +667,7 @@ type RoleUserCount = {
 
 const rolesWithMoreThan5Users = await qb.fetchAll<RoleUserCount>({
   tableName: 'users',
-  fields: [new Raw('roles.name AS roleName'), new Raw('COUNT(users.id) AS userCount')],
+  fields: ['roles.name AS roleName', 'COUNT(users.id) AS userCount'],
   join: {
     type: 'INNER',
     table: 'roles',
@@ -1099,12 +1100,10 @@ const result = await qb.select('combined')
 ### CTE with Column Names
 
 ```typescript
-import { Raw } from 'workers-qb';
-
 const result = await qb.select('results')
   .with(
     'user_stats',
-    qb.select('users').fields(['id', new Raw('COUNT(*) as cnt')]).groupBy('id'),
+    qb.select('users').fields(['id', 'COUNT(*) as cnt']).groupBy('id'),
     ['user_id', 'count'] // Column names for the CTE
   )
   .execute();

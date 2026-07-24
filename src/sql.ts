@@ -1,6 +1,6 @@
 import { ConflictTypes, JoinTypes, OrderTypes, SetOperationType } from './enums'
 import { InvalidConfigurationError } from './errors'
-import { Raw } from './tools'
+import { Raw, renderRaw, renderRawSql } from './tools'
 
 const unquotedIdentifierPart = '[\\p{L}_][\\p{L}\\p{N}\\p{M}_$]*'
 const quotedIdentifierPart = '"(?:[^"]|"")+"'
@@ -21,27 +21,27 @@ export function renderIdentifier(value: string, clause: string, allowWildcard = 
   if (typeof value !== 'string' || !pattern.test(value)) {
     invalidSqlValue(clause, value, 'Use a valid SQL identifier. Wrap trusted SQL expressions in Raw.')
   }
-  return value
+  return renderRawSql(value)
 }
 
 export function renderExpression(value: string | Raw, clause: string): string {
-  if (value instanceof Raw) return value.content
+  if (value instanceof Raw) return renderRaw(value)
   return renderIdentifier(value, clause, true)
 }
 
 export function renderOrderBy(value: string | Raw): string {
-  if (value instanceof Raw) return value.content
+  if (value instanceof Raw) return renderRaw(value)
   if (typeof value !== 'string' || !orderByPattern.test(value)) {
     invalidSqlValue('ORDER BY', value, 'Use a column with optional ASC/DESC, or wrap a trusted expression in Raw.')
   }
-  return value
+  return renderRawSql(value)
 }
 
 export function renderOrderDirection(value: string | OrderTypes): string {
   if (value !== OrderTypes.ASC && value !== OrderTypes.DESC) {
     invalidSqlValue('ORDER BY direction', value, 'Use ASC or DESC.')
   }
-  return value
+  return renderRawSql(value)
 }
 
 export function renderJoinType(value: string | JoinTypes): string {
@@ -52,7 +52,7 @@ export function renderJoinType(value: string | JoinTypes): string {
 }
 
 export function renderJoinCondition(value: string | Raw): string {
-  if (value instanceof Raw) return value.content
+  if (value instanceof Raw) return renderRaw(value)
   if (typeof value !== 'string' || !joinConditionPattern.test(value)) {
     invalidSqlValue(
       'JOIN condition',
@@ -60,7 +60,7 @@ export function renderJoinCondition(value: string | Raw): string {
       'Use identifier comparisons joined by AND/OR, or wrap a trusted expression in Raw.'
     )
   }
-  return value
+  return renderRawSql(value)
 }
 
 export function renderConflictType(value: string | ConflictTypes): string {

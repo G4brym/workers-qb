@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FetchTypes, InvalidConfigurationError, JoinTypes, OrderTypes, Raw, SetOperationType } from '../../src'
+import { FetchTypes, InvalidConfigurationError, JoinTypes, OrderTypes, SetOperationType } from '../../src'
 import { QuerybuilderTest } from '../utils'
 
 describe('toSQL() / dry-run', () => {
@@ -207,14 +207,7 @@ describe('CTEs (WITH clause)', () => {
     const qb = new QuerybuilderTest()
     const { sql } = qb
       .select('results')
-      .with(
-        'user_stats',
-        qb
-          .select('users')
-          .fields(['id', new Raw('count(*) as cnt')])
-          .groupBy('id'),
-        ['user_id', 'count']
-      )
+      .with('user_stats', qb.select('users').fields(['id', 'count(*) as cnt']).groupBy('id'), ['user_id', 'count'])
       .toSQL()
 
     expect(sql).toContain('WITH user_stats(user_id, count) AS')
