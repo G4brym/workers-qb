@@ -1,0 +1,49 @@
+docs/advanced-queries.md
+  s_a972a0cbdb606a::t_c98423ae0e042d 9,15-17,20,31,56,72,88,104,120,245,257,298,309,631,642,659,670,1106
+src/builder.ts
+  s_704cb8884a9177::t_69a6aecddf43a4 59,204,269,332-333,373,395-396,402,415-421,433-435,471,485,487,504-506,513,515-516,603,605,613,645-648,669-679,693-703,705,768,834-837,857-863,877-887,889
+src/databases/d1.ts
+  s_a972a0cbdb606a::t_1d94941a8d481e 29,85
+src/databases/do.ts
+  s_a972a0cbdb606a::t_a8f3eb5a5ab620 33,88,91,93
+src/databases/pg.ts
+  s_a972a0cbdb606a::t_e8566db70faf2b 76
+src/sql.ts
+  s_a972a0cbdb606a::t_6cf95b0008ebfa 3,24,28,33,37,44,55,63
+src/tools.ts
+  s_cc15bfaa330289::t_f73a87513d4989 4-78,89-90,101-102,111-141,179-181,196
+tests/unit/sql-safety.test.ts
+  s_a972a0cbdb606a::t_3e9c3bf350c9ea 12,14,16-150,152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "ef53ae96fd5bf0eafd4642da48937a258bfa420b",
+  "prompts": {},
+  "sessions": {
+    "s_704cb8884a9177": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_08ed52210ffeetqRO1FNHFkvNK",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Gabriel Massadas <gmassadas@cloudflare.com>"
+    },
+    "s_a972a0cbdb606a": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_07e631048ffeqLPHCFSyhCDOzb",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Gabriel Massadas <gmassadas@cloudflare.com>"
+    },
+    "s_cc15bfaa330289": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_06d02e1a8ffe0rKsd1teRs555S",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Gabriel Massadas <gmassadas@cloudflare.com>"
+    }
+  }
+}
