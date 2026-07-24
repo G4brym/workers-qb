@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { JoinTypes, OrderTypes } from '../../src/enums'
+import { Raw } from '../../src/tools'
 import { QuerybuilderTest } from '../utils'
 
 type TestQueryResult = {
@@ -438,7 +439,7 @@ describe('Select Builder', () => {
         join: {
           table: {
             tableName: 'otherTable',
-            fields: ['test_table_id', 'GROUP_CONCAT(attribute) AS attributes'],
+            fields: ['test_table_id', new Raw('GROUP_CONCAT(attribute) AS attributes')],
             groupBy: 'test_table_id',
           },
           on: 'testTable.id = otherTableGrouped.test_table_id',
@@ -452,7 +453,7 @@ describe('Select Builder', () => {
         .join({
           table: {
             tableName: 'otherTable',
-            fields: ['test_table_id', 'GROUP_CONCAT(attribute) AS attributes'],
+            fields: ['test_table_id', new Raw('GROUP_CONCAT(attribute) AS attributes')],
             groupBy: 'test_table_id',
           },
           on: 'testTable.id = otherTableGrouped.test_table_id',
@@ -483,7 +484,7 @@ describe('Select Builder', () => {
           join: {
             table: {
               tableName: 'otherTable',
-              fields: ['test_table_id', 'GROUP_CONCAT(attribute) AS attributes'],
+              fields: ['test_table_id', new Raw('GROUP_CONCAT(attribute) AS attributes')],
               groupBy: 'test_table_id',
             },
             on: 'testTable.id = otherTableGrouped.test_table_id',
@@ -498,7 +499,7 @@ describe('Select Builder', () => {
         .join({
           table: {
             tableName: 'otherTable',
-            fields: ['test_table_id', 'GROUP_CONCAT(attribute) AS attributes'],
+            fields: ['test_table_id', new Raw('GROUP_CONCAT(attribute) AS attributes')],
             groupBy: 'test_table_id',
           },
           on: 'testTable.id = otherTableGrouped.test_table_id',
@@ -530,14 +531,14 @@ describe('Select Builder', () => {
             tableName: 'otherTable',
             fields: [
               'test_table_id',
-              'GROUP_CONCAT(attribute) AS attributes',
-              'GROUP_CONCAT(other_attributes, ";") AS other_attributes',
+              new Raw('GROUP_CONCAT(attribute) AS attributes'),
+              new Raw('GROUP_CONCAT(other_attributes, ";") AS other_attributes'),
             ],
             groupBy: 'test_table_id',
             join: {
               table: {
                 tableName: 'otherTableTwo',
-                fields: ['other_table_id', 'GROUP_CONCAT(other_attribute) AS other_attributes'],
+                fields: ['other_table_id', new Raw('GROUP_CONCAT(other_attribute) AS other_attributes')],
                 groupBy: 'other_table_id',
               },
               on: 'otherTable.id = otherTableTwoGrouped.other_table_id',
@@ -557,14 +558,14 @@ describe('Select Builder', () => {
             tableName: 'otherTable',
             fields: [
               'test_table_id',
-              'GROUP_CONCAT(attribute) AS attributes',
-              'GROUP_CONCAT(other_attributes, ";") AS other_attributes',
+              new Raw('GROUP_CONCAT(attribute) AS attributes'),
+              new Raw('GROUP_CONCAT(other_attributes, ";") AS other_attributes'),
             ],
             groupBy: 'test_table_id',
             join: {
               table: {
                 tableName: 'otherTableTwo',
-                fields: ['other_table_id', 'GROUP_CONCAT(other_attribute) AS other_attributes'],
+                fields: ['other_table_id', new Raw('GROUP_CONCAT(other_attribute) AS other_attributes')],
                 groupBy: 'other_table_id',
               },
               on: 'otherTable.id = otherTableTwoGrouped.other_table_id',
@@ -1177,7 +1178,7 @@ describe('Subqueries in SELECT statements', () => {
     // Main query to get customer details for those identified by subquery
     const q = new QuerybuilderTest()
       .select('customers')
-      .fields(['id', 'name', 'COUNT(orders.id) as order_count'])
+      .fields(['id', 'name', new Raw('COUNT(orders.id) as order_count')])
       .join({ table: 'orders', on: 'customers.id = orders.customer_id' })
       .groupBy(['customers.id', 'customers.name']) // Group by an array of fields
       .having('id IN ?', [sub.getOptions()])
@@ -1201,7 +1202,7 @@ describe('Subqueries in SELECT statements', () => {
   it('HAVING with numbered param reuse', () => {
     const q = new QuerybuilderTest().fetchAll({
       tableName: 'sales',
-      fields: ['region', 'SUM(amount) as total'],
+      fields: ['region', new Raw('SUM(amount) as total')],
       groupBy: 'region',
       having: {
         conditions: 'SUM(amount) > ?1 AND AVG(amount) > ?1',
@@ -1218,7 +1219,7 @@ describe('Subqueries in SELECT statements', () => {
   it('HAVING with multiple conditions reusing numbered params', () => {
     const q = new QuerybuilderTest().fetchAll({
       tableName: 'orders',
-      fields: ['customer_id', 'COUNT(*) as order_count', 'SUM(total) as total_spent'],
+      fields: ['customer_id', new Raw('COUNT(*) as order_count'), new Raw('SUM(total) as total_spent')],
       groupBy: 'customer_id',
       having: {
         conditions: ['COUNT(*) >= ?1', 'SUM(total) >= ?1'],

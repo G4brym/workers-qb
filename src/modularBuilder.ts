@@ -13,7 +13,8 @@ import {
   SelectOne,
 } from './interfaces'
 import { TableSchema } from './schema'
-import { Query, QueryWithExtra } from './tools'
+import { renderIdentifier } from './sql'
+import { Query, QueryWithExtra, Raw } from './tools'
 
 export interface PaginateOptions {
   page: number
@@ -80,7 +81,7 @@ export class SelectBuilder<
    * qb.select('users').distinct(['department']).fields(['department', 'name']).execute()
    * // SELECT DISTINCT ON (department) department, name FROM users
    */
-  distinct(columns?: Array<string>): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+  distinct(columns?: Array<string | Raw>): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
       {
         ...this._options,
@@ -299,7 +300,7 @@ export class SelectBuilder<
 
     if (!Array.isArray(fields)) {
       // at this point, we know that it's a string
-      whereInCondition = `(${fields}) IN (VALUES `
+      whereInCondition = `(${renderIdentifier(fields, 'WHERE IN column')}) IN (VALUES `
 
       whereInCondition += values.map(() => '(?)').reduce(seperateWithComma)
       whereInCondition += ')'
@@ -309,7 +310,9 @@ export class SelectBuilder<
       // NOTE(lduarte): we assume that this is const throughout the values list, if it's not, oh well garbage in, garbage out
       const fieldLength = fields.length
 
-      whereInCondition = `(${fields.map((val) => val).reduce(seperateWithComma)}) IN (VALUES `
+      whereInCondition = `(${fields
+        .map((field) => renderIdentifier(field, 'WHERE IN column'))
+        .reduce(seperateWithComma)}) IN (VALUES `
 
       const valuesString = `(${[...new Array(fieldLength).keys()].map(() => '?').reduce(seperateWithComma)})`
 
@@ -376,7 +379,7 @@ export class SelectBuilder<
    * // SELECT * FROM users WHERE deleted_at IS NULL
    */
   whereNull(column: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.where(`${column} IS NULL`)
+    return this.where(`${renderIdentifier(column, 'WHERE column')} IS NULL`)
   }
 
   /**
@@ -389,7 +392,7 @@ export class SelectBuilder<
    * // SELECT * FROM users WHERE email_verified_at IS NOT NULL
    */
   whereNotNull(column: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.where(`${column} IS NOT NULL`)
+    return this.where(`${renderIdentifier(column, 'WHERE column')} IS NOT NULL`)
   }
 
   /**
@@ -406,7 +409,7 @@ export class SelectBuilder<
     column: string,
     range: [Primitive, Primitive]
   ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.where(`${column} BETWEEN ? AND ?`, [range[0], range[1]])
+    return this.where(`${renderIdentifier(column, 'WHERE column')} BETWEEN ? AND ?`, [range[0], range[1]])
   }
 
   /**
@@ -423,7 +426,7 @@ export class SelectBuilder<
     column: string,
     range: [Primitive, Primitive]
   ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.where(`${column} NOT BETWEEN ? AND ?`, [range[0], range[1]])
+    return this.where(`${renderIdentifier(column, 'WHERE column')} NOT BETWEEN ? AND ?`, [range[0], range[1]])
   }
 
   /**
@@ -436,7 +439,7 @@ export class SelectBuilder<
    * // SELECT * FROM users WHERE (active = ?) OR (deleted_at IS NULL)
    */
   orWhereNull(column: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.orWhere(`${column} IS NULL`)
+    return this.orWhere(`${renderIdentifier(column, 'WHERE column')} IS NULL`)
   }
 
   /**
@@ -449,7 +452,7 @@ export class SelectBuilder<
    * // SELECT * FROM users WHERE (deleted_at IS NULL) OR (verified_at IS NOT NULL)
    */
   orWhereNotNull(column: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.orWhere(`${column} IS NOT NULL`)
+    return this.orWhere(`${renderIdentifier(column, 'WHERE column')} IS NOT NULL`)
   }
 
   /**
@@ -466,7 +469,7 @@ export class SelectBuilder<
     column: string,
     range: [Primitive, Primitive]
   ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.orWhere(`${column} BETWEEN ? AND ?`, [range[0], range[1]])
+    return this.orWhere(`${renderIdentifier(column, 'WHERE column')} BETWEEN ? AND ?`, [range[0], range[1]])
   }
 
   /**
@@ -483,7 +486,7 @@ export class SelectBuilder<
     column: string,
     range: [Primitive, Primitive]
   ): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.orWhere(`${column} NOT BETWEEN ? AND ?`, [range[0], range[1]])
+    return this.orWhere(`${renderIdentifier(column, 'WHERE column')} NOT BETWEEN ? AND ?`, [range[0], range[1]])
   }
 
   /**
@@ -497,7 +500,7 @@ export class SelectBuilder<
    * // SELECT * FROM users WHERE name LIKE ?
    */
   whereLike(column: string, pattern: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.where(`${column} LIKE ?`, [pattern])
+    return this.where(`${renderIdentifier(column, 'WHERE column')} LIKE ?`, [pattern])
   }
 
   /**
@@ -511,7 +514,7 @@ export class SelectBuilder<
    * // SELECT * FROM users WHERE email NOT LIKE ?
    */
   whereNotLike(column: string, pattern: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.where(`${column} NOT LIKE ?`, [pattern])
+    return this.where(`${renderIdentifier(column, 'WHERE column')} NOT LIKE ?`, [pattern])
   }
 
   /**
@@ -525,7 +528,7 @@ export class SelectBuilder<
    * // SELECT * FROM users WHERE (name LIKE ?) OR (email LIKE ?)
    */
   orWhereLike(column: string, pattern: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.orWhere(`${column} LIKE ?`, [pattern])
+    return this.orWhere(`${renderIdentifier(column, 'WHERE column')} LIKE ?`, [pattern])
   }
 
   /**
@@ -539,7 +542,7 @@ export class SelectBuilder<
    * // SELECT * FROM users WHERE (active = ?) OR (email NOT LIKE ?)
    */
   orWhereNotLike(column: string, pattern: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
-    return this.orWhere(`${column} NOT LIKE ?`, [pattern])
+    return this.orWhere(`${renderIdentifier(column, 'WHERE column')} NOT LIKE ?`, [pattern])
   }
 
   /**
@@ -570,13 +573,15 @@ export class SelectBuilder<
     }
 
     if (!Array.isArray(fields)) {
-      whereNotInCondition = `(${fields}) NOT IN (VALUES `
+      whereNotInCondition = `(${renderIdentifier(fields, 'WHERE NOT IN column')}) NOT IN (VALUES `
       whereNotInCondition += values.map(() => '(?)').reduce(separateWithComma)
       whereNotInCondition += ')'
       whereNotInParams = values as Primitive[]
     } else {
       const fieldLength = fields.length
-      whereNotInCondition = `(${fields.map((val) => val).reduce(separateWithComma)}) NOT IN (VALUES `
+      whereNotInCondition = `(${fields
+        .map((field) => renderIdentifier(field, 'WHERE NOT IN column'))
+        .reduce(separateWithComma)}) NOT IN (VALUES `
       const valuesString = `(${[...new Array(fieldLength).keys()].map(() => '?').reduce(separateWithComma)})`
       whereNotInCondition += [...new Array(values.length).keys()].map(() => valuesString).reduce(separateWithComma)
       whereNotInCondition += ')'
@@ -604,7 +609,7 @@ export class SelectBuilder<
    */
   innerJoin(params: {
     table: string
-    on: string
+    on: string | Raw
     alias?: string
   }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return this.join({ ...params, type: JoinTypes.INNER })
@@ -615,7 +620,7 @@ export class SelectBuilder<
    */
   leftJoin(params: {
     table: string
-    on: string
+    on: string | Raw
     alias?: string
   }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return this.join({ ...params, type: JoinTypes.LEFT })
@@ -626,7 +631,7 @@ export class SelectBuilder<
    */
   rightJoin(params: {
     table: string
-    on: string
+    on: string | Raw
     alias?: string
   }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return this.join({ ...params, type: JoinTypes.RIGHT })
@@ -637,7 +642,7 @@ export class SelectBuilder<
    */
   fullJoin(params: {
     table: string
-    on: string
+    on: string | Raw
     alias?: string
   }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return this.join({ ...params, type: JoinTypes.FULL })

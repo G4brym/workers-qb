@@ -1,5 +1,11 @@
 import { ConflictTypes, FetchTypes, JoinTypes, OrderTypes } from './enums'
-import { MissingDataError, MissingSubqueryContextError, ParameterMismatchError, SubqueryTokenError } from './errors'
+import {
+  InvalidConfigurationError,
+  MissingDataError,
+  MissingSubqueryContextError,
+  ParameterMismatchError,
+  SubqueryTokenError,
+} from './errors'
 import {
   AfterQueryHook,
   ArrayResult,
@@ -26,6 +32,7 @@ import {
   RawQueryWithoutFetching,
   SelectAll,
   SelectOne,
+  SqlExpression,
   TypedDelete,
   TypedInsert,
   TypedSelectAll,
@@ -39,6 +46,16 @@ import {
 import { asyncLoggerWrapper, defaultLogger } from './logger'
 import { SelectBuilder } from './modularBuilder'
 import { ColumnName, TableName, TableSchema } from './schema'
+import {
+  renderConflictType,
+  renderExpression,
+  renderIdentifier,
+  renderJoinCondition,
+  renderJoinType,
+  renderOrderBy,
+  renderOrderDirection,
+  renderSetOperationType,
+} from './sql'
 import { Query, QueryWithExtra, Raw } from './tools'
 
 export class QueryBuilder<
@@ -124,7 +141,7 @@ export class QueryBuilder<
       (q) => {
         return this.execute(q)
       },
-      `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${params.tableName}
+      `CREATE TABLE ${params.ifNotExists ? 'IF NOT EXISTS' : ''} ${renderIdentifier(params.tableName, 'table name')}
       ( ${params.schema})`
     )
   }
@@ -137,7 +154,7 @@ export class QueryBuilder<
       (q) => {
         return this.execute(q)
       },
-      `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${params.tableName}`
+      `DROP TABLE ${params.ifExists ? 'IF EXISTS' : ''} ${renderIdentifier(params.tableName, 'table name')}`
     )
   }
 
@@ -184,7 +201,7 @@ export class QueryBuilder<
     // Ensure subQueryPlaceholders are passed to the count query as well, if they exist on params
     const selectParamsForCount: SelectAll = {
       ...params,
-      fields: 'count(*) as total',
+      fields: new Raw('count(*) as total'),
       offset: undefined,
       groupBy: undefined,
       limit: 1,
@@ -249,7 +266,7 @@ export class QueryBuilder<
     // Ensure subQueryPlaceholders are passed to the count query as well
     const countQueryParams: SelectAll = {
       ...params,
-      fields: 'count(*) as total',
+      fields: new Raw('count(*) as total'),
       offset: undefined,
       groupBy: undefined,
       limit: 1,
@@ -410,7 +427,7 @@ export class QueryBuilder<
     })
   }
 
-  protected _onConflict(resolution?: string | ConflictTypes | ConflictUpsert): string {
+  protected _onConflict(resolution?: ConflictTypes | `${ConflictTypes}` | ConflictUpsert): string {
     if (resolution) {
       if (typeof resolution === 'object') {
         if (!Array.isArray(resolution.column)) {
@@ -423,10 +440,12 @@ export class QueryBuilder<
           where: resolution.where,
         }).query.replace(' _REPLACE_', '') // Replace here is to lint the query
 
-        return ` ON CONFLICT (${resolution.column.join(', ')}) DO ${_update_query}`
+        return ` ON CONFLICT (${resolution.column
+          .map((column) => renderIdentifier(column, 'conflict column'))
+          .join(', ')}) DO ${_update_query}`
       }
 
-      return `OR ${resolution} `
+      return `OR ${renderConflictType(resolution)} `
     }
     return ''
   }
@@ -445,7 +464,9 @@ export class QueryBuilder<
       throw new MissingDataError('INSERT', 'data')
     }
 
-    const columns = Object.keys(data[0]).join(', ')
+    const columns = Object.keys(data[0])
+      .map((column) => renderIdentifier(column, 'column name'))
+      .join(', ')
     let index = 1
 
     let orConflict = ''
@@ -488,7 +509,7 @@ export class QueryBuilder<
     }
 
     return (
-      `INSERT ${orConflict} INTO ${params.tableName} (${columns})` +
+      `INSERT ${orConflict} INTO ${renderIdentifier(params.tableName, 'table name')} (${columns})` +
       ` VALUES ${rows.join(', ')}` +
       onConflict +
       this._returning(params.returning)
@@ -516,15 +537,15 @@ export class QueryBuilder<
     for (const [key, value] of Object.entries(params.data)) {
       if (value instanceof Raw) {
         // Raw parameters should not increase the index, as they are not a real parameter
-        set.push(`${key} = ${value.content}`)
+        set.push(`${renderIdentifier(key, 'column name')} = ${value.content}`)
       } else {
-        set.push(`${key} = ?${whereParamsLength + index}`)
+        set.push(`${renderIdentifier(key, 'column name')} = ?${whereParamsLength + index}`)
         index += 1
       }
     }
 
     return (
-      `UPDATE ${this._onConflict(params.onConflict)}${params.tableName}
+      `UPDATE ${this._onConflict(params.onConflict)}${renderIdentifier(params.tableName, 'table name')}
        SET ${set.join(', ')}` +
       whereString +
       this._returning(params.returning)
@@ -534,7 +555,7 @@ export class QueryBuilder<
   protected _delete(params: Delete): string {
     return (
       `DELETE
-            FROM ${params.tableName}` +
+            FROM ${renderIdentifier(params.tableName, 'table name')}` +
       this._where(params.where) +
       this._orderBy(params.orderBy) +
       this._limit(params.limit) +
@@ -564,9 +585,11 @@ export class QueryBuilder<
     if (params.cteDefinitions && params.cteDefinitions.length > 0) {
       const cteParts: string[] = []
       for (const cte of params.cteDefinitions) {
-        const cteColumns = cte.columns ? `(${cte.columns.join(', ')})` : ''
+        const cteColumns = cte.columns
+          ? `(${cte.columns.map((column) => renderIdentifier(column, 'CTE column')).join(', ')})`
+          : ''
         const cteSql = this._select(cte.query, currentQueryArgs)
-        cteParts.push(`${cte.name}${cteColumns} AS (${cteSql})`)
+        cteParts.push(`${renderIdentifier(cte.name, 'CTE name')}${cteColumns} AS (${cteSql})`)
       }
       cteClause = `WITH ${cteParts.join(', ')} `
     }
@@ -574,7 +597,7 @@ export class QueryBuilder<
     let sql =
       cteClause +
       `SELECT ${this._distinct(params.distinct)}${this._fields(params.fields)}
-       FROM ${params.tableName}` +
+       FROM ${renderIdentifier(params.tableName, 'table name')}` +
       this._join(params.join, context) +
       this._where(params.where, context) +
       this._groupBy(params.groupBy) +
@@ -585,7 +608,7 @@ export class QueryBuilder<
     if (params.setOperations && params.setOperations.length > 0) {
       for (const setOp of params.setOperations) {
         const setQuerySql = this._select(setOp.query, currentQueryArgs)
-        sql += ` ${setOp.type} ${setQuerySql}`
+        sql += ` ${renderSetOperationType(setOp.type)} ${setQuerySql}`
       }
     }
 
@@ -594,18 +617,18 @@ export class QueryBuilder<
     return sql
   }
 
-  protected _distinct(value?: boolean | Array<string>): string {
+  protected _distinct(value?: boolean | Array<SqlExpression>): string {
     if (!value) return ''
     if (value === true) return 'DISTINCT '
     // DISTINCT ON (columns) - PostgreSQL only
-    return `DISTINCT ON (${value.join(', ')}) `
+    return `DISTINCT ON (${value.map((item) => renderExpression(item, 'DISTINCT ON')).join(', ')}) `
   }
 
-  protected _fields(value?: string | Array<string>): string {
+  protected _fields(value?: SqlExpression | Array<SqlExpression>): string {
     if (!value) return '*'
-    if (typeof value === 'string') return value
+    if (!Array.isArray(value)) return renderExpression(value, 'field')
 
-    return value.join(', ')
+    return value.map((item) => renderExpression(item, 'field')).join(', ')
   }
 
   protected _where(
@@ -739,10 +762,12 @@ export class QueryBuilder<
 
     const joinQuery: Array<string> = []
     joinArray.forEach((item: Join) => {
-      const type = item.type ? `${item.type} ` : ''
+      const type = item.type ? `${renderJoinType(item.type)} ` : ''
       let tableSql: string
       if (typeof item.table === 'string') {
-        tableSql = item.table
+        tableSql = renderIdentifier(item.table, 'JOIN table')
+      } else if (item.table instanceof Raw) {
+        tableSql = item.table.content
       } else if (item.table instanceof SelectBuilder) {
         tableSql = `(${context.toSQLCompiler(item.table.getOptions(), context.queryArgs)})`
       } else {
@@ -752,21 +777,25 @@ export class QueryBuilder<
         tableSql = `(${context.toSQLCompiler(item.table, context.queryArgs)})`
       }
       // NATURAL joins and joins with an empty ON clause don't include an ON clause
-      if (item.type === JoinTypes.NATURAL || item.type === 'NATURAL' || !item.on) {
-        joinQuery.push(`${type}JOIN ${tableSql}${item.alias ? ` AS ${item.alias}` : ''}`)
+      if (item.type === JoinTypes.NATURAL || !item.on) {
+        joinQuery.push(
+          `${type}JOIN ${tableSql}${item.alias ? ` AS ${renderIdentifier(item.alias, 'JOIN alias')}` : ''}`
+        )
       } else {
-        joinQuery.push(`${type}JOIN ${tableSql}${item.alias ? ` AS ${item.alias}` : ''} ON ${item.on}`)
+        joinQuery.push(
+          `${type}JOIN ${tableSql}${item.alias ? ` AS ${renderIdentifier(item.alias, 'JOIN alias')}` : ''} ON ${renderJoinCondition(item.on)}`
+        )
       }
     })
 
     return ' ' + joinQuery.join(' ')
   }
 
-  protected _groupBy(value?: string | Array<string>): string {
+  protected _groupBy(value?: SqlExpression | Array<SqlExpression>): string {
     if (!value) return ''
-    if (typeof value === 'string') return ` GROUP BY ${value}`
+    if (!Array.isArray(value)) return ` GROUP BY ${renderExpression(value, 'GROUP BY')}`
 
-    return ` GROUP BY ${value.join(', ')}`
+    return ` GROUP BY ${value.map((item) => renderExpression(item, 'GROUP BY')).join(', ')}`
   }
 
   protected _having(
@@ -876,11 +905,13 @@ export class QueryBuilder<
     return ` HAVING (${processedConditions.join(') AND (')})`
   }
 
-  protected _orderBy(value?: string | Array<string> | Record<string, string | OrderTypes>): string {
+  protected _orderBy(
+    value?: SqlExpression | Array<SqlExpression> | Record<string, OrderTypes | `${OrderTypes}`>
+  ): string {
     if (!value) return ''
-    if (typeof value === 'string') return ` ORDER BY ${value}`
+    if (typeof value === 'string' || value instanceof Raw) return ` ORDER BY ${renderOrderBy(value)}`
 
-    const order: Array<Record<string, string> | string> = []
+    const order: Array<Record<string, OrderTypes | `${OrderTypes}`> | SqlExpression> = []
     if (Array.isArray(value)) {
       for (const val of value) {
         order.push(val)
@@ -890,14 +921,14 @@ export class QueryBuilder<
     }
 
     const result = order.map((obj) => {
-      if (typeof obj === 'object') {
+      if (typeof obj === 'object' && !(obj instanceof Raw)) {
         const objs: Array<string> = []
         Object.entries(obj).forEach(([key, item]) => {
-          objs.push(`${key} ${item}`)
+          objs.push(`${renderIdentifier(key, 'ORDER BY column')} ${renderOrderDirection(item)}`)
         })
         return objs.join(', ')
       }
-      return obj
+      return renderOrderBy(obj)
     })
 
     return ` ORDER BY ${result.join(', ')}`
@@ -905,20 +936,26 @@ export class QueryBuilder<
 
   protected _limit(value?: number): string {
     if (value == null) return ''
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new InvalidConfigurationError(`Invalid LIMIT value: ${value}`, 'Use a non-negative safe integer.')
+    }
 
     return ` LIMIT ${value}`
   }
 
   protected _offset(value?: number): string {
     if (value == null) return ''
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new InvalidConfigurationError(`Invalid OFFSET value: ${value}`, 'Use a non-negative safe integer.')
+    }
 
     return ` OFFSET ${value}`
   }
 
-  protected _returning(value?: string | Array<string>): string {
+  protected _returning(value?: SqlExpression | Array<SqlExpression>): string {
     if (!value) return ''
-    if (typeof value === 'string') return ` RETURNING ${value}`
+    if (!Array.isArray(value)) return ` RETURNING ${renderExpression(value, 'RETURNING')}`
 
-    return ` RETURNING ${value.join(', ')}`
+    return ` RETURNING ${value.map((item) => renderExpression(item, 'RETURNING')).join(', ')}`
   }
 }

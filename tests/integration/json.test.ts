@@ -35,7 +35,7 @@ describe('JSON operations', () => {
     const user = await qb
       .fetchOne({
         tableName: 'json_test',
-        fields: ["json_extract(data, '$.name') as name"],
+        fields: [new Raw("json_extract(data, '$.name') as name")],
         where: { conditions: 'id = ?', params: [1] },
       })
       .execute()
@@ -44,7 +44,7 @@ describe('JSON operations', () => {
     const user2 = await qb
       .fetchOne({
         tableName: 'json_test',
-        fields: ["data ->> '$.name' as name"],
+        fields: [new Raw("data ->> '$.name' as name")],
         where: { conditions: 'id = ?', params: [1] },
       })
       .execute()
@@ -54,7 +54,7 @@ describe('JSON operations', () => {
     const tagCount = await qb
       .fetchOne({
         tableName: 'json_test',
-        fields: ["json_array_length(data, '$.tags') as count"],
+        fields: [new Raw("json_array_length(data, '$.tags') as count")],
         where: { conditions: 'id = ?', params: [1] },
       })
       .execute()
@@ -74,7 +74,7 @@ describe('JSON operations', () => {
     const updatedUser = await qb
       .fetchOne({
         tableName: 'json_test',
-        fields: ["json_extract(data, '$.age') as age"],
+        fields: [new Raw("json_extract(data, '$.age') as age")],
         where: { conditions: 'id = ?', params: [1] },
       })
       .execute()
@@ -84,7 +84,7 @@ describe('JSON operations', () => {
     const createdJson = await qb
       .fetchOne({
         tableName: 'json_test',
-        fields: ["json_object('name', 'Jane', 'age', 25) as json_data"],
+        fields: [new Raw("json_object('name', 'Jane', 'age', 25) as json_data")],
       })
       .execute()
     expect(createdJson.results?.json_data).toBe('{"name":"Jane","age":25}')
@@ -93,7 +93,7 @@ describe('JSON operations', () => {
     const ageType = await qb
       .fetchOne({
         tableName: 'json_test',
-        fields: ["json_type(data, '$.age') as type"],
+        fields: [new Raw("json_type(data, '$.age') as type")],
         where: { conditions: 'id = ?', params: [1] },
       })
       .execute()
@@ -102,7 +102,7 @@ describe('JSON operations', () => {
     const isValid = await qb
       .fetchOne({
         tableName: 'json_test',
-        fields: ['json_valid(\'{"a":1}\') as valid'],
+        fields: [new Raw('json_valid(\'{"a":1}\') as valid')],
       })
       .execute()
     expect(isValid.results?.valid).toBe(1)
@@ -110,7 +110,7 @@ describe('JSON operations', () => {
     const jsonString = await qb
       .fetchOne({
         tableName: 'json_test',
-        fields: ["json_quote('[1, 2, 3]') as json_string"],
+        fields: [new Raw("json_quote('[1, 2, 3]') as json_string")],
       })
       .execute()
     expect(jsonString.results?.json_string).toBe('"[1, 2, 3]"')
