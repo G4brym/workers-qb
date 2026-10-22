@@ -490,4 +490,38 @@ describe('Update Builder', () => {
     expect(result.arguments).toEqual(['', 'active'])
     expect(result.fetchType).toEqual('ALL')
   })
+
+  it('update with indexed by', async () => {
+    const result = new QuerybuilderTest().update({
+      tableName: 'testTable',
+      indexedBy: 'idx_field',
+      data: {
+        my_field: 'test_data',
+      },
+      where: {
+        conditions: 'field = ?1',
+        params: ['test_where'],
+      },
+    })
+
+    expect(result.query).toEqual('UPDATE testTable INDEXED BY idx_field SET my_field = ?2 WHERE field = ?1')
+    expect(result.arguments).toEqual(['test_where', 'test_data'])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  it('update on conflict replace with not indexed', async () => {
+    const result = new QuerybuilderTest().update({
+      tableName: 'testTable',
+      indexedBy: false,
+      data: {
+        my_field: 'test_data',
+      },
+      where: 'field = true',
+      onConflict: 'REPLACE',
+    })
+
+    expect(result.query).toEqual('UPDATE OR REPLACE testTable NOT INDEXED SET my_field = ?1 WHERE field = true')
+    expect(result.arguments).toEqual(['test_data'])
+    expect(result.fetchType).toEqual('ALL')
+  })
 })

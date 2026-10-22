@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { JoinTypes, OrderTypes } from '../../src/enums'
+import { InvalidConfigurationError } from '../../src/errors'
+import { Raw } from '../../src/tools'
 import { QuerybuilderTest } from '../utils'
 
 type TestQueryResult = {
@@ -1426,5 +1428,138 @@ describe('WHERE convenience methods', () => {
       'SELECT * FROM testTable WHERE (active = ?) AND (deleted_at IS NULL) AND (age BETWEEN ? AND ?) AND (name LIKE ?)'
     )
     expect(result.arguments).toEqual([1, 18, 65, '%test%'])
+  })
+})
+
+describe('INDEXED BY', () => {
+  it('select with indexed by', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        indexedBy: 'idx_field',
+        where: {
+          conditions: 'field = ?',
+          params: ['test'],
+        },
+      }),
+      new QuerybuilderTest().select('testTable').indexedBy('idx_field').where('field = ?', 'test').getQueryAll(),
+    ]) {
+      expect(result.query).toEqual('SELECT * FROM testTable INDEXED BY idx_field WHERE field = ?')
+      expect(result.arguments).toEqual(['test'])
+      expect(result.fetchType).toEqual('ALL')
+    }
+  })
+
+  it('select with not indexed', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        indexedBy: false,
+      }),
+      new QuerybuilderTest().select('testTable').notIndexed().getQueryAll(),
+    ]) {
+      expect(result.query).toEqual('SELECT * FROM testTable NOT INDEXED')
+      expect(result.arguments).toEqual([])
+      expect(result.fetchType).toEqual('ALL')
+    }
+  })
+
+  it('count with indexed by', async () => {
+    for (const result of [
+      (await new QuerybuilderTest()
+        .fetchAll({
+          tableName: 'testTable',
+          indexedBy: 'idx_field',
+          where: {
+            conditions: 'field = ?',
+            params: ['test'],
+          },
+        })
+        .count()) as unknown as TestQueryResult,
+      (await new QuerybuilderTest()
+        .select('testTable')
+        .indexedBy('idx_field')
+        .where('field = ?', 'test')
+        .count()) as unknown as TestQueryResult,
+    ]) {
+      expect(result.results.query).toEqual(
+        'SELECT count(*) as total FROM testTable INDEXED BY idx_field WHERE field = ? LIMIT 1'
+      )
+      expect(result.results.arguments).toEqual(['test'])
+      expect(result.results.fetchType).toEqual('ONE')
+    }
+  })
+
+  it('join with alias and indexed by', async () => {
+    for (const result of [
+      new QuerybuilderTest().fetchAll({
+        tableName: 'testTable',
+        join: {
+          type: JoinTypes.INNER,
+          table: 'employees',
+          alias: 'e',
+          indexedBy: 'idx_employees_id',
+          on: 'testTable.employee_id = e.id',
+        },
+      }),
+      new QuerybuilderTest()
+        .select('testTable')
+        .innerJoin({
+          table: 'employees',
+          alias: 'e',
+          indexedBy: 'idx_employees_id',
+          on: 'testTable.employee_id = e.id',
+        })
+        .getQueryAll(),
+    ]) {
+      expect(result.query).toEqual(
+        'SELECT * FROM testTable INNER JOIN employees AS e INDEXED BY idx_employees_id ON testTable.employee_id = e.id'
+      )
+      expect(result.arguments).toEqual([])
+      expect(result.fetchType).toEqual('ALL')
+    }
+  })
+
+  it('join helpers with not indexed and without an ON clause', async () => {
+    const result = new QuerybuilderTest()
+      .select('testTable')
+      .leftJoin({ table: 'offices', indexedBy: false, on: 'testTable.office_id = offices.id' })
+      .crossJoin({ table: 'employees', indexedBy: 'idx_employees_id' })
+      .getQueryAll()
+
+    expect(result.query).toEqual(
+      'SELECT * FROM testTable LEFT JOIN offices NOT INDEXED ON testTable.office_id = offices.id CROSS JOIN employees INDEXED BY idx_employees_id'
+    )
+  })
+
+  it('rejects indexed by on joined subqueries', async () => {
+    const qb = new QuerybuilderTest()
+
+    expect(() =>
+      qb
+        .select('testTable')
+        .join({ table: qb.select('employees'), alias: 'e', indexedBy: 'idx_employees_id', on: 'testTable.id = e.id' })
+        .getQueryAll()
+    ).toThrow(InvalidConfigurationError)
+    expect(() =>
+      qb
+        .select('testTable')
+        .join({ table: new Raw('json_each(testTable.tags)'), indexedBy: false, on: '' })
+        .getQueryAll()
+    ).toThrow(InvalidConfigurationError)
+  })
+
+  it('indexed by in CTE and set operation queries', async () => {
+    const qb = new QuerybuilderTest()
+    const result = qb
+      .select('active_users')
+      .with('active_users', qb.select('users').indexedBy('idx_users_status').where('status = ?', 'active'))
+      .union(qb.select('archived_users').notIndexed())
+      .getQueryAll()
+
+    expect(result.query).toEqual(
+      'WITH active_users AS (SELECT * FROM users INDEXED BY idx_users_status WHERE status = ?) SELECT * FROM active_users UNION SELECT * FROM archived_users NOT INDEXED'
+    )
+    expect(result.arguments).toEqual(['active'])
   })
 })

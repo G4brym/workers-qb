@@ -292,6 +292,29 @@ describe('Schema-aware DELETE type checking', () => {
 })
 
 // =============================================================================
+// Tests: Schema-Aware INDEXED BY
+// =============================================================================
+
+describe('Schema-aware INDEXED BY', () => {
+  it('should keep schema-inferred result types when indexedBy is set', async () => {
+    const qb = new SchemaQueryBuilder()
+
+    const result = await qb
+      .fetchOne({ tableName: 'users', fields: ['id', 'name'], indexedBy: 'idx_users_name' })
+      .execute()
+    expectTypeOf<NonNullable<typeof result.results>['name']>().toEqualTypeOf<string>()
+  })
+
+  it('should accept indexedBy in fetchAll, update and delete', async () => {
+    const qb = new SchemaQueryBuilder()
+
+    qb.fetchAll({ tableName: 'users', indexedBy: false })
+    qb.update({ tableName: 'users', data: { name: 'Jane' }, where: 'id = 1', indexedBy: 'idx_users_email' })
+    qb.delete({ tableName: 'users', where: 'id = 1', indexedBy: false })
+  })
+})
+
+// =============================================================================
 // Tests: Async vs Sync Query Builder
 // =============================================================================
 

@@ -64,10 +64,13 @@ export type Join = {
   table: string | Raw | SelectAll | SelectBuilder<any, any, any>
   on: SqlExpression
   alias?: string
+  indexedBy?: string | false
 }
 
 export type SelectOne = {
   tableName: string
+  /** SQLite only. An index name renders INDEXED BY <name>; false renders NOT INDEXED */
+  indexedBy?: string | false
   fields?: SqlExpression | Array<SqlExpression>
   where?: Where
   join?: Join | Array<Join>
@@ -144,6 +147,7 @@ export type InsertWithoutReturning = Omit<Insert, 'returning'>
 
 export type Update = {
   tableName: string
+  indexedBy?: string | false
   data: DefaultObject
   where?: Where
   returning?: SqlExpression | Array<SqlExpression>
@@ -157,6 +161,7 @@ export type UpdateWithoutReturning = Omit<Update, 'returning'>
 
 export type Delete = {
   tableName: string
+  indexedBy?: string | false
   where: Where // This field is optional, but is kept required in type to warn users of delete without where
   returning?: SqlExpression | Array<SqlExpression>
   orderBy?: SqlExpression | Array<SqlExpression> | Record<string, OrderTypes | `${OrderTypes}`>
@@ -260,6 +265,7 @@ export type TypedSelectOne<
   F extends ColumnName<S, T> = ColumnName<S, T>,
 > = {
   tableName: T
+  indexedBy?: string | false
   fields?: F[] | F | '*'
   where?: Where
   join?: Join | Array<Join>
@@ -301,6 +307,7 @@ export type TypedInsert<S extends TableSchema, T extends TableName<S>> = {
  */
 export type TypedUpdate<S extends TableSchema, T extends TableName<S>> = {
   tableName: T
+  indexedBy?: string | false
   data: Partial<S[T]>
   where?: Where
   returning?: Array<ColumnName<S, T> | Raw> | ColumnName<S, T> | Raw | '*'
@@ -312,6 +319,7 @@ export type TypedUpdate<S extends TableSchema, T extends TableName<S>> = {
  */
 export type TypedDelete<S extends TableSchema, T extends TableName<S>> = {
   tableName: T
+  indexedBy?: string | false
   where: Where
   returning?: Array<ColumnName<S, T> | Raw> | ColumnName<S, T> | Raw | '*'
   orderBy?:
