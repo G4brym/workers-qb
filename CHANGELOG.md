@@ -1,5 +1,11 @@
 # workers-qb
 
+## 1.16.0
+
+### Minor Changes
+
+- [#171](https://github.com/G4brym/workers-qb/pull/171) [`30d5635`](https://github.com/G4brym/workers-qb/commit/30d56353d259a97e54cc328e9f963ac85393e2a9) Thanks [@Naapperas](https://github.com/Naapperas)! - Add SQLite `INDEXED BY` / `NOT INDEXED` support via the `indexedBy` option (an index name, or `false`) on SELECT, JOIN, UPDATE, and DELETE queries, plus `.indexedBy()` and `.notIndexed()` on `SelectBuilder`
+
 ## 1.15.0
 
 ### Minor Changes
