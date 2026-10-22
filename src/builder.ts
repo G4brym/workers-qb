@@ -519,8 +519,9 @@ export class QueryBuilder<
     }
 
     return (
-      `UPDATE ${this._onConflict(params.onConflict)}${renderIdentifier(params.tableName, 'table name')}
-       SET ${set.join(', ')}` +
+      `UPDATE ${this._onConflict(params.onConflict)}${renderIdentifier(params.tableName, 'table name')}` +
+      this._indexedBy(params.indexedBy) +
+      ` SET ${set.join(', ')}` +
       whereString +
       this._returning(params.returning)
     )
@@ -530,6 +531,7 @@ export class QueryBuilder<
     return (
       `DELETE
             FROM ${renderIdentifier(params.tableName, 'table name')}` +
+      this._indexedBy(params.indexedBy) +
       this._where(params.where) +
       this._orderBy(params.orderBy) +
       this._limit(params.limit) +
@@ -572,6 +574,7 @@ export class QueryBuilder<
       cteClause +
       `SELECT ${this._distinct(params.distinct)}${this._fields(params.fields)}
        FROM ${renderIdentifier(params.tableName, 'table name')}` +
+      this._indexedBy(params.indexedBy) +
       this._join(params.join, context) +
       this._where(params.where, context) +
       this._groupBy(params.groupBy) +
@@ -603,6 +606,13 @@ export class QueryBuilder<
     if (!Array.isArray(value)) return value instanceof Raw ? renderRaw(value) : renderRawSql(value)
 
     return value.map((item) => (item instanceof Raw ? renderRaw(item) : renderRawSql(item))).join(', ')
+  }
+
+  protected _indexedBy(value?: string | false): string {
+    if (value == null) return ''
+    if (value === false) return ' NOT INDEXED'
+
+    return ` INDEXED BY ${renderIdentifier(value, 'INDEXED BY')}`
   }
 
   protected _where(
@@ -760,6 +770,13 @@ export class QueryBuilder<
 
     const joinQuery: Array<string> = []
     joinArray.forEach((item: Join) => {
+      if (item.indexedBy != null && typeof item.table !== 'string') {
+        throw new InvalidConfigurationError(
+          'indexedBy can only be used when joining a table by name',
+          'Set indexedBy on the subquery itself, or write the index clause inside the Raw expression.'
+        )
+      }
+
       const type = item.type ? `${renderJoinType(item.type)} ` : ''
       let tableSql: string
       if (typeof item.table === 'string') {
@@ -774,15 +791,13 @@ export class QueryBuilder<
         // and push its arguments to context.queryArgs.
         tableSql = `(${context.toSQLCompiler(item.table, context.queryArgs)})`
       }
+      const alias = item.alias ? ` AS ${renderIdentifier(item.alias, 'JOIN alias')}` : ''
+      const joinSql = `${type}JOIN ${tableSql}${alias}${this._indexedBy(item.indexedBy)}`
       // NATURAL joins and joins with an empty ON clause don't include an ON clause
       if (item.type === JoinTypes.NATURAL || !item.on) {
-        joinQuery.push(
-          `${type}JOIN ${tableSql}${item.alias ? ` AS ${renderIdentifier(item.alias, 'JOIN alias')}` : ''}`
-        )
+        joinQuery.push(joinSql)
       } else {
-        joinQuery.push(
-          `${type}JOIN ${tableSql}${item.alias ? ` AS ${renderIdentifier(item.alias, 'JOIN alias')}` : ''} ON ${renderJoinCondition(item.on)}`
-        )
+        joinQuery.push(`${joinSql} ON ${renderJoinCondition(item.on)}`)
       }
     })
 

@@ -4,7 +4,7 @@ This section delves into advanced query building features of `workers-qb`, allow
 
 ## SQL Identifiers and Expressions
 
-Table names, column names, aliases, CTE names, join types, and ordering directions are validated before SQL is generated. Never pass request-controlled values directly into these structural options; map them to an allowlist of known identifiers.
+Table names, column names, aliases, index names, CTE names, join types, and ordering directions are validated before SQL is generated. Never pass request-controlled values directly into these structural options; map them to an allowlist of known identifiers.
 
 Plain `groupBy`, `distinct`, and `returning` strings must be identifiers. Plain `orderBy` strings must be identifiers with an optional `ASC` or `DESC` direction, and join conditions must use simple identifier or numeric comparisons joined by `AND` or `OR`. Wrap more complex, trusted expressions in `Raw`.
 
@@ -1197,6 +1197,48 @@ const plan = await qb.select('users')
 console.log(plan.results);
 // Shows SQLite's EXPLAIN QUERY PLAN output
 ```
+
+## Forcing an Index (INDEXED BY / NOT INDEXED)
+
+SQLite (D1 and Durable Objects) can be told which index to use for a table with `INDEXED BY`, or to use no index with `NOT INDEXED`. Use `.indexedBy()` / `.notIndexed()` on the select builder, or the `indexedBy` option (an index name, or `false` for `NOT INDEXED`) in `fetchAll`, `fetchOne`, joins, `update`, and `delete`:
+
+```typescript
+// SELECT * FROM users INDEXED BY idx_users_email WHERE email = ?
+const user = await qb.select('users')
+  .indexedBy('idx_users_email')
+  .where('email = ?', 'john@example.com')
+  .execute();
+
+// SELECT * FROM users NOT INDEXED WHERE status = ?
+const users = await qb.select('users')
+  .notIndexed()
+  .where('status = ?', 'active')
+  .execute();
+
+// SELECT * FROM users INNER JOIN orders AS o INDEXED BY idx_orders_user_id ON o.user_id = users.id
+const orders = await qb.select('users')
+  .innerJoin({ table: 'orders', alias: 'o', indexedBy: 'idx_orders_user_id', on: 'o.user_id = users.id' })
+  .execute();
+
+// UPDATE users INDEXED BY idx_users_email SET status = ?2 WHERE email = ?1
+await qb.update({
+  tableName: 'users',
+  indexedBy: 'idx_users_email',
+  data: { status: 'verified' },
+  where: { conditions: 'email = ?1', params: ['john@example.com'] },
+}).execute();
+
+// DELETE FROM sessions NOT INDEXED WHERE expires_at < CURRENT_TIMESTAMP
+await qb.delete({
+  tableName: 'sessions',
+  indexedBy: false,
+  where: 'expires_at < CURRENT_TIMESTAMP',
+}).execute();
+```
+
+`INDEXED BY` is a requirement, not a hint. SQLite rejects the query if the index doesn't exist, belongs to a different table, or can't be used at all (for example, a partial index whose condition the query doesn't match). When the `WHERE` clause doesn't constrain the indexed columns, SQLite still uses the index by scanning all of it, which can be slower than the plan it would otherwise choose. SQLite recommends `INDEXED BY` for locking down known-good query plans rather than for tuning, so check plans with `explain()` first.
+
+The clause is only allowed on tables referenced by name: `indexedBy` on a joined subquery or `Raw` table throws an error, so set it on the subquery's own builder instead. `INSERT` doesn't support it, and PostgreSQL has no equivalent and rejects these queries.
 
 ## Transactions
 

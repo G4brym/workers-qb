@@ -231,4 +231,31 @@ describe('Delete Builder', () => {
     expect(result.arguments).toEqual([''])
     expect(result.fetchType).toEqual('ALL')
   })
+
+  it('delete with indexed by', async () => {
+    const result = new QuerybuilderTest().delete({
+      tableName: 'testTable',
+      indexedBy: 'idx_field',
+      where: {
+        conditions: 'field = ?1',
+        params: ['test'],
+      },
+    })
+
+    expect(result.query).toEqual('DELETE FROM testTable INDEXED BY idx_field WHERE field = ?1')
+    expect(result.arguments).toEqual(['test'])
+    expect(result.fetchType).toEqual('ALL')
+  })
+
+  it('delete with not indexed', async () => {
+    const result = new QuerybuilderTest().delete({
+      tableName: 'testTable',
+      indexedBy: false,
+      where: 'field = false',
+    })
+
+    expect(result.query).toEqual('DELETE FROM testTable NOT INDEXED WHERE field = false')
+    expect(result.arguments).toEqual(undefined)
+    expect(result.fetchType).toEqual('ALL')
+  })
 })

@@ -177,6 +177,29 @@ const latestPerDepartment = await qb.select('employees')
 // SELECT DISTINCT ON (department) department, name, created_at FROM employees
 ```
 
+### INDEXED BY / NOT INDEXED (SQLite only)
+
+```typescript
+// Force an index (the query fails if it doesn't exist or can't be used)
+const user = await qb.select('users')
+  .indexedBy('idx_users_email')
+  .where('email = ?', email)
+  .one();
+// SELECT * FROM users INDEXED BY idx_users_email WHERE email = ? LIMIT 1
+
+// Forbid index use
+const users = await qb.select('users').notIndexed().all();
+
+// The indexedBy option (index name, or false for NOT INDEXED) also works
+// in fetchAll/fetchOne, joins, update, and delete
+await qb.update({
+  tableName: 'users',
+  indexedBy: 'idx_users_email',
+  data: { status: 'verified' },
+  where: { conditions: 'email = ?', params: [email] },
+}).execute();
+```
+
 ### JOINs
 
 ```typescript

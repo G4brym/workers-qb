@@ -411,3 +411,97 @@ describe('Pagination', () => {
     await qb.dropTable({ tableName: 'paginateTest4' }).execute()
   })
 })
+
+describe('INDEXED BY', () => {
+  it('forces and forbids indexes in SELECT, JOIN, UPDATE and DELETE', async () => {
+    const qb = new D1QB(env.DB)
+
+    await qb
+      .createTable({
+        tableName: 'indexedUsers',
+        schema: 'id INTEGER PRIMARY KEY, email TEXT NOT NULL, status TEXT NOT NULL',
+        ifNotExists: true,
+      })
+      .execute()
+    await qb
+      .createTable({
+        tableName: 'indexedOrders',
+        schema: 'id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, total INTEGER NOT NULL',
+        ifNotExists: true,
+      })
+      .execute()
+    await qb.raw({ query: 'CREATE INDEX idx_indexed_users_email ON indexedUsers (email)' }).execute()
+    await qb.raw({ query: 'CREATE INDEX idx_indexed_orders_user_id ON indexedOrders (user_id)' }).execute()
+    await qb
+      .insert({
+        tableName: 'indexedUsers',
+        data: [
+          { id: 1, email: 'a@example.com', status: 'active' },
+          { id: 2, email: 'b@example.com', status: 'active' },
+        ],
+      })
+      .execute()
+    await qb
+      .insert({
+        tableName: 'indexedOrders',
+        data: [
+          { id: 1, user_id: 1, total: 10 },
+          { id: 2, user_id: 2, total: 20 },
+        ],
+      })
+      .execute()
+
+    expect(
+      (await qb.select('indexedUsers').indexedBy('idx_indexed_users_email').where('email = ?', 'a@example.com').all())
+        .results
+    ).toEqual([{ id: 1, email: 'a@example.com', status: 'active' }])
+    expect((await qb.select('indexedUsers').notIndexed().where('status = ?', 'active').count()).results?.total).toBe(2)
+    expect(
+      (
+        await qb
+          .select('indexedUsers')
+          .fields(['indexedUsers.id', 'o.total'])
+          .innerJoin({
+            table: 'indexedOrders',
+            alias: 'o',
+            indexedBy: 'idx_indexed_orders_user_id',
+            on: 'o.user_id = indexedUsers.id',
+          })
+          .orderBy('indexedUsers.id')
+          .all()
+      ).results
+    ).toEqual([
+      { id: 1, total: 10 },
+      { id: 2, total: 20 },
+    ])
+    expect(
+      (
+        await qb
+          .update({
+            tableName: 'indexedUsers',
+            indexedBy: 'idx_indexed_users_email',
+            data: { status: 'inactive' },
+            where: { conditions: 'email = ?', params: ['a@example.com'] },
+            returning: 'id',
+          })
+          .execute()
+      ).results
+    ).toEqual([{ id: 1 }])
+    expect(
+      (
+        await qb
+          .delete({
+            tableName: 'indexedUsers',
+            indexedBy: 'idx_indexed_users_email',
+            where: { conditions: 'email = ?', params: ['b@example.com'] },
+            returning: 'id',
+          })
+          .execute()
+      ).results
+    ).toEqual([{ id: 2 }])
+    await expect(qb.select('indexedUsers').indexedBy('idx_missing').all()).rejects.toThrow('no such index: idx_missing')
+
+    await qb.dropTable({ tableName: 'indexedOrders' }).execute()
+    await qb.dropTable({ tableName: 'indexedUsers' }).execute()
+  })
+})

@@ -92,6 +92,46 @@ export class SelectBuilder<
     )
   }
 
+  /**
+   * Force SQLite to use a specific index on the main table (INDEXED BY).
+   * The query fails if the index doesn't exist or can't be used. SQLite only (D1 and Durable Objects).
+   *
+   * @param indexName - Name of an index on the selected table
+   *
+   * @example
+   * qb.select('users').indexedBy('idx_users_email').where('email = ?', email).execute()
+   * // SELECT * FROM users INDEXED BY idx_users_email WHERE email = ?
+   */
+  indexedBy(indexName: string): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
+      {
+        ...this._options,
+        indexedBy: indexName,
+      },
+      this._fetchAll,
+      this._fetchOne
+    )
+  }
+
+  /**
+   * Prevent SQLite from using any index on the main table (NOT INDEXED).
+   * SQLite only (D1 and Durable Objects).
+   *
+   * @example
+   * qb.select('users').notIndexed().where('status = ?', 'active').execute()
+   * // SELECT * FROM users NOT INDEXED WHERE status = ?
+   */
+  notIndexed(): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
+    return new SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync>(
+      {
+        ...this._options,
+        indexedBy: false,
+      },
+      this._fetchAll,
+      this._fetchOne
+    )
+  }
+
   where(
     conditions: string | Array<string>,
     params?: Primitive | Primitive[]
@@ -611,6 +651,7 @@ export class SelectBuilder<
     table: string
     on: string | Raw
     alias?: string
+    indexedBy?: string | false
   }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return this.join({ ...params, type: JoinTypes.INNER })
   }
@@ -622,6 +663,7 @@ export class SelectBuilder<
     table: string
     on: string | Raw
     alias?: string
+    indexedBy?: string | false
   }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return this.join({ ...params, type: JoinTypes.LEFT })
   }
@@ -633,6 +675,7 @@ export class SelectBuilder<
     table: string
     on: string | Raw
     alias?: string
+    indexedBy?: string | false
   }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return this.join({ ...params, type: JoinTypes.RIGHT })
   }
@@ -644,6 +687,7 @@ export class SelectBuilder<
     table: string
     on: string | Raw
     alias?: string
+    indexedBy?: string | false
   }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return this.join({ ...params, type: JoinTypes.FULL })
   }
@@ -654,6 +698,7 @@ export class SelectBuilder<
   crossJoin(params: {
     table: string
     alias?: string
+    indexedBy?: string | false
   }): SelectBuilder<Schema, GenericResultWrapper, GenericResult, IsAsync> {
     return this.join({ ...params, type: JoinTypes.CROSS, on: '' })
   }

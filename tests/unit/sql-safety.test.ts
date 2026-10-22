@@ -190,6 +190,26 @@ describe('SQL fragment safety', () => {
     ).toThrow(InvalidConfigurationError)
   })
 
+  it('rejects unsafe index names', () => {
+    const qb = new QuerybuilderTest()
+
+    expect(() => qb.select('users').indexedBy('idx_users_email; DELETE FROM users; --').toSQL()).toThrow(
+      InvalidConfigurationError
+    )
+    expect(() =>
+      qb
+        .select('users')
+        .join({ table: 'accounts', indexedBy: 'idx; DELETE', on: 'users.id = accounts.user_id' })
+        .toSQL()
+    ).toThrow(InvalidConfigurationError)
+    expect(() => qb.update({ tableName: 'users', indexedBy: 'idx; DELETE', data: { name: 'Alice' } })).toThrow(
+      InvalidConfigurationError
+    )
+    expect(() => qb.delete({ tableName: 'users', indexedBy: 'idx; DELETE', where: 'id = 1' })).toThrow(
+      InvalidConfigurationError
+    )
+  })
+
   it('rejects unsafe CTE names and columns', () => {
     const qb = new QuerybuilderTest()
 
